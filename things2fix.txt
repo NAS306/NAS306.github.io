@@ -1,0 +1,72 @@
+모듈/의존성 구조
+
+순환 의존성: Game.js가 main.js의 deathSFXPool을 import, main.js는 Game를 import. 오디오 풀을 별도 모듈(sfx.js 등)로 분리.
+전역 의존성: World.js에서 bulletPool/explosionPool를 전역으로 가정. 명시적 import 또는 의존성 주입으로 교체.
+누락된 import: World.js에서 Turret, Tank, clamp 등 사용부에 대한 import 정리.
+
+
+경로/에셋 로딩
+
+에셋 경로 불일치: main.js("./assets/…") vs Bullet.js("../assets/…"). 기준 경로를 상수/헬퍼로 통일(import.meta.url 기반 권장).
+스프라이트 선로드 중복: Game.init와 main.preloadSprites 양쪽에서 Explosion/Bullet 스프라이트 로드. 한 곳으로 통합.
+
+
+게임 루프/로직
+
+Ending 연출에서 폭발 update 2회 호출(중복 업데이트). 한 번만 호출하도록 정리.
+고정 타임스텝 누적기 안전장치 부재(스파이크 시 무한 루프 위험). while 반복 횟수 상한(예: 5~8회) 또는 dt 클램프 추가.
+respawn 시 상태 초기화 부족: 무적 시간, fireCooldown 초기화, 속도(vx, vy) 리셋 필요.
+
+
+AI/성능
+
+최근접 대상 선택 시 sort 사용(O(n log n)). 단순 선형 스캔(O(n))으로 최적화.
+AI 파라미터 상수 하드코딩 분산. 상수 모듈로 모아 밸런싱 관리 용이하게.
+
+
+오디오
+
+AudioPool.play() 실패 처리 누락(브라우저 정책). play() Promise catch 및 사용자 제스처 이후 활성화 보장 필요.
+공간감 감쇠 로직 Y축만 사용. 화면 밖 판정/좌우 팬 고려(WebAudio로 대체 권장).
+
+
+렌더링/카메라
+
+World.draw에서 clamp 사용 시 import 누락 가능성. 유틸에서 명시적 import.
+카메라 이징 프레임 종속(0.05). dt 기반 보간(lerp/exp smoothing)으로 교체 권장.
+
+
+엔티티 기본값/업그레이드
+
+Tank.angle 초기값 300(rad) 비정상. 합리적 기본값(예: -Math.PI/2)로 수정.
+World.applyUpgrades, Turret/Tank 업그레이드 버튼 핸들러에서 null 체크 및 중복 클릭 방지 필요.
+Turret.tryShoot의 team/가청범위 조건 검토(아군 포탑음 과다 재생 방지).
+
+
+풀/객체 생명주기
+
+Pool.spawn 고갈 시 새 객체 생성 로그만 출력. 모니터링용 메트릭/상한선 또는 풀 크기 확장 정책 마련.
+Explosion.update에서 active 체크/수명 종료 처리 정리 완료 여부 확인(초기 버전의 누락 구간 점검).
+
+
+입력/UX
+
+BGM 페이드인 setInterval 정리 누락 시 중첩 가능. 시작 시 한 번만 설정, 페이지 전환/정지 시 정리.
+로딩 진행 바가 실제 로딩과 분리된 연출. 실제 에셋 진행률과 동기화하거나 명확한 “연출” 표기.
+
+
+코드 품질/일관성
+
+매직 넘버(거리/속도/쿨다운) 상수화/파일로 분리.
+예외/에러 로그 일관화(console.warn/console.error 기준 합의).
+
+
+테스트/디버그
+
+충돌 처리, 스폰, 특수 무기, 오디오 재생에 대한 최소 단위 테스트/통합 테스트 부재. 핵심 로직에 테스트 추가 권장.
+디버그 HUD(프레임, 풀 사용량, 탄/폭발 활성 수) 옵션 제공으로 튜닝 용이성 향상.
+
+
+포커스
+
+게임이 포커스를 잃은 후 시간이 지나면 포커스가 돌아왔을 때 게임이 멈추는 경우가 있음.
