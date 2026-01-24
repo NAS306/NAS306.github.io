@@ -28,7 +28,7 @@
       }
       const pathMap = {
         red: "../assets/sprites/bullets/projectile_red.png",
-        blue: "../assets/sprites/bullets/projectile_blue.png"
+        blue: "../assets/sprites/bullets/projectile_blue.png",
       };
       const path = pathMap[team];
       const img = new Image();
@@ -116,7 +116,7 @@
       if (_Explosion.sprite) return;
       const img = new Image();
       img.src = "../assets/sprites/explosion/explosion.png";
-      await new Promise((res) => img.onload = res);
+      await new Promise((res) => (img.onload = res));
       _Explosion.sprite = await createImageBitmap(img);
       console.log("\u2705 Explosion sprite loaded");
     }
@@ -164,7 +164,7 @@
         screenX - size / 2,
         screenY - size / 2,
         size,
-        size
+        size,
       );
       ctx.globalAlpha = 1;
       ctx.restore();
@@ -194,246 +194,271 @@
     if (targetSpeed > 50) {
       leadMultiplier += (targetSpeed - 50) / 200;
     }
-    const finalPredictedX = shooter.x + (predictedX - shooter.x) * leadMultiplier;
-    const finalPredictedY = shooter.y + (predictedY - shooter.y) * leadMultiplier;
+    const finalPredictedX =
+      shooter.x + (predictedX - shooter.x) * leadMultiplier;
+    const finalPredictedY =
+      shooter.y + (predictedY - shooter.y) * leadMultiplier;
     return Math.atan2(finalPredictedY - shooter.y, finalPredictedX - shooter.x);
   }
 
   // ai/AIController.js
   function handleTankAI(tank, dt, world) {
-    if (tank.isAce) {
-      handleAceTankAI(tank, dt, world);
-      return;
+    // Determine forward direction based on team
+    let forwardDir = 1;
+    if (tank.team === "blue") {
+      forwardDir = -1;
     }
-    const forwardDir = tank.team === "blue" ? -1 : 1;
+    
     const moveSpeed = tank.speed;
-    if (tank.strafeDir == null) tank.strafeDir = Math.random() < 0.5 ? -1 : 1;
-    if (tank.strafeTimer === void 0) {
+    
+    // Initialize strafe direction if not set
+    if (tank.strafeDir === undefined || tank.strafeDir === null) {
+      const randomValue = Math.random();
+      if (randomValue < 0.5) {
+        tank.strafeDir = -1;
+      } else {
+        tank.strafeDir = 1;
+      }
+    }
+    
+    // Initialize strafe timer if not set
+    if (tank.strafeTimer === undefined || tank.strafeTimer === null) {
       tank.strafeTimer = 0.5 + Math.random() * 1.5;
     } else {
       tank.strafeTimer -= dt;
-      if (tank.strafeTimer <= 0) {
-        tank.strafeDir = Math.random() < 0.5 ? -1 : 1;
+      const strafeExpired = tank.strafeTimer <= 0;
+      if (strafeExpired) {
+        const randomValue = Math.random();
+        if (randomValue < 0.5) {
+          tank.strafeDir = -1;
+        } else {
+          tank.strafeDir = 1;
+        }
         tank.strafeTimer = 0.5 + Math.random() * 1.5;
       }
     }
-    if (tank.orbitDir == null) tank.orbitDir = Math.random() < 0.5 ? 1 : -1;
-    if (tank.orbitSwitchTimer === void 0) {
+    
+    // Initialize orbit direction if not set
+    if (tank.orbitDir === undefined || tank.orbitDir === null) {
+      const randomValue = Math.random();
+      if (randomValue < 0.5) {
+        tank.orbitDir = 1;
+      } else {
+        tank.orbitDir = -1;
+      }
+    }
+    
+    // Initialize orbit switch timer if not set
+    if (tank.orbitSwitchTimer === undefined || tank.orbitSwitchTimer === null) {
       tank.orbitSwitchTimer = 1 + Math.random() * 2;
     } else {
       tank.orbitSwitchTimer -= dt;
-      if (tank.orbitSwitchTimer <= 0) {
-        tank.orbitDir *= -1;
+      const orbitExpired = tank.orbitSwitchTimer <= 0;
+      if (orbitExpired) {
+        tank.orbitDir = tank.orbitDir * -1;
         tank.orbitSwitchTimer = 1 + Math.random() * 2;
       }
     }
-    const targets = world.tanks.filter((t) => t.team !== tank.team && t.hp > 0);
-    for (const s of world.strongholds) {
-      if (s.hp > 0 && s.owner !== tank.team) {
-        targets.push({ x: s.x, y: s.y, isStronghold: true, vx: 0, vy: 0 });
+    
+    // Initialize target selection timer if not set
+    if (tank.targetSelectionTimer === undefined || tank.targetSelectionTimer === null) {
+      tank.targetSelectionTimer = 10;
+    } else {
+      tank.targetSelectionTimer -= dt;
+    }
+    
+    // Build target list: find all targets within engage range
+    const targetsInRange = [];
+    
+    for (const t of world.tanks) {
+      const isEnemy = t.team !== tank.team;
+      const isAlive = t.hp > 0;
+      const distToTank = distance(t, tank);
+      const inRange = distToTank <= 450;
+      if (isEnemy && isAlive && inRange) {
+        targetsInRange.push(t);
       }
     }
-    const enemyBase = world.basePos[tank.team === "blue" ? "red" : "blue"];
-    targets.push({ x: enemyBase.x, y: enemyBase.y, isBase: true, vx: 0, vy: 0 });
+    
+    for (const s of world.strongholds) {
+      const isAlive = s.hp > 0 && s.isCapturing !== true;
+      const isNotOwned = s.owner !== tank.team;
+      const distToStronghold = distance(s, tank);
+      const inRange = distToStronghold <= 450;
+      if (isAlive && isNotOwned && inRange) {
+        // push the actual stronghold object so owner/hp are available later
+        targetsInRange.push(s);
+      }
+    }
+    
+    let enemyBaseTeam = "blue";
+    if (tank.team === "blue") {
+      enemyBaseTeam = "red";
+    }
+    const enemyBase = world.basePos[enemyBaseTeam];
+    const distToBase = distance(enemyBase, tank);
+    const baseInRange = distToBase <= 450;
+    if (baseInRange) {
+      const baseTarget = {
+        x: enemyBase.x,
+        y: enemyBase.y,
+        isBase: true,
+        vx: 0,
+        vy: 0
+      };
+      targetsInRange.push(baseTarget);
+    }
+    
+    // Select or update target randomly
     let nearest = null;
     let distToTarget = Infinity;
-    if (targets.length > 0) {
-      targets.sort((a, b) => distance(a, tank) - distance(b, tank));
-      nearest = targets[0];
+    
+    const shouldSelectNewTarget = tank.targetSelectionTimer <= 0 || !tank.currentTarget || tank.currentTarget.hp <= 0;
+    
+    if (shouldSelectNewTarget) {
+      // Select random target from those in range
+      if (targetsInRange.length > 0) {
+        const randomIndex = Math.floor(Math.random() * targetsInRange.length);
+        tank.currentTarget = targetsInRange[randomIndex];
+        tank.targetSelectionTimer = 10;
+      } else {
+        tank.currentTarget = null;
+        tank.targetSelectionTimer = 1;
+      }
+    }
+    
+    // Use current target if valid
+    if (tank.currentTarget) {
+      const targetAlive = tank.currentTarget.hp === undefined || tank.currentTarget.hp > 0;
+      const targetInRange = distance(tank.currentTarget, tank) <= 450;
+      
+      // Check if stronghold is still enemy-owned
+      let targetValid = true;
+      if (tank.currentTarget.isStronghold === true) {
+        const stillEnemyOwned = tank.currentTarget.owner !== tank.team;
+        targetValid = stillEnemyOwned;
+      }
+      
+      if (targetAlive && targetInRange && targetValid) {
+        nearest = tank.currentTarget;
+        distToTarget = distance(nearest, tank);
+      } else {
+        tank.currentTarget = null;
+        tank.targetSelectionTimer = 0;
+      }
+    }
+    
+    // Fallback to random target from range if no valid current target
+    if (!nearest && targetsInRange.length > 0) {
+      const randomIndex = Math.floor(Math.random() * targetsInRange.length);
+      nearest = targetsInRange[randomIndex];
       distToTarget = distance(nearest, tank);
     }
-    let moveX = 0, moveY = 0;
+    
+    // Initialize movement
+    let moveX = 0;
+    let moveY = 0;
+    
+    // Engagement parameters
     const DESIRED_MIN = 250;
     const DESIRED_MAX = 350;
     const ENGAGE_MAX = 450;
     const ORBIT_FACTOR = 0.75;
     const RADIAL_GAIN = 0.45;
     const RADIAL_CAP = moveSpeed * 0.6;
-    if (nearest && distToTarget <= ENGAGE_MAX) {
+    
+    // Determine movement based on distance to nearest target
+    const inEngageRange = nearest && distToTarget <= ENGAGE_MAX;
+    if (inEngageRange) {
+      // Calculate direction vector from tank to target
       const dx = nearest.x - tank.x;
       const dy = nearest.y - tank.y;
-      const dist = Math.max(Math.hypot(dx, dy), 1e-4);
-      const rx = dx / dist;
-      const ry = dy / dist;
+      const distToNearest = Math.max(Math.hypot(dx, dy), 1e-4);
+      
+      // Normalize direction vector
+      const rx = dx / distToNearest;
+      const ry = dy / distToNearest;
+      
+      // Calculate tangent vector for orbit (perpendicular to radial direction)
       const tx = tank.orbitDir * -ry;
       const ty = tank.orbitDir * rx;
+      
+      // Orbital movement component
       moveX = tx * moveSpeed * ORBIT_FACTOR;
       moveY = ty * moveSpeed * ORBIT_FACTOR;
+      
+      // Radial adjustment to maintain distance
       let radial = 0;
-      if (dist < DESIRED_MIN) {
-        const err = (DESIRED_MIN - dist) / DESIRED_MIN;
-        radial = -Math.min(RADIAL_CAP, moveSpeed * RADIAL_GAIN * err);
-      } else if (dist > DESIRED_MAX) {
-        const err = (dist - DESIRED_MAX) / DESIRED_MAX;
-        radial = Math.min(RADIAL_CAP, moveSpeed * RADIAL_GAIN * err);
+      const tooClose = distToNearest < DESIRED_MIN;
+      const tooFar = distToNearest > DESIRED_MAX;
+      
+      if (tooClose) {
+        const errorAmount = (DESIRED_MIN - distToNearest) / DESIRED_MIN;
+        const pullAwayForce = moveSpeed * RADIAL_GAIN * errorAmount;
+        radial = -Math.min(RADIAL_CAP, pullAwayForce);
+      } else if (tooFar) {
+        const errorAmount = (distToNearest - DESIRED_MAX) / DESIRED_MAX;
+        const chaseForce = moveSpeed * RADIAL_GAIN * errorAmount;
+        radial = Math.min(RADIAL_CAP, chaseForce);
       }
-      moveX += rx * radial;
-      moveY += ry * radial;
-      if (moveX !== 0 || moveY !== 0) {
+      
+      // Add radial component
+      moveX = moveX + rx * radial;
+      moveY = moveY + ry * radial;
+      
+      // Update tank angle if moving
+      const hasMovement = moveX !== 0 || moveY !== 0;
+      if (hasMovement) {
         tank.angle = Math.atan2(moveY, moveX);
       }
-    } else if (nearest && distToTarget <= 1e3) {
-      const dx = nearest.x - tank.x;
-      const dy = nearest.y - tank.y;
-      const chaseAngle = Math.atan2(dy, dx);
-      tank.angle = chaseAngle;
-      moveX = Math.cos(chaseAngle) * moveSpeed + tank.strafeDir * moveSpeed * 0.3;
-      moveY = Math.sin(chaseAngle) * moveSpeed;
     } else {
-      tank.angle = forwardDir === -1 ? -Math.PI / 2 : Math.PI / 2;
-      moveY = forwardDir * moveSpeed;
-      moveX = (tank.strafeDir || 1) * moveSpeed * 0.4;
+      // Check if target is within general awareness range
+      const inAwarenessRange = nearest && distToTarget <= 2e3;
+      if (inAwarenessRange) {
+        // Chase mode: move toward target
+        const dx = nearest.x - tank.x;
+        const dy = nearest.y - tank.y;
+        const chaseAngle = Math.atan2(dy, dx);
+        tank.angle = chaseAngle;
+        
+        const cosChaseAngle = Math.cos(chaseAngle);
+        const sinChaseAngle = Math.sin(chaseAngle);
+        
+        moveX = cosChaseAngle * moveSpeed + tank.strafeDir * moveSpeed * 0.3;
+        moveY = sinChaseAngle * moveSpeed;
+      } else {
+        // Default movement: move forward in team direction
+        const isBlueTeam = tank.team === "blue";
+        if (isBlueTeam) {
+          tank.angle = -Math.PI / 2;
+        } else {
+          tank.angle = Math.PI / 2;
+        }
+        moveY = forwardDir * moveSpeed;
+        moveX = (tank.strafeDir || 1) * moveSpeed * 0.4;
+      }
     }
-    tank.x += moveX * dt;
-    tank.y += moveY * dt;
+    
+    // Apply movement
+    tank.x = tank.x + moveX * dt;
+    tank.y = tank.y + moveY * dt;
+    
+    // Handle targeting and firing
     if (nearest) {
-      if (!nearest.isStronghold && !nearest.isBase) {
+      const hasStronghold = nearest.isStronghold === true;
+      const hasBase = nearest.isBase === true;
+      
+      if (!hasStronghold && !hasBase) {
+        // It's a tank, use lead targeting
         tank.turretAngle = getLeadAngle(tank, nearest, 400);
       } else {
+        // It's a structure, aim directly
         tank.turretAngle = Math.atan2(nearest.y - tank.y, nearest.x - tank.x);
       }
-      if (distance(nearest, tank) < 500) {
-        tank.tryShoot(world);
-      }
-    }
-  }
-  function handleAceTankAI(tank, dt, world) {
-    const targets = world.tanks.filter((t) => t.team !== tank.team && t.hp > 0);
-    for (const s of world.strongholds) {
-      if (s.hp > 0 && s.owner !== tank.team) {
-        targets.push({ x: s.x, y: s.y, isStronghold: true, vx: 0, vy: 0 });
-      }
-    }
-    const enemyBase = world.basePos[tank.team === "blue" ? "red" : "blue"];
-    targets.push({ x: enemyBase.x, y: enemyBase.y, isBase: true, vx: 0, vy: 0 });
-    let nearest = null;
-    let distToTarget = Infinity;
-    if (targets.length > 0) {
-      targets.sort((a, b) => distance(a, tank) - distance(b, tank));
-      nearest = targets[0];
-      distToTarget = distance(nearest, tank);
-    }
-    if (tank.orbitDir == null) tank.orbitDir = Math.random() < 0.5 ? 1 : -1;
-    if (tank.orbitSwitchTimer === void 0) {
-      tank.orbitSwitchTimer = 2 + Math.random() * 3;
-    } else {
-      tank.orbitSwitchTimer -= dt;
-      if (tank.orbitSwitchTimer <= 0) {
-        tank.orbitDir *= -1;
-        tank.orbitSwitchTimer = 2 + Math.random() * 3;
-      }
-    }
-    const allies = world.tanks.filter((t) => t.team === tank.team && t !== tank && t.hp > 0);
-    let allyRepulsion = { x: 0, y: 0 };
-    for (const ally of allies) {
-      const dx = tank.x - ally.x;
-      const dy = tank.y - ally.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 200) {
-        const repulsion = (200 - dist) / 200;
-        allyRepulsion.x += dx / dist * repulsion * tank.speed;
-        allyRepulsion.y += dy / dist * repulsion * tank.speed;
-      }
-    }
-    let dodgeX = 0, dodgeY = 0;
-    let threatLevel = 0;
-    const bulletGroups = {};
-    for (const bullet of world.bulletPool.pool) {
-      if (!bullet.active || bullet.team === tank.team) continue;
-      const dx = tank.x - bullet.x;
-      const dy = tank.y - bullet.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 150) continue;
-      const bulletDir = Math.atan2(bullet.vy, bullet.vx);
-      const toTankDir = Math.atan2(dy, dx);
-      const angleDiff = Math.abs(bulletDir - toTankDir);
-      if (dist < 350 && angleDiff < Math.PI / 8) {
-        const groupDir = Math.round(bulletDir / (Math.PI / 6)) * (Math.PI / 6);
-        if (!bulletGroups[groupDir]) {
-          bulletGroups[groupDir] = {
-            count: 0,
-            // 그룹 내 탄 개수
-            totalDist: 0,
-            // 평균 거리 산출용 누적
-            closest: dist,
-            // 가장 가까운 탄 거리
-            dir: bulletDir
-            // 대표 방향(최근 탄 방향)
-          };
-        }
-        bulletGroups[groupDir].count++;
-        bulletGroups[groupDir].totalDist += dist;
-        bulletGroups[groupDir].closest = Math.min(bulletGroups[groupDir].closest, dist);
-      }
-    }
-    let mostDangerousGroup = null;
-    let highestThreat = 0;
-    for (const groupDir in bulletGroups) {
-      const group = bulletGroups[groupDir];
-      const avgDist = group.totalDist / group.count;
-      const threat = (group.count * 0.5 + 0.5) * (1 - avgDist / 350);
-      if (threat > highestThreat) {
-        highestThreat = threat;
-        mostDangerousGroup = group;
-      }
-    }
-    if (mostDangerousGroup) {
-      threatLevel = highestThreat;
-      const bulletDir = mostDangerousGroup.dir;
-      const horizontal = Math.abs(Math.sin(bulletDir)) < 0.5;
-      if (horizontal) {
-        const upBlocked = Object.values(bulletGroups).some(
-          (g) => Math.abs(g.dir - Math.PI / 2) < Math.PI / 4
-        );
-        dodgeY = (upBlocked ? 1 : -1) * tank.speed;
-      } else {
-        const dodgeAngle = bulletDir + Math.PI / 2;
-        dodgeX = Math.cos(dodgeAngle) * tank.speed;
-        dodgeY = Math.sin(dodgeAngle) * tank.speed;
-      }
-    }
-    let moveX = 0, moveY = 0;
-    const DESIRED_MIN = 300;
-    const DESIRED_MAX = 400;
-    const ENGAGE_MAX = 500;
-    const ORBIT_FACTOR = 1;
-    if (nearest && distToTarget <= ENGAGE_MAX) {
-      const dx = nearest.x - tank.x;
-      const dy = nearest.y - tank.y;
-      const dist = Math.max(Math.hypot(dx, dy), 1e-4);
-      const rx = dx / dist;
-      const ry = dy / dist;
-      const tx = tank.orbitDir * -ry;
-      const ty = tank.orbitDir * rx;
-      moveX = tx * tank.speed * ORBIT_FACTOR;
-      moveY = ty * tank.speed * ORBIT_FACTOR;
-      if (dist < DESIRED_MIN) {
-        moveX -= rx * tank.speed * 0.5;
-        moveY -= ry * tank.speed * 0.5;
-      } else if (dist > DESIRED_MAX) {
-        moveX += rx * tank.speed * 0.3;
-        moveY += ry * tank.speed * 0.3;
-      }
-      tank.angle = Math.atan2(moveY, moveX);
-    } else if (nearest) {
-      const dx = nearest.x - tank.x;
-      const dy = nearest.y - tank.y;
-      const angle = Math.atan2(dy, dx);
-      moveX = Math.cos(angle) * tank.speed * 0.8;
-      moveY = Math.sin(angle) * tank.speed * 0.8;
-      tank.angle = angle;
-    }
-    if (threatLevel > 0) {
-      tank.x += (dodgeX + allyRepulsion.x * 0.5) * dt;
-      tank.y += (dodgeY + allyRepulsion.y * 0.5) * dt;
-    } else {
-      tank.x += (moveX + allyRepulsion.x) * dt;
-      tank.y += (moveY + allyRepulsion.y) * dt;
-    }
-    if (nearest) {
-      const predictedAngle = getLeadAngle(tank, nearest, 200);
-      tank.turretAngle = predictedAngle;
-      if (distToTarget < 550) {
+      
+      const fireRange = 500;
+      const canFire = distance(nearest, tank) < fireRange;
+      if (canFire) {
         tank.tryShoot(world);
       }
     }
@@ -448,7 +473,7 @@
       this.isPlayer = isPlayer;
       this.angle = 300;
       this.turretAngle = 0;
-      this.speed = supertank ? 300 : 100;
+      this.speed = supertank ? 300 : (isPlayer ? 125 : 100);
       this.hp = supertank ? 500 : 125;
       this.radius = 14;
       this.fireCooldown = 0;
@@ -467,8 +492,9 @@
      * - reloadTime: 발사 수 증가만큼 총 발사주기를 늘려 DPS 과도 상승 방지
      */
     applyUpgrade(upgradeBulletCount) {
-      this.bulletCount = upgradeBulletCount ? this.isPlayer ? 5 : 4 : 1;
-      this.reloadTime = (this.supertank ? 0.05 : 0.5) * (upgradeBulletCount ? 5 : 1);
+      this.bulletCount = upgradeBulletCount ? (this.isPlayer ? 5 : 4) : 1;
+      this.reloadTime =
+        (this.supertank ? 0.05 : 0.5) * (upgradeBulletCount ? 5 : 1);
     }
     /**
      * 프레임별 갱신
@@ -484,8 +510,16 @@
       if (this.fireCooldown > 0) {
         this.fireCooldown -= dt;
       }
-      this.x = clamp(this.x, world.bounds.minX + this.radius, world.bounds.maxX - this.radius);
-      this.y = clamp(this.y, world.bounds.minY + this.radius, world.bounds.maxY - this.radius);
+      this.x = clamp(
+        this.x,
+        world.bounds.minX + this.radius,
+        world.bounds.maxX - this.radius,
+      );
+      this.y = clamp(
+        this.y,
+        world.bounds.minY + this.radius,
+        world.bounds.maxY - this.radius,
+      );
       this.x += this.vx * dt;
       this.y += this.vy * dt;
       this.vx *= 0.92;
@@ -501,7 +535,8 @@
      */
     handlePlayerInput(dt, world, input) {
       const keys = input.keys;
-      let dx = 0, dy = 0;
+      let dx = 0,
+        dy = 0;
       if (keys["w"] || keys["arrowup"]) dy -= 1;
       if (keys["s"] || keys["arrowdown"]) dy += 1;
       if (keys["a"] || keys["arrowleft"]) dx -= 1;
@@ -551,7 +586,7 @@
           vx,
           vy,
           team: this.team,
-          isPlayerBullet: this.isPlayer
+          isPlayerBullet: this.isPlayer,
         });
       }
       shootSFXPool.playSpatial(this.y, world.camera.y, 0.4);
@@ -568,26 +603,21 @@
       ctx.save();
       ctx.translate(screenX, screenY);
       ctx.shadowBlur = 15;
-      ctx.shadowColor = this.isPlayer ? "rgba(255, 230, 0, 0.8)" : this.isAce ? "rgba(255, 0, 255, 0.8)" : this.team === "blue" ? "rgba(92, 179, 255, 0.8)" : "rgba(255, 106, 106, 0.8)";
+      ctx.shadowColor = this.isPlayer
+        ? "rgba(255, 230, 0, 0.8)"
+        : this.team === "blue"
+          ? "rgba(92, 179, 255, 0.8)"
+          : "rgba(255, 106, 106, 0.8)";
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       if (this.isPlayer) {
         ctx.fillStyle = "#ffe600ff";
-      } else if (this.isAce) {
-        ctx.fillStyle = "#ff00ff";
       } else {
         ctx.fillStyle = this.team === "blue" ? "#5cb3ff" : "#ff6a6a";
       }
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#fff";
-      ctx.stroke();
-      ctx.rotate(this.turretAngle);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(this.radius + 10, 0);
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = this.isPlayer ? "#fffed4ff" : this.team === "blue" ? "#a3d1ff" : "#ffa3a3";
       ctx.stroke();
       ctx.restore();
       ctx.shadowBlur = 0;
@@ -599,7 +629,12 @@
       ctx.fillStyle = "#000";
       ctx.fillRect(barX, barY, barWidth, barHeight);
       const hpRatio = this.hp / maxHP;
-      ctx.fillStyle = hpRatio > 0.6 ? "rgba(76, 193, 76, 1)" : hpRatio > 0.3 ? "rgba(200, 200, 71, 1)" : "rgba(204, 63, 63, 1)";
+      ctx.fillStyle =
+        hpRatio > 0.6
+          ? "rgba(76, 193, 76, 1)"
+          : hpRatio > 0.3
+            ? "rgba(200, 200, 71, 1)"
+            : "rgba(204, 63, 63, 1)";
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
       ctx.strokeStyle = "#4f4f4fff";
       ctx.lineWidth = 1;
@@ -629,19 +664,14 @@
       this.range = 800;
     }
     /**
-     * 업그레이드 반영
-     * - 외부(World.applyUpgrades)에서 호출되어 포탑 화력 조정
-     */
-    applyUpgrade(upgradeTurret) {
-      this.damage = upgradeTurret ? 125 : 75;
-    }
-    /**
      * 프레임별 갱신
      * - 가장 가까운 적 탱크 탐색 → 리드샷 각도 계산 → 사거리 내면 발사
      * - 발사 쿨다운 감소
      */
     update(dt, world) {
-      const enemies = world.tanks.filter((t) => t.team !== this.team && t.hp > 0);
+      const enemies = world.tanks.filter(
+        (t) => t.team !== this.team && t.hp > 0,
+      );
       if (enemies.length > 0) {
         enemies.sort((a, b) => distance(a, this) - distance(b, this));
         const target = enemies[0];
@@ -673,7 +703,7 @@
         vy,
         team: this.team,
         damage: this.damage,
-        radius: this.projectileRadius
+        radius: this.projectileRadius,
       });
       turretSFXPool.playSpatial(this.y, world.camera.y, 0.9, 1500);
       this.fireCooldown = this.reloadTime;
@@ -703,7 +733,7 @@
         minX: 0,
         maxX: canvas.width,
         minY: 0,
-        maxY: 6e3
+        maxY: 6e3,
       };
       this.camera = { x: 0, y: 0 };
       this.tanks = [];
@@ -722,95 +752,60 @@
       this.isSuperMode = isSuperMode;
       this.point = this.isSuperMode ? 999999 : 10;
       this.pointDisplay = null;
-      this.upgradeBulletCount = false;
-      this.upgradeBulletCountCost = 7;
-      this.upgradeTurret = false;
-      this.upgradeTurretCost = 7;
-      const bulletBtn = document.getElementById("upgradeBulletBtn");
-      const turretBtn = document.getElementById("upgradeTurretBtn");
-      let bulletUpgradeActive = false;
-      let turretUpgradeActive = false;
-      bulletBtn.addEventListener("click", () => {
-        if (this.point < this.upgradeBulletCountCost) {
-          return;
-        } else {
-          this.point -= this.upgradeBulletCountCost;
-          this.upgradeBulletCountCost++;
-          this.upgradeBulletCount = !this.upgradeBulletCount;
-          if (!bulletUpgradeActive) {
-            bulletUpgradeActive = true;
-            bulletBtn.classList.add("active");
-            bulletBtn.textContent = `Cancel Bullet Upgrade [${this.upgradeBulletCountCost}Point]`;
-          } else {
-            bulletUpgradeActive = false;
-            bulletBtn.classList.remove("active");
-            bulletBtn.textContent = `Bullet Upgrade [${this.upgradeBulletCountCost}Point]`;
-          }
-          this.applyUpgrades();
-        }
-      });
-      turretBtn.addEventListener("click", () => {
-        if (this.point < this.upgradeTurretCost) {
-          return;
-        } else {
-          this.point -= this.upgradeTurretCost;
-          this.upgradeTurretCost++;
-          this.upgradeTurret = !this.upgradeTurret;
-          if (!turretUpgradeActive) {
-            turretUpgradeActive = true;
-            turretBtn.classList.add("active");
-            turretBtn.textContent = `Cancel Turret Upgrade [${this.upgradeTurretCost}Point]`;
-          } else {
-            turretUpgradeActive = false;
-            turretBtn.classList.remove("active");
-            turretBtn.textContent = `Turret Upgrade [${this.upgradeTurretCost}Point]`;
-          }
-          this.applyUpgrades();
-        }
-      });
       this.killcount = { player: 0, blue: 0, red: 0 };
       this.redTeamKillDisplay = null;
       this.blueTeamKillDisplay = null;
       this.myKillDisplay = null;
       this.defaultBaseHealth = 5e3;
-      this.baseHealth = { blue: this.defaultBaseHealth, red: this.defaultBaseHealth };
+      this.baseHealth = {
+        blue: this.defaultBaseHealth,
+        red: this.defaultBaseHealth,
+      };
       this.basePos = {
         // 파랑 본진: 맵 하단 근처
         blue: { x: canvas.width / 2, y: this.bounds.maxY - 200 },
         // 빨강 본진: 맵 상단 근처
-        red: { x: canvas.width / 2, y: this.bounds.minY + 200 }
+        red: { x: canvas.width / 2, y: this.bounds.minY + 200 },
       };
       this.strongholds = [
-        { x: canvas.width / 2, y: this.bounds.maxY * 0.2, hp: 1e3, owner: null },
-        { x: canvas.width / 2, y: this.bounds.maxY * 0.4, hp: 1e3, owner: null },
-        { x: canvas.width / 2, y: this.bounds.maxY * 0.6, hp: 1e3, owner: null },
-        { x: canvas.width / 2, y: this.bounds.maxY * 0.8, hp: 1e3, owner: null }
+        {
+          x: canvas.width / 2,
+          y: this.bounds.maxY * 0.2,
+          hp: 1e3,
+          owner: null,
+        },
+        {
+          x: canvas.width / 2,
+          y: this.bounds.maxY * 0.4,
+          hp: 1e3,
+          owner: null,
+        },
+        {
+          x: canvas.width / 2,
+          y: this.bounds.maxY * 0.6,
+          hp: 1e3,
+          owner: null,
+        },
+        {
+          x: canvas.width / 2,
+          y: this.bounds.maxY * 0.8,
+          hp: 1e3,
+          owner: null,
+        },
       ];
       this.turrets = [];
-      this.turrets.push(new Turret(this.basePos.blue.x, this.basePos.blue.y, "blue", 75));
-      this.turrets.push(new Turret(this.basePos.red.x, this.basePos.red.y, "red", 75));
+      this.turrets.push(
+        new Turret(this.basePos.blue.x, this.basePos.blue.y, "blue", 75),
+      );
+      this.turrets.push(
+        new Turret(this.basePos.red.x, this.basePos.red.y, "red", 75),
+      );
       this.gameOver = false;
-      this.aceTankSpawned = false;
-      this.aceRespawnTimer = 0;
-      this.aceTanksSpawned = 0;
-      this.maxAceTanks = 2;
       this.specialCooldown = 0;
       this.specialCoolTime = this.isSuperMode ? 1 : 30;
       this.pendingExplosion = null;
       this.specialWeaponText = null;
       this.specialWeaponPoint = 5;
-    }
-    /**
-     * 현재 업그레이드 상태를 모든 유닛/포탑에 적용
-     * - 런타임 중 업그레이드가 발생할 수 있으므로 주기적으로/트리거 시 호출
-     */
-    applyUpgrades() {
-      for (const tank of this.tanks) {
-        if (tank.isPlayer || tank.isAce) tank.applyUpgrade(this.upgradeBulletCount);
-      }
-      for (const turret of this.turrets) {
-        turret.applyUpgrade(this.upgradeTurret);
-      }
     }
     /**
      * 탱크를 월드에 등록
@@ -839,8 +834,14 @@
       if (player && !input.keys[" "]) {
         const cw = this.canvas.width;
         const ch = this.canvas.height;
-        this.camera.x = clamp(player.x - cw / 2, this.bounds.minX, this.bounds.maxX - cw);
-        this.camera.y = clamp(player.y - ch / 2, this.bounds.minY, this.bounds.maxY - ch) - 100;
+        this.camera.x = clamp(
+          player.x - cw / 2,
+          this.bounds.minX,
+          this.bounds.maxX - cw,
+        );
+        this.camera.y =
+          clamp(player.y - ch / 2, this.bounds.minY, this.bounds.maxY - ch) -
+          100;
       }
       if (this.baseHealth.blue <= 0 || this.baseHealth.red <= 0) {
         this.gameOver = true;
@@ -848,28 +849,17 @@
       for (const turret of this.turrets) {
         turret.update(dt, this);
       }
-      const deadAces = this.tanks.filter((t) => t.isAce && t.hp <= 0);
-      for (const ace of deadAces) {
-        if (ace.respawnTimer === void 0) {
-          ace.respawnTimer = 5;
-        } else {
-          ace.respawnTimer -= dt;
-          if (ace.respawnTimer <= 0) {
-            const spawn = this.getSpawnPoint("red");
-            ace.x = spawn.x + (Math.random() - 0.5) * 80;
-            ace.y = spawn.y + (Math.random() - 0.5) * 40;
-            ace.hp = 125;
-            ace.angle = Math.PI / 2;
-            ace.turretAngle = Math.PI / 2;
-            ace.respawnTimer = void 0;
-          }
-        }
-      }
       if (this.specialCooldown > 0) this.specialCooldown -= dt;
       if (this.pendingExplosion) {
         this.pendingExplosion.timer -= dt;
-        if (!this.pendingExplosion.triggered && this.pendingExplosion.timer <= 0) {
-          this.causeSpecialExplosion(this.pendingExplosion.x, this.pendingExplosion.y);
+        if (
+          !this.pendingExplosion.triggered &&
+          this.pendingExplosion.timer <= 0
+        ) {
+          this.causeSpecialExplosion(
+            this.pendingExplosion.x,
+            this.pendingExplosion.y,
+          );
           this.pendingExplosion.triggered = true;
           this.pendingExplosion.fadeTimer = 1;
         }
@@ -909,7 +899,7 @@
               this.baseHealth[tank.team] -= 5;
               if (bullet.isPlayerBullet === true) {
                 this.killcount.player++;
-                tank.isAce ? this.point += 2 : this.point++;
+                this.point++;
               }
               this.explosionPool.spawn({ x: tank.x, y: tank.y, maxRadius: 36 });
               deathSFXPool.playSpatial(tank.y, this.camera.y);
@@ -924,7 +914,10 @@
             const dy = bullet.y - base.y;
             const distSq = dx * dx + dy * dy;
             const baseRadius = 40;
-            if (distSq <= (bullet.radius + baseRadius) * (bullet.radius + baseRadius)) {
+            if (
+              distSq <=
+              (bullet.radius + baseRadius) * (bullet.radius + baseRadius)
+            ) {
               this.baseHealth[team] -= bullet.damage;
               bullet.active = false;
             }
@@ -937,19 +930,32 @@
           const dy = bullet.y - stronghold.y;
           const distSq = dx * dx + dy * dy;
           const strongholdRadius = 36;
-          if (distSq <= (bullet.radius + strongholdRadius) * (bullet.radius + strongholdRadius)) {
+          if (
+            distSq <=
+            (bullet.radius + strongholdRadius) *
+              (bullet.radius + strongholdRadius)
+          ) {
             stronghold.hp -= bullet.damage;
             bullet.active = false;
             if (stronghold.hp <= 0) {
               stronghold.owner = bullet.team;
+              stronghold.isCapturing = true;
               this.baseHealth[bullet.team] = clamp(
                 this.baseHealth[bullet.team] + 200,
                 0,
-                this.defaultBaseHealth
+                this.defaultBaseHealth,
               );
-              stronghold.hp = 1e3;
-              this.turrets = this.turrets.filter((t) => !(t.x === stronghold.x && t.y === stronghold.y));
-              this.turrets.push(new Turret(stronghold.x, stronghold.y, stronghold.owner, 75));
+              this.turrets = this.turrets.filter(
+                (t) => !(t.x === stronghold.x && t.y === stronghold.y),
+              );
+              this.turrets.push(
+                new Turret(stronghold.x, stronghold.y, stronghold.owner, 75),
+              );
+              // Reset stronghold after 3 seconds to prevent constant targeting
+              setTimeout(() => {
+                stronghold.hp = 1e3;
+                stronghold.isCapturing = false;
+              }, 50);
             }
           }
         }
@@ -988,7 +994,9 @@
       if (owned.length === 0) {
         return { x: this.basePos[team].x, y: this.basePos[team].y };
       }
-      owned.sort((a, b) => Math.abs(a.y - enemyBaseY) - Math.abs(b.y - enemyBaseY));
+      owned.sort(
+        (a, b) => Math.abs(a.y - enemyBaseY) - Math.abs(b.y - enemyBaseY),
+      );
       return { x: owned[0].x, y: owned[0].y };
     }
     /**
@@ -997,8 +1005,12 @@
      * - 필요 시 에이스 탱크도 제한 수까지 투입
      */
     spawnWave() {
-      const blueAlive = this.tanks.filter((t) => t.team === "blue" && t.hp > 0).length;
-      const redAlive = this.tanks.filter((t) => t.team === "red" && t.hp > 0).length;
+      const blueAlive = this.tanks.filter(
+        (t) => t.team === "blue" && t.hp > 0,
+      ).length;
+      const redAlive = this.tanks.filter(
+        (t) => t.team === "red" && t.hp > 0,
+      ).length;
       const spawnCount = 3 + Math.floor(Math.random() * 2);
       if (blueAlive < this.maxTanksPerTeam) {
         const toSpawn = Math.min(spawnCount, this.maxTanksPerTeam - blueAlive);
@@ -1007,11 +1019,17 @@
           const x = spawn.x + (Math.random() - 0.5) * 120;
           const y = spawn.y + (Math.random() - 0.5) * 60;
           this.addTank(new Tank(x, y, "blue", false));
-          const stronghold = this.strongholds.find((s) => s.owner === "blue" && s.x === spawn.x && s.y === spawn.y);
+          const stronghold = this.strongholds.find(
+            (s) => s.owner === "blue" && s.x === spawn.x && s.y === spawn.y,
+          );
           if (stronghold) {
             stronghold.hp = clamp(stronghold.hp + 5, 0, 1e3);
           } else {
-            this.baseHealth.blue = clamp(this.baseHealth.blue + 5, 0, this.defaultBaseHealth);
+            this.baseHealth.blue = clamp(
+              this.baseHealth.blue + 5,
+              0,
+              this.defaultBaseHealth,
+            );
           }
         }
       }
@@ -1022,28 +1040,18 @@
           const x = spawn.x + (Math.random() - 0.5) * 120;
           const y = spawn.y + (Math.random() - 0.5) * 60;
           this.addTank(new Tank(x, y, "red", false));
-          const stronghold = this.strongholds.find((s) => s.owner === "red" && s.x === spawn.x && s.y === spawn.y);
+          const stronghold = this.strongholds.find(
+            (s) => s.owner === "red" && s.x === spawn.x && s.y === spawn.y,
+          );
           if (stronghold) {
             stronghold.hp = clamp(stronghold.hp + 5, 0, 1e3);
           } else {
-            this.baseHealth.red = clamp(this.baseHealth.red + 5, 0, this.defaultBaseHealth);
+            this.baseHealth.red = clamp(
+              this.baseHealth.red + 5,
+              0,
+              this.defaultBaseHealth,
+            );
           }
-        }
-      }
-      const acesToSpawn = this.maxAceTanks - this.aceTanksSpawned;
-      if (acesToSpawn > 0) {
-        const spawn = this.getSpawnPoint("red");
-        for (let i = 0; i < acesToSpawn; i++) {
-          const aceTank = new Tank(
-            spawn.x + (Math.random() - 0.5) * 80,
-            spawn.y + (Math.random() - 0.5) * 40,
-            "red",
-            false,
-            false
-          );
-          aceTank.isAce = true;
-          this.addTank(aceTank);
-          this.aceTanksSpawned++;
         }
       }
     }
@@ -1083,11 +1091,19 @@
         const screenY = base.y - cam.y;
         ctx.save();
         ctx.shadowBlur = 20;
-        ctx.shadowColor = team === "blue" ? "rgba(92, 179, 255, 0.8)" : "rgba(255, 106, 106, 0.8)";
+        ctx.shadowColor =
+          team === "blue"
+            ? "rgba(92, 179, 255, 0.8)"
+            : "rgba(255, 106, 106, 0.8)";
         ctx.globalAlpha = 0.9;
         ctx.beginPath();
         const baseSize = 80;
-        ctx.rect(screenX - baseSize / 2, screenY - baseSize / 2, baseSize, baseSize);
+        ctx.rect(
+          screenX - baseSize / 2,
+          screenY - baseSize / 2,
+          baseSize,
+          baseSize,
+        );
         ctx.fillStyle = team === "blue" ? "#5cb3ff" : "#ff6a6a";
         ctx.fill();
         ctx.lineWidth = 4;
@@ -1106,12 +1122,27 @@
         const screenY = stronghold.y - cam.y;
         ctx.save();
         ctx.shadowBlur = 20;
-        ctx.shadowColor = stronghold.owner === "blue" ? "rgba(92, 179, 255, 0.8)" : stronghold.owner === "red" ? "rgba(255, 106, 106, 0.8)" : "rgba(170, 170, 170, 0.8)";
+        ctx.shadowColor =
+          stronghold.owner === "blue"
+            ? "rgba(92, 179, 255, 0.8)"
+            : stronghold.owner === "red"
+              ? "rgba(255, 106, 106, 0.8)"
+              : "rgba(170, 170, 170, 0.8)";
         ctx.globalAlpha = 0.85;
         ctx.beginPath();
         const strongholdSize = 72;
-        ctx.rect(screenX - strongholdSize / 2, screenY - strongholdSize / 2, strongholdSize, strongholdSize);
-        ctx.fillStyle = stronghold.owner === "blue" ? "#5cb3ff" : stronghold.owner === "red" ? "#ff6a6a" : "#aaa";
+        ctx.rect(
+          screenX - strongholdSize / 2,
+          screenY - strongholdSize / 2,
+          strongholdSize,
+          strongholdSize,
+        );
+        ctx.fillStyle =
+          stronghold.owner === "blue"
+            ? "#5cb3ff"
+            : stronghold.owner === "red"
+              ? "#ff6a6a"
+              : "#aaa";
         ctx.fill();
         ctx.lineWidth = 3;
         ctx.strokeStyle = "#fff";
@@ -1122,14 +1153,26 @@
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
         ctx.fillText(
-          stronghold.owner ? `${stronghold.owner.toUpperCase()} Stronghold` : "Neutral Stronghold",
+          stronghold.owner
+            ? `${stronghold.owner.toUpperCase()} Stronghold`
+            : "Neutral Stronghold",
           screenX,
-          screenY - 44
+          screenY - 44,
         );
         ctx.fillStyle = "#000";
         ctx.fillRect(screenX - 36, screenY + 44, 72, 6);
-        ctx.fillStyle = stronghold.owner === "blue" ? "#5cb3ff" : stronghold.owner === "red" ? "#ff6a6a" : "#aaa";
-        ctx.fillRect(screenX - 36, screenY + 44, 72 * clamp(stronghold.hp / 1e3, 0, 1), 6);
+        ctx.fillStyle =
+          stronghold.owner === "blue"
+            ? "#5cb3ff"
+            : stronghold.owner === "red"
+              ? "#ff6a6a"
+              : "#aaa";
+        ctx.fillRect(
+          screenX - 36,
+          screenY + 44,
+          72 * clamp(stronghold.hp / 1e3, 0, 1),
+          6,
+        );
         ctx.restore();
       }
       for (const turret of this.turrets) {
@@ -1140,22 +1183,36 @@
       const barHeight = 18;
       const baseMaxHp = this.defaultBaseHealth;
       ctx.fillStyle = "#333";
-      ctx.fillRect(ctx.canvas.width / 2 - (40 + barWidth), 16, barWidth, barHeight);
+      ctx.fillRect(
+        ctx.canvas.width / 2 - (40 + barWidth),
+        16,
+        barWidth,
+        barHeight,
+      );
       ctx.fillStyle = "#5cb3ff";
       ctx.fillRect(
         ctx.canvas.width / 2 - (40 + barWidth),
         16,
         barWidth * clamp(this.baseHealth.blue / baseMaxHp, 0, 1),
-        barHeight
+        barHeight,
       );
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
-      ctx.strokeRect(ctx.canvas.width / 2 - (40 + barWidth), 16, barWidth, barHeight);
+      ctx.strokeRect(
+        ctx.canvas.width / 2 - (40 + barWidth),
+        16,
+        barWidth,
+        barHeight,
+      );
       ctx.font = "bold 16px sans-serif";
       ctx.fillStyle = "#fff";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`BLUE Base: ${this.baseHealth.blue}`, ctx.canvas.width / 2 - (40 + barWidth), 8);
+      ctx.fillText(
+        `BLUE Base: ${this.baseHealth.blue}`,
+        ctx.canvas.width / 2 - (40 + barWidth),
+        8,
+      );
       ctx.fillStyle = "#333";
       ctx.fillRect(ctx.canvas.width / 2 + 40, 16, barWidth, barHeight);
       ctx.fillStyle = "#ff6a6a";
@@ -1163,7 +1220,7 @@
         ctx.canvas.width / 2 + 40,
         16,
         barWidth * clamp(this.baseHealth.red / baseMaxHp, 0, 1),
-        barHeight
+        barHeight,
       );
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
@@ -1172,7 +1229,11 @@
       ctx.fillStyle = "#fff";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`RED Base: ${this.baseHealth.red}`, ctx.canvas.width / 2 + 40, 8);
+      ctx.fillText(
+        `RED Base: ${this.baseHealth.red}`,
+        ctx.canvas.width / 2 + 40,
+        8,
+      );
       ctx.restore();
       ctx.save();
       const minimapWidth = 100;
@@ -1196,7 +1257,7 @@
       function toMinimap(x, y) {
         return {
           x: minimapX + (x - mapMinX) * scaleX,
-          y: minimapY + (y - mapMinY) * scaleY
+          y: minimapY + (y - mapMinY) * scaleY,
         };
       }
       for (const team of ["blue", "red"]) {
@@ -1204,7 +1265,12 @@
         const pos = toMinimap(base.x, base.y);
         ctx.beginPath();
         const baseSize = 20;
-        ctx.rect(pos.x - baseSize / 2, pos.y - baseSize / 2, baseSize, baseSize);
+        ctx.rect(
+          pos.x - baseSize / 2,
+          pos.y - baseSize / 2,
+          baseSize,
+          baseSize,
+        );
         ctx.fillStyle = team === "blue" ? "#5cb3ff" : "#ff6a6a";
         ctx.fill();
         ctx.strokeStyle = "#fff";
@@ -1215,7 +1281,12 @@
         const pos = toMinimap(stronghold.x, stronghold.y);
         ctx.beginPath();
         const strongholdSize = 16;
-        ctx.rect(pos.x - strongholdSize / 2, pos.y - strongholdSize / 2, strongholdSize, strongholdSize);
+        ctx.rect(
+          pos.x - strongholdSize / 2,
+          pos.y - strongholdSize / 2,
+          strongholdSize,
+          strongholdSize,
+        );
         if (stronghold.owner === "blue") {
           ctx.fillStyle = "#5cb3ff";
         } else if (stronghold.owner === "red") {
@@ -1235,8 +1306,6 @@
         ctx.arc(pos.x, pos.y, tank.isPlayer ? 4 : 3, 0, Math.PI * 2);
         if (tank.isPlayer) {
           ctx.fillStyle = "#ffe600";
-        } else if (tank.isAce) {
-          ctx.fillStyle = "#ff00ff";
         } else if (tank.team === "blue") {
           ctx.fillStyle = "#5cb3ff";
         } else {
@@ -1252,8 +1321,12 @@
         const screenY = this.pendingExplosion.y - this.camera.y;
         ctx.save();
         const totalTime = this.isSuperMode ? 1 : 5;
-        const progress = this.pendingExplosion.triggered ? 1 : 1 - this.pendingExplosion.timer / totalTime;
-        const fadeOutAlpha = this.pendingExplosion.triggered ? Math.max(0, this.pendingExplosion.fadeTimer / 1) : 1;
+        const progress = this.pendingExplosion.triggered
+          ? 1
+          : 1 - this.pendingExplosion.timer / totalTime;
+        const fadeOutAlpha = this.pendingExplosion.triggered
+          ? Math.max(0, this.pendingExplosion.fadeTimer / 1)
+          : 1;
         ctx.globalAlpha = Math.min(progress, fadeOutAlpha);
         ctx.shadowBlur = 25;
         ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
@@ -1277,16 +1350,16 @@
           // 아래
           [-radius, 0],
           // 왼쪽
-          [radius, 0]
+          [radius, 0],
           // 오른쪽
         ];
         for (const [x, y] of directions) {
           const nx = x === 0 ? 0 : Math.sign(x);
           const ny = y === 0 ? 0 : Math.sign(y);
-          const lx = x - nx * lineLength / 2;
-          const ly = y - ny * lineLength / 2;
-          const rx = x + nx * lineLength / 2;
-          const ry = y + ny * lineLength / 2;
+          const lx = x - (nx * lineLength) / 2;
+          const ly = y - (ny * lineLength) / 2;
+          const rx = x + (nx * lineLength) / 2;
+          const ry = y + (ny * lineLength) / 2;
           ctx.beginPath();
           ctx.moveTo(lx, ly);
           ctx.lineTo(rx, ry);
@@ -1341,7 +1414,7 @@
         canvasX: 0,
         canvasY: 0,
         down: false,
-        rightDown: false
+        rightDown: false,
       };
       window.addEventListener("keydown", (e) => {
         this.keys[e.key.toLowerCase()] = true;
@@ -1417,7 +1490,9 @@
       if (!this.specialWeaponEl) return;
       const barLength = 10;
       if (cooldown > 0 && maxCooldown > 0) {
-        const currentBars = Math.ceil((maxCooldown - cooldown) / maxCooldown * barLength);
+        const currentBars = Math.ceil(
+          ((maxCooldown - cooldown) / maxCooldown) * barLength,
+        );
         const bars = "\u2588".repeat(currentBars);
         const emptyBars = "\u2591".repeat(barLength - currentBars);
         this.specialWeaponEl.textContent = `[${bars}${emptyBars}] `;
@@ -1454,7 +1529,7 @@
         font = "bold 30px sans-serif",
         textAlign = "center",
         textBaseline = "middle",
-        offsetY = 0
+        offsetY = 0,
       } = options;
       ctx.save();
       ctx.globalAlpha = opacity;
@@ -1465,7 +1540,11 @@
       ctx.font = font;
       ctx.textAlign = textAlign;
       ctx.textBaseline = textBaseline;
-      ctx.fillText(message, this.canvas.width / 2, this.canvas.height / 2 + offsetY);
+      ctx.fillText(
+        message,
+        this.canvas.width / 2,
+        this.canvas.height / 2 + offsetY,
+      );
       ctx.restore();
     }
     /**
@@ -1505,16 +1584,20 @@
           this.exitFullscreen();
         }
       });
-      canvas.addEventListener("wheel", (e) => {
-        if (game.input && game.input.keys && game.input.keys[" "]) {
-          e.preventDefault();
-          const deltaY = e.deltaY;
-          const world = game.world;
-          const newY = world.camera.y + deltaY;
-          const maxOffset = world.bounds.maxY - canvas.height;
-          world.camera.y = clamp(newY, world.bounds.minY, maxOffset);
-        }
-      }, { passive: false });
+      canvas.addEventListener(
+        "wheel",
+        (e) => {
+          if (game.input && game.input.keys && game.input.keys[" "]) {
+            e.preventDefault();
+            const deltaY = e.deltaY;
+            const world = game.world;
+            const newY = world.camera.y + deltaY;
+            const maxOffset = world.bounds.maxY - canvas.height;
+            world.camera.y = clamp(newY, world.bounds.minY, maxOffset);
+          }
+        },
+        { passive: false },
+      );
       canvas.addEventListener("contextmenu", (e) => {
         e.preventDefault();
         if (typeof game.activateSpecialWeapon === "function") {
@@ -1535,7 +1618,10 @@
           await elem.requestFullscreen();
           console.log("\uC804\uCCB4\uD654\uBA74 \uC9C4\uC785 \uC131\uACF5");
         } catch (err) {
-          console.warn("\uC804\uCCB4\uD654\uBA74 \uC9C4\uC785 \uC2E4\uD328:", err);
+          console.warn(
+            "\uC804\uCCB4\uD654\uBA74 \uC9C4\uC785 \uC2E4\uD328:",
+            err,
+          );
         }
       }
     }
@@ -1546,7 +1632,10 @@
           await document.exitFullscreen();
           console.log("\uC804\uCCB4\uD654\uBA74 \uD574\uC81C\uB428");
         } catch (err) {
-          console.warn("\uC804\uCCB4\uD654\uBA74 \uD574\uC81C \uC2E4\uD328:", err);
+          console.warn(
+            "\uC804\uCCB4\uD654\uBA74 \uD574\uC81C \uC2E4\uD328:",
+            err,
+          );
         }
       }
     }
@@ -1590,8 +1679,8 @@
     resumeGame() {
       const game = this.game;
       if (!game.running && !game.world.gameOver) {
-        game.running = true;
-        game.bgm.play();
+        // Start a 3-second countdown instead of resuming immediately
+        game.focusCountdown = 3;
       }
     }
     /**
@@ -1613,7 +1702,7 @@
       game.endingExplosions = {
         timer: 10,
         nextIdx: 0,
-        explosions: []
+        explosions: [],
       };
       const destroyedTeam = game.world.baseHealth.blue <= 0 ? "blue" : "red";
       const base = game.world.basePos[destroyedTeam];
@@ -1631,11 +1720,20 @@
      */
     restartGame() {
       const game = this.game;
+      // Reset all active projectiles and explosions from previous game
+      window.bulletPool.reset();
+      window.explosionPool.reset();
       game.world = new World(game.canvas, game.isSuperMode);
       game.input = new InputManager(game.canvas);
       const spawn = game.getPlayerSpawn();
       game.playerRespawnTimer = 0;
-      game.playerTank = new Tank(spawn.x, spawn.y, "blue", true, game.isSuperMode ? true : false);
+      game.playerTank = new Tank(
+        spawn.x,
+        spawn.y,
+        "blue",
+        true,
+        game.isSuperMode ? true : false,
+      );
       game.world.addTank(game.playerTank);
       game.world.spawnWave();
       game.accumulator = 0;
@@ -1702,7 +1800,7 @@
         "blue",
         true,
         // isPlayer
-        this.isSuperMode
+        this.isSuperMode,
         // 슈퍼 모드에 따라 파라미터 상이
       );
       this.world.addTank(this.playerTank);
@@ -1711,6 +1809,15 @@
       this.accumulator = 0;
       this.timeStep = 1 / 60;
       this.running = true;
+      this.focusCountdown = 0; // Countdown timer when regaining focus
+      
+      // Add focus/blur event listeners to pause/resume game when tab loses/gains focus
+      window.addEventListener("blur", () => {
+        this.stateManager.pauseGame();
+      });
+      window.addEventListener("focus", () => {
+        this.stateManager.resumeGame();
+      });
     }
     /**
      * 특수 무기(지정 지점 대규모 폭발) 활성화
@@ -1718,41 +1825,51 @@
      * - 쿨다운/포인트 조건 검사 후 발동
      */
     activateSpecialWeapon(e) {
-    const { canvas, world, specialWeaponPoint } = this;
-    const rect = canvas.getBoundingClientRect();
-    const mouseCanvasX = e.clientX - rect.left;
-    const mouseCanvasY = e.clientY - rect.top;
+      const { canvas, world, specialWeaponPoint } = this;
+      const rect = canvas.getBoundingClientRect();
+      const mouseCanvasX = e.clientX - rect.left;
+      const mouseCanvasY = e.clientY - rect.top;
 
-    const { camera: cam } = world;
-    const pending = this.isSuperMode ? 1.0 : 5.0;
+      const { camera: cam } = world;
+      const pending = this.isSuperMode ? 1.0 : 5.0;
 
-    // 쿨다운 중이거나, 이미 예약된 폭발이 있거나, 포인트가 부족하면 즉시 무시
-    if (world.specialCooldown > 0 || world.pendingExplosion || world.point < specialWeaponPoint) {
-      // console.debug("Special weapon blocked (cooldown/pending/insufficient points)");
-      return;
+      // 쿨다운 중이거나, 이미 예약된 폭발이 있거나, 포인트가 부족하면 즉시 무시
+      if (
+        world.specialCooldown > 0 ||
+        world.pendingExplosion ||
+        world.point < specialWeaponPoint
+      ) {
+        // console.debug("Special weapon blocked (cooldown/pending/insufficient points)");
+        return;
+      }
+
+      // 마우스 화면 좌표 → 월드 좌표 변환
+      const mouseWorldX = mouseCanvasX + cam.x;
+      const mouseWorldY = mouseCanvasY + cam.y;
+
+      // 특수 무기 예약 등록 및 자원/쿨다운 처리
+      world.pendingExplosion = {
+        x: mouseWorldX,
+        y: mouseWorldY,
+        timer: pending,
+      };
+      world.specialCooldown = world.specialCoolTime;
+      world.point -= specialWeaponPoint;
+
+      // 다음 사용 비용 증가(게임/월드 표기 동기화 유지)
+      this.specialWeaponPoint++;
+      world.specialWeaponPoint++;
+      console.log(`SWP: ${this.specialWeaponPoint}`);
     }
-
-    // 마우스 화면 좌표 → 월드 좌표 변환
-    const mouseWorldX = mouseCanvasX + cam.x;
-    const mouseWorldY = mouseCanvasY + cam.y;
-
-    // 특수 무기 예약 등록 및 자원/쿨다운 처리
-    world.pendingExplosion = { x: mouseWorldX, y: mouseWorldY, timer: pending };
-    world.specialCooldown = world.specialCoolTime;
-    world.point -= specialWeaponPoint;
-
-    // 다음 사용 비용 증가(게임/월드 표기 동기화 유지)
-    this.specialWeaponPoint++;
-    world.specialWeaponPoint++;
-    console.log(`SWP: ${this.specialWeaponPoint}`);
-  }
     /**
      * 플레이어 스폰 위치 계산
      * - 아군(블루) 소유 거점 중 전방(화면 상단에 가까운 y가 작은) 거점을 우선
      * - 없으면 본진 위치로 스폰
      */
     getPlayerSpawn() {
-      const ownedStrongholds = this.world.strongholds.filter((s) => s.owner === "blue");
+      const ownedStrongholds = this.world.strongholds.filter(
+        (s) => s.owner === "blue",
+      );
       if (ownedStrongholds.length > 0) {
         let frontStronghold = ownedStrongholds[0];
         for (const s of ownedStrongholds) {
@@ -1781,6 +1898,19 @@
       const dtMs = now - this.lastTime;
       this.lastTime = now;
       const dt = dtMs / 1e3;
+      
+      // Handle focus countdown timer
+      if (this.focusCountdown > 0) {
+        this.focusCountdown -= dt;
+        if (this.focusCountdown <= 0) {
+          this.focusCountdown = 0;
+          this.running = true;
+          if (this.bgm) {
+            this.bgm.play();
+          }
+        }
+      }
+      
       if (this.running) {
         this.accumulator += dt;
       }
@@ -1810,12 +1940,16 @@
           exp.update(dt);
           exp.draw(ctx, this.world.camera);
         }
-        if (camera.y == targetY && this.endingExplosions.nextIdx < 7 && this.endingExplosions.timer <= 9 - this.endingExplosions.nextIdx * 0.5) {
+        if (
+          camera.y == targetY &&
+          this.endingExplosions.nextIdx < 7 &&
+          this.endingExplosions.timer <= 9 - this.endingExplosions.nextIdx * 0.5
+        ) {
           const exp = this.world.explosionPool.factory();
           exp.init({
             x: base.x + (Math.random() - 0.5) * 120,
             y: base.y + (Math.random() - 0.5) * 120,
-            maxRadius: 120
+            maxRadius: 120,
           });
           this.endingExplosions.explosions.push(exp);
           deathSFXPool.playSpatial(base.y, this.world.camera.y, 1);
@@ -1834,7 +1968,7 @@
         ctx.fillText(
           `Restarting in ${Math.ceil(this.endingExplosions.timer)}...`,
           this.canvas.width / 2,
-          this.canvas.height / 2 + 40
+          this.canvas.height / 2 + 40,
         );
         ctx.restore();
         if (this.endingExplosions.timer <= 0) {
@@ -1869,17 +2003,26 @@
       this.ui.updateScoreboard(
         this.world.killcount.blue,
         this.world.killcount.red,
-        this.world.killcount.player
+        this.world.killcount.player,
       );
       this.ui.updatePoint(this.world.point);
       this.ui.updateSpecialWeaponBar(
         this.world.specialCooldown,
         this.world.specialCoolTime,
-        this.world.specialWeaponPoint
+        this.world.specialWeaponPoint,
       );
       this.world.draw();
-      if (!this.running && !this.world.gameOver) {
-        this.ui.drawOverlayMessage("PAUSED", { opacity: 0.2, textBaseline: "top" });
+      if (this.focusCountdown > 0) {
+        // Draw focus countdown timer
+        this.ui.drawOverlayMessage(
+          `Resuming in ${Math.ceil(this.focusCountdown)}...`,
+          { opacity: 0.8, color: "#ff6b6b", font: "bold 72px sans-serif", textBaseline: "middle" },
+        );
+      } else if (!this.running && !this.world.gameOver) {
+        this.ui.drawOverlayMessage("PAUSED", {
+          opacity: 0.2,
+          textBaseline: "top",
+        });
       } else {
         if (this.isSuperMode) {
           this.ui.drawSuperModeIndicator();
@@ -1887,7 +2030,7 @@
         if (this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
           this.ui.drawOverlayMessage(
             `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
-            { opacity: 0.7, color: "#ffe600", font: "bold 64px sans-serif" }
+            { opacity: 0.7, color: "#ffe600", font: "bold 64px sans-serif" },
           );
         }
         if (this.world.gameOver && !this.endingExplosions) {
@@ -2006,25 +2149,37 @@
         }
       }
     }
+    /**
+     * Deactivate all objects in the pool (used for resetting pools between games)
+     */
+    reset() {
+      for (const obj of this.pool) {
+        obj.active = false;
+      }
+    }
   };
 
   // main.js
-  var shootSFXPool = new AudioPool([
-    "./assets/Shoot_1.wav",
-    "./assets/Shoot_2.wav",
-    "./assets/Shoot_3.wav",
-    "./assets/Shoot_4.wav",
-    "./assets/Shoot_5.wav"
-  ], 120);
-  var deathSFXPool = new AudioPool([
-    "./assets/Explosion_1.wav",
-    "./assets/Explosion_2.wav",
-    "./assets/Explosion_3.wav",
-    "./assets/Explosion_4.wav"
-  ], 50);
-  var turretSFXPool = new AudioPool([
-    "./assets/Turret.wav"
-  ], 20);
+  var shootSFXPool = new AudioPool(
+    [
+      "./assets/Shoot_1.wav",
+      "./assets/Shoot_2.wav",
+      "./assets/Shoot_3.wav",
+      "./assets/Shoot_4.wav",
+      "./assets/Shoot_5.wav",
+    ],
+    120,
+  );
+  var deathSFXPool = new AudioPool(
+    [
+      "./assets/Explosion_1.wav",
+      "./assets/Explosion_2.wav",
+      "./assets/Explosion_3.wav",
+      "./assets/Explosion_4.wav",
+    ],
+    50,
+  );
+  var turretSFXPool = new AudioPool(["./assets/Turret.wav"], 20);
   var bulletPool = new Pool(() => new Bullet(), 200);
   var explosionPool = new Pool(() => new Explosion(), 50);
   window.shootSFXPool = shootSFXPool;
@@ -2039,7 +2194,8 @@
   }
   window.addEventListener("DOMContentLoaded", async () => {
     const canvas = document.getElementById("gameCanvas");
-    let game, gameStarted = false;
+    let game,
+      gameStarted = false;
     let gameReady = false;
     const ctx = canvas.getContext("2d");
     function resizeCanvas() {
@@ -2057,16 +2213,26 @@
       ctx.fillStyle = "white";
       ctx.font = "bold 64px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Loading Assets...", canvas.width / 2, canvas.height / 2 - 40);
+      ctx.fillText(
+        "Loading Assets...",
+        canvas.width / 2,
+        canvas.height / 2 - 40,
+      );
       ctx.fillStyle = "#333";
-      const barWidth = 400, barHeight = 20;
-      ctx.fillRect(canvas.width / 2 - barWidth / 2, canvas.height / 2, barWidth, barHeight);
+      const barWidth = 400,
+        barHeight = 20;
+      ctx.fillRect(
+        canvas.width / 2 - barWidth / 2,
+        canvas.height / 2,
+        barWidth,
+        barHeight,
+      );
       ctx.fillStyle = "white";
       ctx.fillRect(
         canvas.width / 2 - barWidth / 2,
         canvas.height / 2,
         barWidth * (progress / 100),
-        barHeight
+        barHeight,
       );
     }
     drawLoadingScreen(0);
@@ -2082,15 +2248,27 @@
         ctx.fillStyle = "#ffe600";
         ctx.font = "bold 64px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Press SPACE to Start", canvas.width / 2, canvas.height / 2);
+        ctx.fillText(
+          "Press SPACE to Start",
+          canvas.width / 2,
+          canvas.height / 2,
+        );
         ctx.fillStyle = "gray";
         ctx.font = "24px sans-serif";
-        ctx.fillText("Press ENTER to Enter Super Mode", canvas.width / 2, canvas.height / 2 + 60);
+        ctx.fillText(
+          "Press ENTER to Enter Super Mode",
+          canvas.width / 2,
+          canvas.height / 2 + 60,
+        );
         gameReady = true;
       }
     }, 100);
     window.addEventListener("keydown", (e) => {
-      if (!gameStarted && gameReady && (e.code === "Space" || e.code === "Enter")) {
+      if (
+        !gameStarted &&
+        gameReady &&
+        (e.code === "Space" || e.code === "Enter")
+      ) {
         gameStarted = true;
         game = e.code === "Enter" ? new Game(canvas, true) : new Game(canvas);
         const bgm = document.getElementById("bgm");
