@@ -41,28 +41,7 @@
     0 0 16px currentColor,
     0 0 32px currentColor;
   }
-  /* Upgrade buttons base style */
-  .upgrade-btn {
-    display: block;                /* Stack buttons vertically */
-    margin-top: 5px;
-    padding: 5px 10px;
-    font-size: 14px;
-    color: #00ffff;               /* Neon cyan text (matches existing highlight color) */
-    background: transparent;      /* Transparent background for a neon look */
-    border: 2px solid #00ffff;    /* Neon-colored border */
-    border-radius: 5px;
-    cursor: pointer;
-    pointer-events: auto;         /* Enable clicking (overrides parent pointer-events:none) */
-    outline: none;                /* Remove default focus outline */
-  }
 
-  /* Inactive state (no glow) – already covered by base style above */
-  /* Active state – neon glow highlight */
-  .upgrade-btn.active {
-    /* Add a bright glow using box-shadow and text-shadow */
-    box-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
-    text-shadow: 0 0 6px #0ff, 0 0 12px #0ff, 0 0 24px #0ff;
-  }
   </style>
 </head>
 <body>
@@ -71,17 +50,13 @@
   <div id="instruction">
       <p>WASD: Move</p>
       <p>Mouse: Aim</p>
-      <p>Left Click: Shoot</p>
-      <p>Right Click: Special Weapon</p>
+      <p>Left Click: shoot</p>
       <p>Space + Scroll: FreeCamera</p>
       <p>Blue Team Kill Score:    <span id="blueTeamKill">0</span></p>
       <p>Red Team Kill Score:     <span id="redTeamKill">0</span></p>
       <p>My Kill Score:           <span id="myKill">0</span></p>
       <p>Point:                   <span id="point">10</span></p>
       <p>Special Weapon Cooldown: <span id="special-weapon">[██████████] </span>Cost <span id="specialWeaponPoint"> 5</span></p>
-      <!-- Upgrade Buttons Panel (bottom-left) -->
-      <button id="upgradeBulletBtn" class="upgrade-btn">Bullet Upgrade [7 Point]</button>
-      <button id="upgradeTurretBtn" class="upgrade-btn">Turret Upgrade [7 Point]</button>
   </div>
   <div id="fps" style="position:fixed;top:5px;left:5px;color:white"></div>
   <audio id="bgm" src="./assets/Mars, the Bringer of War.mp3" preload="auto" loop></audio>
@@ -116,4 +91,3 @@
   </script>
 </body>
 </html>
-
