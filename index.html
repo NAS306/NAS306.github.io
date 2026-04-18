@@ -1,95 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Tank Battle Game</title>
   <style>
-  html,body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-  #instruction {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    color: white;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    /* background: rgba(0, 0, 0, 0.2); */
-    padding: 5px 10px;
-    border-radius: 5px;
-    pointer-events: none; /* 클릭이 div를 통과하여 canvas로 전달 */
-  }
-  #special-weapon {
-    color: #00ffffff;
-    font-weight: bold;
-  }
-  #point {
-    color: #00ffffff;
-    font-weight: bold;
-    font-size: 1.2rem;
-  }
-  #specialWeaponPoint {
-    font-weight: bold;
-    font-size: 1.2rem;
-  }
-  #point, #special-weapon, #specialWeaponPoint {
-    text-shadow: 
-    0 0 4px  currentColor, 
-    0 0 8px currentColor,
-    0 0 16px currentColor,
-    0 0 32px currentColor;
-  }
+    html, body {
+      margin: 0; padding: 0; overflow: hidden; background: #000;
+    }
+    #gameCanvas { display: block; }
+    
+    /* Instruction */
+    .instruction {
+      position: absolute; color: white;
+      font-family: Arial, sans-serif; font-size: 14px; pointer-events: none;
+      background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px;
+    }
+    #pc-instruction { display: none; bottom: 10px; left: 10px; }
+    #mobile-instruction { display: none; top: 30px; left: 10px; }
 
+    /* Virtual Joystick */
+    .joystick-container {
+      position: absolute; width: 130px; height: 130px;
+      background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.4);
+      border-radius: 50%; display: none; touch-action: none;
+    }
+    .joystick-knob {
+      position: absolute; width: 55px; height: 55px;
+      background: rgba(255,230,0,0.7); border-radius: 50%;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      box-shadow: 0 0 15px rgba(255,230,0,0.8);
+    }
+    #left-joystick { left: 20px; bottom: 20px; }
+    #right-joystick { right: 20px; bottom: 20px; }
+
+    #fps { position: fixed; top: 5px; left: 5px; color: white; font-size: 12px; }
   </style>
 </head>
 <body>
-  <!-- Canvas for the game -->
   <canvas id="gameCanvas"></canvas>
-  <div id="instruction">
-      <p>WASD: Move</p>
-      <p>Mouse: Aim</p>
-      <p>Left Click: Shoot</p>
-      <p>Right Click: Special Weapon (Oribtal Strike)</p>
-      <p>Space + Scroll: FreeCamera</p>
-      <p>Blue Team Kill Score:    <span id="blueTeamKill">0</span></p>
-      <p>Red Team Kill Score:     <span id="redTeamKill">0</span></p>
-      <p>My Kill Score:           <span id="myKill">0</span></p>
-      <p>Point:                   <span id="point">10</span></p>
-      <p>Special Weapon Cooldown: <span id="special-weapon">[██████████] </span>Cost <span id="specialWeaponPoint"> 5</span></p>
+
+  <!-- PC Instruction -->
+  <div id="pc-instruction" class="instruction" style="display: none;">
+    <p>WASD / 화살표: 이동</p>
+    <p>마우스: 조준</p>
+    <p>좌클릭: 발사</p>
+    <p>우클릭: Orbital Strike</p>
+    <p>Space + Scroll: Free Camera</p>
+    <p>Blue: <span id="blueTeamKill">0</span> | Red: <span id="redTeamKill">0</span> | My: <span id="myKill">0</span></p>
+    <p>Point: <span id="point">10</span></p>
+    <p>Special: <span id="special-weapon">[██████████]</span> Cost <span id="specialWeaponPoint">5</span></p>
   </div>
-  <div id="fps" style="position:fixed;top:5px;left:5px;color:white"></div>
-  <audio id="bgm" src="./assets/Mars, the Bringer of War.mp3" preload="auto" loop></audio>
+
+  <!-- Mobile Instruction -->
+  <div id="mobile-instruction" class="instruction">
+    <p>좌측 조이스틱: 이동</p>
+    <p>우측 조이스틱: 조준 + 자동 발사</p>
+    <!-- <p>Blue: <span id="blueTeamKill">0</span> | Red: <span id="redTeamKill">0</span> | My: <span id="myKill">0</span></p> -->
+  </div>
+
+  <!-- Joysticks & Special Button -->
+  <div id="left-joystick" class="joystick-container">
+    <div class="joystick-knob" id="left-knob"></div>
+  </div>
+  <div id="right-joystick" class="joystick-container">
+    <div class="joystick-knob" id="right-knob"></div>
+  </div>
+
+  <!-- <div id="fps"></div> -->
+
+  <!-- Start Buttons for Mobile -->
+  <div id="start-buttons" style="display: none; width: fit-content; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+    <button id="normal-mode" style="margin: 10px; padding: 10px 20px; font-size: 32px; background: transparent; font-weight: bold; color: rgb(255, 170, 43); border: none; border-radius: 5px;">Start Game</button><br>
+    <button id="super-mode" style="margin: 10px; padding: 10px 20px; font-size: 12px; background: transparent; color: rgb(99, 99, 99); border: none; border-radius: 5px;">Enter Super Mode</button>
+  </div>
+
+  <audio id="bgm" src="./assets/BGM.mp3" preload="auto" loop></audio>
   <audio class="hit" src="./assets/Impact_1.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_2.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_3.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_4.wav" preload="auto"></audio>
-  <!-- Load the main module (ES module entry point) -->
-  <!-- <script type="module" src="./main.js"></script> -->
-  <script type="module" src="./game.bundle.js"></script>
-  <!-- FPS 측정 -->
-  <script>
-    let frameCount = 0;
-    let lastTime = performance.now();
-    const fpsDisplay = document.getElementById("fps");
 
+  <script type="module" src="./game.bundle.js"></script>
+
+  <!-- FPS -->
+  <!-- <script>
+    let frameCount = 0, lastTime = performance.now();
+    const fpsDisplay = document.getElementById("fps");
     function loop() {
       frameCount++;
       const now = performance.now();
-      const delta = now - lastTime;
-
-      if (delta >= 1000) {
+      if (now - lastTime >= 1000) {
         fpsDisplay.textContent = `FPS: ${frameCount}`;
-        frameCount = 0;
-        lastTime = now;
+        frameCount = 0; lastTime = now;
       }
-
       requestAnimationFrame(loop);
     }
-
     requestAnimationFrame(loop);
-  </script>
+  </script> -->
 </body>
 </html>
-
