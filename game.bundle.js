@@ -1,134 +1,4 @@
 (() => {
-  // ===== MOBILE SUPPORT =====
-  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 2;
-  window.isMobile = isMobile;
-  // ============================================================
-  // GAME CONSTANTS - All magic numbers defined here for easy tuning
-  // ============================================================
-  const CONSTANTS = {
-    // Player/Tank speeds
-    PLAYER_SPEED: isMobile ? 90 : 125,
-    AI_TANK_SPEED: isMobile ? 75 : 100,
-    SUPERTANK_SPEED: isMobile ? 200 : 300,
-
-    // Tank HP values
-    TANK_HP: 125,
-    SUPERTANK_HP: 500,
-    TANK_RADIUS: isMobile ? 11 : 14,
-    
-    // Tank reload times (in seconds)
-    TANK_RELOAD_TIME: 0.5,
-    SUPERTANK_RELOAD_TIME: 0.05,
-    
-    // Bullet properties
-    BULLET_SPEED: isMobile ? 300 : 400,
-    BULLET_DAMAGE: 25,
-    BULLET_RADIUS: isMobile ? 2 : 3,
-    BULLET_LIFETIME: 1.5,
-    BULLET_SPAWN_OFFSET: 6,
-    BULLET_PEN_RATE: 1,
-    BULLET_SPREAD_ANGLE: Math.PI / 36,
-    BULLET_UNIFORM_SPREAD: Math.PI / 10,
-    
-    // Turret properties
-    TURRET_RADIUS: 24,
-    TURRET_DAMAGE: 75,
-    TURRET_RELOAD_TIME: 0.5,
-    TURRET_PROJECTILE_RADIUS: 8,
-    TURRET_PROJECTILE_SPEED: 1800,
-    TURRET_RANGE: 700,
-    TURRET_PROJECTILE_LIFETIME: 0.5,
-    TURRET_PEN_RATE: 2,
-    TURRET_BASE_RANGE: 700,
-    
-    // Stronghold properties
-    STRONGHOLD_HP: 2000,
-    STRONGHOLD_SIZE: isMobile ? 48 : 72,
-    STRONGHOLD_RESET_TIME: 50,
-    STRONGHOLD_RELOAD_TIME: 1.0,
-    
-    // Base properties
-    BASE_HP: 3000,
-    BASE_SIZE: isMobile ? 48 : 80,
-    BASE_OFFSET: 200,
-    
-    // World bounds
-    WORLD_HEIGHT: 5000,
-    GRID_SIZE: 200,
-    
-    // Spawning
-    SPAWN_INTERVAL: 3,
-    MAX_TANKS_PER_TEAM: isMobile ? 12 : 24,
-    SPAWN_SCATTER_X: 120,
-    SPAWN_SCATTER_Y: 60,
-    
-    // AI Controller parameters
-    AI_ENGAGE_RANGE: 450,
-    AI_DESIRED_MIN_DISTANCE: 250,
-    AI_DESIRED_MAX_DISTANCE: 350,
-    AI_ORBIT_FACTOR: 0.75,
-    AI_RADIAL_GAIN: 0.45,
-    AI_RADIAL_CAP_MULTIPLIER: 0.6,
-    AI_AWARENESS_RANGE: 2000,
-    AI_STRAFE_FACTOR: 0.3,
-    AI_STRAFE_TIME_MIN: 0.5,
-    AI_STRAFE_TIME_MAX: 1.5,
-    AI_ORBIT_SWITCH_MIN: 1,
-    AI_ORBIT_SWITCH_MAX: 2,
-    AI_TARGET_SELECTION_TIMER: 10,
-    AI_FIRE_RANGE: 500,
-    
-    // Physics
-    FRICTION: 0.92,
-    VELOCITY_THRESHOLD: 0.1,
-    TANK_COLLISION_PADDING: 4,
-    TANK_PUSH_FACTOR: 0.5,
-    
-    // Game settings
-    FIXED_TIMESTEP: 1 / 60,
-    SPECIAL_WEAPON_DELAY_NORMAL: 5.0,
-    SPECIAL_WEAPON_DELAY_SUPER: 1.0,
-    SPECIAL_WEAPON_POINT_COST: 5,
-    SPECIAL_EXPLOSION_RADIUS: 250,
-    SPECIAL_EXPLOSION_DAMAGE_MIN: 50,
-    SPECIAL_EXPLOSION_DAMAGE_MAX: 200,
-    SPECIAL_EXPLOSION_PUSH: 1500,
-    PLAYER_RESPAWN_TIME: 5,
-    FOCUS_RESUME_DELAY: 3,
-    
-    // UI and Camera
-    MINIMAP_WIDTH: 100,
-    MINIMAP_HEIGHT: 400,
-    MINIMAP_MARGIN: 16,
-    CAMERA_FOLLOW_OFFSET_Y: 100,
-    CAMERA_EASING_FACTOR: 0.05,
-    
-    // Explosion
-    EXPLOSION_LIFETIME: 1,
-    EXPLOSION_DEFAULT_RADIUS: 50,
-    TANK_DEATH_EXPLOSION_RADIUS: 36,
-    
-    // Audio pools
-    SHOOT_SFX_POOL_SIZE: 120,
-    DEATH_SFX_POOL_SIZE: 50,
-    TURRET_SFX_POOL_SIZE: 20,
-    BULLET_POOL_SIZE: 200,
-    EXPLOSION_POOL_SIZE: 50,
-    
-    // HP bar colors and thresholds
-    HP_BAR_WIDTH: 40,
-    HP_BAR_HEIGHT: 4,
-    HP_BAR_OFFSET_Y: 18,
-    HP_THRESHOLD_HIGH: 0.6,
-    HP_THRESHOLD_MED: 0.3,
-    
-    // Base HP bar
-    BASE_HP_BAR_WIDTH: 400,
-    BASE_HP_BAR_HEIGHT: 18,
-    BASE_HP_BAR_Y: 16,
-    BASE_HP_BAR_LEFT_X: 40,
-  };
-
   // entities/Bullet.js
   var Bullet = class _Bullet {
     // 팀별 스프라이트 캐시(빨강/파랑)
@@ -141,11 +11,11 @@
       this.vy = 0;
       this.team = "";
       this.isPlayerBullet = false;
-      this.damage = CONSTANTS.BULLET_DAMAGE;
-      this.radius = CONSTANTS.BULLET_RADIUS;
-      this.lifetime = CONSTANTS.BULLET_LIFETIME;
+      this.damage = 25;
+      this.radius = 2.5;
+      this.lifetime = 1;
       this.age = 0;
-      this.penRate = CONSTANTS.BULLET_PEN_RATE;
+      this.penRate = 1;
     }
     /**
      * 스프라이트 로딩(팀 색상별)
@@ -187,8 +57,8 @@
       this.vy = vy;
       this.team = team;
       this.isPlayerBullet = isPlayerBullet;
-      this.damage = damage ?? CONSTANTS.BULLET_DAMAGE;
-      this.radius = radius ?? CONSTANTS.BULLET_RADIUS;
+      this.damage = damage ?? 25;
+      this.radius = radius ?? 3;
       this.age = 0;
       this.lifetime = lifetime;
       this.penRate = penRate;
@@ -242,7 +112,7 @@
       this.scale = 1;
       this.alpha = 1;
       this.age = 0;
-      this.lifetime = CONSTANTS.EXPLOSION_LIFETIME;
+      this.lifetime = 1;
     }
     /**
      * 스프라이트 미리 로드(정적)
@@ -261,7 +131,7 @@
      * 폭발 인스턴스 초기화
      * - 위치/최대 반경/나이/투명도/스케일 초기화
      */
-    init({ x, y, maxRadius = CONSTANTS.EXPLOSION_DEFAULT_RADIUS }) {
+    init({ x, y, maxRadius = 50 }) {
       this.active = true;
       this.x = x;
       this.y = y;
@@ -339,114 +209,69 @@
   }
 
   // ai/AIController.js
-  function handleTankAI(tank, dt, world) {
-    // Determine forward direction based on team
-    let forwardDir = 1;
-    if (tank.team === "blue") {
-      forwardDir = -1;
-    }
-    
-    const moveSpeed = tank.speed;
-    
+  // AI Constants
+  const AI_CONSTANTS = {
+    STRAFE_MIN_TIME: 0.5,
+    STRAFE_MAX_TIME: 2.0,
+    ORBIT_MIN_TIME: 1,
+    ORBIT_MAX_TIME: 3,
+    TARGET_SELECTION_TIME: 10,
+    ENGAGE_RANGE: 450,
+    DESIRED_MIN_DISTANCE: 250,
+    DESIRED_MAX_DISTANCE: 350,
+    ORBIT_FACTOR: 0.75,
+    RADIAL_GAIN: 0.45,
+    RADIAL_CAP_FACTOR: 0.6,
+    STRAFE_FACTOR: 0.3,
+    AWARENESS_RANGE: 2000,
+    FIRE_RANGE: 500,
+    PROJECTILE_SPEED: 400
+  };
+
+  function initializeAIState(tank) {
     // Initialize strafe direction if not set
     if (tank.strafeDir === undefined || tank.strafeDir === null) {
-      const randomValue = Math.random();
-      if (randomValue < 0.5) {
-        tank.strafeDir = -1;
-      } else {
-        tank.strafeDir = 1;
-      }
+      tank.strafeDir = Math.random() < 0.5 ? -1 : 1;
     }
     
     // Initialize strafe timer if not set
     if (tank.strafeTimer === undefined || tank.strafeTimer === null) {
-      tank.strafeTimer = 0.5 + Math.random() * 1.5;
-    } else {
-      tank.strafeTimer -= dt;
-      const strafeExpired = tank.strafeTimer <= 0;
-      if (strafeExpired) {
-        const randomValue = Math.random();
-        if (randomValue < 0.5) {
-          tank.strafeDir = -1;
-        } else {
-          tank.strafeDir = 1;
-        }
-        tank.strafeTimer = 0.5 + Math.random() * 1.5;
-      }
+      tank.strafeTimer = AI_CONSTANTS.STRAFE_MIN_TIME + Math.random() * (AI_CONSTANTS.STRAFE_MAX_TIME - AI_CONSTANTS.STRAFE_MIN_TIME);
     }
     
     // Initialize orbit direction if not set
     if (tank.orbitDir === undefined || tank.orbitDir === null) {
-      const randomValue = Math.random();
-      if (randomValue < 0.5) {
-        tank.orbitDir = 1;
-      } else {
-        tank.orbitDir = -1;
-      }
+      tank.orbitDir = Math.random() < 0.5 ? 1 : -1;
     }
     
     // Initialize orbit switch timer if not set
     if (tank.orbitSwitchTimer === undefined || tank.orbitSwitchTimer === null) {
-      tank.orbitSwitchTimer = 1 + Math.random() * 2;
-    } else {
-      tank.orbitSwitchTimer -= dt;
-      const orbitExpired = tank.orbitSwitchTimer <= 0;
-      if (orbitExpired) {
-        tank.orbitDir = tank.orbitDir * -1;
-        tank.orbitSwitchTimer = 1 + Math.random() * 2;
-      }
+      tank.orbitSwitchTimer = AI_CONSTANTS.ORBIT_MIN_TIME + Math.random() * (AI_CONSTANTS.ORBIT_MAX_TIME - AI_CONSTANTS.ORBIT_MIN_TIME);
     }
     
     // Initialize target selection timer if not set
     if (tank.targetSelectionTimer === undefined || tank.targetSelectionTimer === null) {
-      tank.targetSelectionTimer = 10;
-    } else {
-      tank.targetSelectionTimer -= dt;
+      tank.targetSelectionTimer = AI_CONSTANTS.TARGET_SELECTION_TIME;
+    }
+  }
+
+  function updateAIState(tank, dt) {
+    tank.strafeTimer -= dt;
+    if (tank.strafeTimer <= 0) {
+      tank.strafeDir = Math.random() < 0.5 ? -1 : 1;
+      tank.strafeTimer = AI_CONSTANTS.STRAFE_MIN_TIME + Math.random() * (AI_CONSTANTS.STRAFE_MAX_TIME - AI_CONSTANTS.STRAFE_MIN_TIME);
     }
     
-    // Build target list: find all targets within engage range
-    const targetsInRange = [];
-    
-    for (const t of world.tanks) {
-      const isEnemy = t.team !== tank.team;
-      const isAlive = t.hp > 0;
-      const distToTank = distance(t, tank);
-      const inRange = distToTank <= CONSTANTS.AI_ENGAGE_RANGE;
-      if (isEnemy && isAlive && inRange) {
-        targetsInRange.push(t);
-      }
+    tank.orbitSwitchTimer -= dt;
+    if (tank.orbitSwitchTimer <= 0) {
+      tank.orbitDir *= -1;
+      tank.orbitSwitchTimer = AI_CONSTANTS.ORBIT_MIN_TIME + Math.random() * (AI_CONSTANTS.ORBIT_MAX_TIME - AI_CONSTANTS.ORBIT_MIN_TIME);
     }
     
-    for (const s of world.strongholds) {
-      const isAlive = s.hp > 0 && s.isCapturing !== true;
-      const isNotOwned = s.owner !== tank.team;
-      const distToStronghold = distance(s, tank);
-      const inRange = distToStronghold <= CONSTANTS.AI_ENGAGE_RANGE;
-      if (isAlive && isNotOwned && inRange) {
-        // push the actual stronghold object so owner/hp are available later
-        targetsInRange.push(s);
-      }
-    }
-    
-    let enemyBaseTeam = "blue";
-    if (tank.team === "blue") {
-      enemyBaseTeam = "red";
-    }
-    const enemyBase = world.basePos[enemyBaseTeam];
-    const distToBase = distance(enemyBase, tank);
-    const baseInRange = distToBase <= CONSTANTS.AI_ENGAGE_RANGE;
-    if (baseInRange) {
-      const baseTarget = {
-        x: enemyBase.x,
-        y: enemyBase.y,
-        isBase: true,
-        vx: 0,
-        vy: 0
-      };
-      targetsInRange.push(baseTarget);
-    }
-    
-    // Select or update target randomly
+    tank.targetSelectionTimer -= dt;
+  }
+
+  function selectTarget(tank, targetsInRange) {
     let nearest = null;
     let distToTarget = Infinity;
     
@@ -457,7 +282,7 @@
       if (targetsInRange.length > 0) {
         const randomIndex = Math.floor(Math.random() * targetsInRange.length);
         tank.currentTarget = targetsInRange[randomIndex];
-        tank.targetSelectionTimer = 10;
+        tank.targetSelectionTimer = AI_CONSTANTS.TARGET_SELECTION_TIME;
       } else {
         tank.currentTarget = null;
         tank.targetSelectionTimer = 1;
@@ -467,7 +292,7 @@
     // Use current target if valid
     if (tank.currentTarget) {
       const targetAlive = tank.currentTarget.hp === undefined || tank.currentTarget.hp > 0;
-      const targetInRange = distance(tank.currentTarget, tank) <= CONSTANTS.AI_ENGAGE_RANGE;
+      const targetInRange = distance(tank.currentTarget, tank) <= AI_CONSTANTS.ENGAGE_RANGE;
       
       // Check if stronghold is still enemy-owned
       let targetValid = true;
@@ -492,17 +317,82 @@
       distToTarget = distance(nearest, tank);
     }
     
+    return { nearest, distToTarget };
+  }
+
+  function handleTankAI(tank, dt, world) {
+    // Determine forward direction based on team
+    let forwardDir = 1;
+    if (tank.team === "blue") {
+      forwardDir = -1;
+    }
+    
+    const moveSpeed = tank.speed;
+    
+    initializeAIState(tank);
+    updateAIState(tank, dt);
+    
+  function buildTargetsInRange(tank, world) {
+    const targetsInRange = [];
+    
+    for (const t of world.tanks) {
+      const isEnemy = t.team !== tank.team;
+      const isAlive = t.hp > 0;
+      const distToTank = distance(t, tank);
+      const inRange = distToTank <= AI_CONSTANTS.ENGAGE_RANGE;
+      if (isEnemy && isAlive && inRange) {
+        targetsInRange.push(t);
+      }
+    }
+    
+    for (const s of world.strongholds) {
+      const isAlive = s.hp > 0 && s.isCapturing !== true;
+      const isNotOwned = s.owner !== tank.team;
+      const distToStronghold = distance(s, tank);
+      const inRange = distToStronghold <= AI_CONSTANTS.ENGAGE_RANGE;
+      if (isAlive && isNotOwned && inRange) {
+        targetsInRange.push(s);
+      }
+    }
+    
+    let enemyBaseTeam = "blue";
+    if (tank.team === "blue") {
+      enemyBaseTeam = "red";
+    }
+    const enemyBase = world.basePos[enemyBaseTeam];
+    const distToBase = distance(enemyBase, tank);
+    const baseInRange = distToBase <= AI_CONSTANTS.ENGAGE_RANGE;
+    if (baseInRange) {
+      const baseTarget = {
+        x: enemyBase.x,
+        y: enemyBase.y,
+        isBase: true,
+        vx: 0,
+        vy: 0
+      };
+      targetsInRange.push(baseTarget);
+    }
+    
+    return targetsInRange;
+  }
+
+    // Build target list: find all targets within engage range
+    const targetsInRange = buildTargetsInRange(tank, world);
+    
+    // Select or update target randomly
+    const { nearest, distToTarget } = selectTarget(tank, targetsInRange);
+    
     // Initialize movement
     let moveX = 0;
     let moveY = 0;
     
     // Engagement parameters
-    const DESIRED_MIN = CONSTANTS.AI_DESIRED_MIN_DISTANCE;
-    const DESIRED_MAX = CONSTANTS.AI_DESIRED_MAX_DISTANCE;
-    const ENGAGE_MAX = CONSTANTS.AI_ENGAGE_RANGE;
-    const ORBIT_FACTOR = CONSTANTS.AI_ORBIT_FACTOR;
-    const RADIAL_GAIN = CONSTANTS.AI_RADIAL_GAIN;
-    const RADIAL_CAP = moveSpeed * CONSTANTS.AI_RADIAL_CAP_MULTIPLIER;
+    const DESIRED_MIN = AI_CONSTANTS.DESIRED_MIN_DISTANCE;
+    const DESIRED_MAX = AI_CONSTANTS.DESIRED_MAX_DISTANCE;
+    const ENGAGE_MAX = AI_CONSTANTS.ENGAGE_RANGE;
+    const ORBIT_FACTOR = AI_CONSTANTS.ORBIT_FACTOR;
+    const RADIAL_GAIN = AI_CONSTANTS.RADIAL_GAIN;
+    const RADIAL_CAP = moveSpeed * AI_CONSTANTS.RADIAL_CAP_FACTOR;
     
     // Determine movement based on distance to nearest target
     const inEngageRange = nearest && distToTarget <= ENGAGE_MAX;
@@ -550,7 +440,7 @@
       }
     } else {
       // Check if target is within general awareness range
-      const inAwarenessRange = nearest && distToTarget <= CONSTANTS.AI_AWARENESS_RANGE;
+      const inAwarenessRange = nearest && distToTarget <= AI_CONSTANTS.AWARENESS_RANGE;
       if (inAwarenessRange) {
         // Chase mode: move toward target
         const dx = nearest.x - tank.x;
@@ -561,7 +451,7 @@
         const cosChaseAngle = Math.cos(chaseAngle);
         const sinChaseAngle = Math.sin(chaseAngle);
         
-        moveX = cosChaseAngle * moveSpeed + tank.strafeDir * moveSpeed * CONSTANTS.AI_STRAFE_FACTOR;
+        moveX = cosChaseAngle * moveSpeed + tank.strafeDir * moveSpeed * AI_CONSTANTS.STRAFE_FACTOR;
         moveY = sinChaseAngle * moveSpeed;
       } else {
         // Default movement: move forward in team direction
@@ -593,7 +483,7 @@
         tank.turretAngle = Math.atan2(nearest.y - tank.y, nearest.x - tank.x);
       }
       
-      const fireRange = CONSTANTS.AI_FIRE_RANGE;
+      const fireRange = AI_CONSTANTS.FIRE_RANGE;
       const canFire = distance(nearest, tank) < fireRange;
       if (canFire) {
         tank.tryShoot(world);
@@ -611,11 +501,11 @@
       this.isPlayer = isPlayer;
       this.angle = 300;
       this.turretAngle = 0;
-      this.speed = supertank ? CONSTANTS.SUPERTANK_SPEED : (isPlayer ? CONSTANTS.PLAYER_SPEED : CONSTANTS.AI_TANK_SPEED);
-      this.hp = supertank ? CONSTANTS.SUPERTANK_HP : CONSTANTS.TANK_HP;
-      this.radius = CONSTANTS.TANK_RADIUS;
+      this.speed = supertank ? 300 : (isPlayer ? 125 : 100);
+      this.hp = supertank ? 500 : 125;
+      this.radius = 11;
       this.fireCooldown = 0;
-      this.reloadTime = supertank ? CONSTANTS.SUPERTANK_RELOAD_TIME : CONSTANTS.TANK_RELOAD_TIME;
+      this.reloadTime = supertank ? 0.05 : 0.5;
       this.target = null;
       this.strafeDir = Math.random() < 0.5 ? -1 : 1;
       this.strafeTimer = Math.random() * 1;
@@ -623,8 +513,8 @@
       this.vx = 0;
       this.vy = 0;
       this.bulletCount = 1;
-      this.projectileLifeTime = CONSTANTS.BULLET_LIFETIME;
-      this.penRate = CONSTANTS.BULLET_PEN_RATE; // 1개 탱크 맞추면 총알 소멸
+      this.projectileLifeTime = 1.5;
+      this.penRate = 1; // 1개 탱크 맞추면 총알 소멸
     }
     /**
      * 프레임별 갱신
@@ -652,10 +542,10 @@
       );
       this.x += this.vx * dt;
       this.y += this.vy * dt;
-      this.vx *= CONSTANTS.FRICTION;
-      this.vy *= CONSTANTS.FRICTION;
-      if (Math.abs(this.vx) < CONSTANTS.VELOCITY_THRESHOLD) this.vx = 0;
-      if (Math.abs(this.vy) < CONSTANTS.VELOCITY_THRESHOLD) this.vy = 0;
+      this.vx *= 0.92;
+      this.vy *= 0.92;
+      if (Math.abs(this.vx) < 0.1) this.vx = 0;
+      if (Math.abs(this.vy) < 0.1) this.vy = 0;
     }
     /**
      * 플레이어 입력 처리
@@ -664,45 +554,27 @@
      * - 좌클릭 지속 발사
      */
     handlePlayerInput(dt, world, input) {
-      if (input.isMobile) {
-        // ==================== 모바일 조이스틱 ====================
-        const dx = input.moveInput.x;
-        const dy = input.moveInput.y;
-        if (dx !== 0 || dy !== 0) {
-          this.x += dx * this.speed * dt;
-          this.y += dy * this.speed * dt;
-          this.angle = Math.atan2(dy, dx);
-        }
-
-        // 조준 (우측 조이스틱)
-        if (input.aimInput.x !== 0 || input.aimInput.y !== 0) {
-          this.turretAngle = Math.atan2(input.aimInput.y, input.aimInput.x);
-        }
-
-        // 자동 발사
-        if (input.fireInput) {
-          this.tryShoot(world, this.bulletCount);
-        }
-      } else {
-        // ==================== 기존 PC 컨트롤 ====================
-        const keys = input.keys;
-        let dx = 0, dy = 0;
-        if (keys["w"] || keys["arrowup"]) dy -= 1;
-        if (keys["s"] || keys["arrowdown"]) dy += 1;
-        if (keys["a"] || keys["arrowleft"]) dx -= 1;
-        if (keys["d"] || keys["arrowright"]) dx += 1;
-        if (dx !== 0 || dy !== 0) {
-          const len = Math.sqrt(dx * dx + dy * dy);
-          dx /= len; dy /= len;
-          this.x += dx * this.speed * dt;
-          this.y += dy * this.speed * dt;
-          this.angle = Math.atan2(dy, dx);
-        }
-        const cam = world.camera;
-        const mouseWorldX = input.mouse.canvasX + cam.x;
-        const mouseWorldY = input.mouse.canvasY + cam.y;
-        this.turretAngle = Math.atan2(mouseWorldY - this.y, mouseWorldX - this.x);
-        if (input.mouse.down) this.tryShoot(world, this.bulletCount);
+      const keys = input.keys;
+      let dx = 0,
+        dy = 0;
+      if (keys["w"] || keys["arrowup"]) dy -= 1;
+      if (keys["s"] || keys["arrowdown"]) dy += 1;
+      if (keys["a"] || keys["arrowleft"]) dx -= 1;
+      if (keys["d"] || keys["arrowright"]) dx += 1;
+      if (dx !== 0 || dy !== 0) {
+        const len = Math.sqrt(dx * dx + dy * dy);
+        dx /= len;
+        dy /= len;
+        this.x += dx * this.speed * dt;
+        this.y += dy * this.speed * dt;
+        this.angle = Math.atan2(dy, dx);
+      }
+      const cam = world.camera;
+      const mouseWorldX = input.mouse.canvasX + cam.x;
+      const mouseWorldY = input.mouse.canvasY + cam.y;
+      this.turretAngle = Math.atan2(mouseWorldY - this.y, mouseWorldX - this.x);
+      if (input.mouse.down) {
+        this.tryShoot(world, this.bulletCount);
       }
     }
     /**
@@ -713,9 +585,9 @@
     tryShoot(world, bulletCount = this.bulletCount) {
       if (this.fireCooldown > 0) return;
       const baseAngle = this.turretAngle;
-      const bulletSpeed = CONSTANTS.BULLET_SPEED;
-      const maxSpread = CONSTANTS.BULLET_SPREAD_ANGLE;
-      const uniformSpreadAngle = CONSTANTS.BULLET_UNIFORM_SPREAD;
+      const bulletSpeed = 450;
+      const maxSpread = Math.PI / 36;
+      const uniformSpreadAngle = Math.PI / 10;
       for (let i = 0; i < bulletCount; i++) {
         let angle;
         if (bulletCount === 1) {
@@ -729,8 +601,8 @@
         const vx = Math.cos(angle) * bulletSpeed;
         const vy = Math.sin(angle) * bulletSpeed;
         world.bulletPool.spawn({
-          x: this.x + Math.cos(angle) * (this.radius + CONSTANTS.BULLET_SPAWN_OFFSET),
-          y: this.y + Math.sin(angle) * (this.radius + CONSTANTS.BULLET_SPAWN_OFFSET),
+          x: this.x + Math.cos(angle) * (this.radius + 6),
+          y: this.y + Math.sin(angle) * (this.radius + 6),
           vx,
           vy,
           team: this.team,
@@ -802,18 +674,18 @@
       }
 
       // HP 바 항상 그리기
-      const maxHP = this.supertank ? CONSTANTS.SUPERTANK_HP : CONSTANTS.TANK_HP;
-      const barWidth = CONSTANTS.HP_BAR_WIDTH;
-      const barHeight = CONSTANTS.HP_BAR_HEIGHT;
+      const maxHP = this.supertank ? 500 : 125;
+      const barWidth = 40;
+      const barHeight = 4;
       const barX = screenX - barWidth / 2;
-      const barY = screenY - this.radius - CONSTANTS.HP_BAR_OFFSET_Y;
+      const barY = screenY - this.radius - 18;
       ctx.fillStyle = "#000";
       ctx.fillRect(barX, barY, barWidth, barHeight);
       const hpRatio = this.hp / maxHP;
       ctx.fillStyle =
-        hpRatio > CONSTANTS.HP_THRESHOLD_HIGH
+        hpRatio > 0.6
           ? "rgba(76, 193, 76, 1)"
-          : hpRatio > CONSTANTS.HP_THRESHOLD_MED
+          : hpRatio > 0.3
             ? "rgba(200, 200, 71, 1)"
             : "rgba(204, 63, 63, 1)";
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
@@ -832,20 +704,20 @@
 
   // entities/Turret.js
   var Turret = class {
-    constructor(x, y, team, damage = CONSTANTS.TURRET_DAMAGE, reloadTime = CONSTANTS.TURRET_RELOAD_TIME) {
+    constructor(x, y, team, damage = 50, reloadTime = 1) {
       this.x = x;
       this.y = y;
       this.team = team;
       this.damage = damage;
       this.fireCooldown = -1;
       this.reloadTime = reloadTime;
-      this.radius = CONSTANTS.TURRET_RADIUS;
+      this.radius = 24;
       this.targetAngle = -Math.PI / 2;
-      this.projectileRadius = CONSTANTS.TURRET_PROJECTILE_RADIUS;
-      this.projectileSpeed = CONSTANTS.TURRET_PROJECTILE_SPEED;
-      this.range = CONSTANTS.TURRET_RANGE;
-      this.projectileLifeTime = CONSTANTS.TURRET_PROJECTILE_LIFETIME;
-      this.penRate = CONSTANTS.TURRET_PEN_RATE;
+      this.projectileRadius = 8;
+      this.projectileSpeed = 2400;
+      this.range = 700;
+      this.projectileLifeTime = 0.4
+      this.penRate = 3; // 3개 목표물 맞추면 총알 소멸 (관통 가능)
     }
     /**
      * 프레임별 갱신
@@ -865,7 +737,7 @@
         // }
         
         // 사거리 Y축 만 기준으로 사거리 내에 들어오면 발사
-        if (target.y <= this.y + CONSTANTS.TURRET_BASE_RANGE && target.y >= this.y - CONSTANTS.TURRET_BASE_RANGE ) {
+        if (target.y <= this.y + this.range && target.y >= this.y - this.range ) {
           this.tryShoot(world);
         }
       }
@@ -885,8 +757,8 @@
       const vx = Math.cos(angle) * this.projectileSpeed;
       const vy = Math.sin(angle) * this.projectileSpeed;
       world.bulletPool.spawn({
-        x: this.x + Math.cos(angle) * (this.radius + CONSTANTS.TURRET_PROJECTILE_RADIUS),
-        y: this.y + Math.sin(angle) * (this.radius + CONSTANTS.TURRET_PROJECTILE_RADIUS),
+        x: this.x + Math.cos(angle) * (this.radius + this.projectileRadius),
+        y: this.y + Math.sin(angle) * (this.radius + this.projectileRadius),
         vx,
         vy,
         team: this.team,
@@ -903,8 +775,8 @@
      * - 베이스나 섀도우 등은 생략하고 포신만 그려 간결하게 표현
      */
     draw(ctx, camera) {
-      const screenX = (this.x - camera.x) * camera.scale;
-      const screenY = (this.y - camera.y) * camera.scale;
+      const screenX = this.x - camera.x;
+      const screenY = this.y - camera.y;
       ctx.save();
       ctx.translate(screenX, screenY);
       ctx.rotate(this.targetAngle);
@@ -923,10 +795,9 @@
         minX: 0,
         maxX: canvas.width,
         minY: 0,
-        maxY: CONSTANTS.WORLD_HEIGHT,
+        maxY: 5e3,
       };
       this.camera = { x: 0, y: 0 };
-      this.cameraScale = window.isMobile ? 0.2 : 1;
       this.tanks = [];
       this.ready = false;
       this.bulletPool = bulletPool;
@@ -938,8 +809,8 @@
         if (Explosion.sprite) explosion.sprite = Explosion.sprite;
       }
       this.spawnTimer = 0;
-      this.spawnInterval = CONSTANTS.SPAWN_INTERVAL;
-      this.maxTanksPerTeam = CONSTANTS.MAX_TANKS_PER_TEAM;
+      this.spawnInterval = 1;
+      this.maxTanksPerTeam = 36;
       this.isSuperMode = isSuperMode;
       this.point = this.isSuperMode ? 999999 : 10;
       this.pointDisplay = null;
@@ -947,50 +818,72 @@
       this.redTeamKillDisplay = null;
       this.blueTeamKillDisplay = null;
       this.myKillDisplay = null;
-      this.defaultBaseHealth = CONSTANTS.BASE_HP;
+      this.defaultBaseHealth = 10e3;
       this.baseHealth = {
         blue: this.defaultBaseHealth,
         red: this.defaultBaseHealth,
       };
       this.basePos = {
         // 파랑 본진: 맵 하단 근처
-        blue: { x: canvas.width / 2, y: this.bounds.maxY - CONSTANTS.BASE_OFFSET },
+        blue: { x: canvas.width / 2, y: this.bounds.maxY - 200 },
         // 빨강 본진: 맵 상단 근처
-        red: { x: canvas.width / 2, y: this.bounds.minY + CONSTANTS.BASE_OFFSET },
+        red: { x: canvas.width / 2, y: this.bounds.minY + 200 },
       };
       this.strongholds = [
+        //=========================================
+        // 적군 쌍둥이 거점
+        //-----------------------------------------
         {
-          x: canvas.width / 2,
+          x: canvas.width / 3 * 1,
           y: this.bounds.maxY * 0.25,
-          hp: CONSTANTS.STRONGHOLD_HP,
-          owner: null,
+          hp: 3e3,
+          owner: "red",
         },
+        {
+          x: canvas.width / 3 * 2,
+          y: this.bounds.maxY * 0.25,
+          hp: 3e3,
+          owner: "red",
+        },
+        //=========================================
+        // 중앙 거점 (포탑 없음)
+        //-----------------------------------------
         {
           x: canvas.width / 2,
           y: this.bounds.maxY * 0.5,
-          hp: CONSTANTS.STRONGHOLD_HP,
+          hp: 3e3,
           owner: null,
+        },
+        //=========================================
+        // 아군 쌍둥이 거점
+        //-----------------------------------------
+        {
+          x: canvas.width / 3 * 1,
+          y: this.bounds.maxY * 0.75,
+          hp: 3e3,
+          owner: "blue",
         },
         {
-          x: canvas.width / 2,
+          x: canvas.width / 3 * 2,
           y: this.bounds.maxY * 0.75,
-          hp: CONSTANTS.STRONGHOLD_HP,
-          owner: null,
+          hp: 3e3,
+          owner: "blue",
         },
+        //=========================================
       ];
       this.turrets = [];
       this.turrets.push(
-        new Turret(this.basePos.blue.x, this.basePos.blue.y, "blue", CONSTANTS.TURRET_DAMAGE, CONSTANTS.TURRET_RELOAD_TIME),
+        new Turret(this.basePos.blue.x, this.basePos.blue.y, "blue", 75, 0.5),
       );
       this.turrets.push(
-        new Turret(this.basePos.red.x, this.basePos.red.y, "red", CONSTANTS.TURRET_DAMAGE, CONSTANTS.TURRET_RELOAD_TIME),
+        new Turret(this.basePos.red.x, this.basePos.red.y, "red", 75, 0.5),
       );
       this.gameOver = false;
       this.specialCooldown = 0;
-      this.specialCoolTime = this.isSuperMode ? CONSTANTS.SPECIAL_WEAPON_DELAY_SUPER : 30;
+      this.specialCoolTime = this.isSuperMode ? 1 : 30;
       this.pendingExplosion = null;
       this.specialWeaponText = null;
-      this.specialWeaponPoint = CONSTANTS.SPECIAL_WEAPON_POINT_COST;
+      this.specialWeaponPoint = 5;
     }
     /**
      * 탱크를 월드에 등록
@@ -1128,25 +1021,31 @@
             stronghold.hp -= bullet.damage;
             bullet.active = false;
             if (stronghold.hp <= 0) {
-              stronghold.owner = bullet.team;
-              stronghold.isCapturing = true;
-              // // 점령시 티켓 회복
-              // this.baseHealth[bullet.team] = clamp(
-              //   this.baseHealth[bullet.team] + 50,
-              //   0,
-              //   this.defaultBaseHealth,
-              // );
-              this.turrets = this.turrets.filter(
-                (t) => !(t.x === stronghold.x && t.y === stronghold.y),
-              );
-              this.turrets.push(
-                new Turret(stronghold.x, stronghold.y, stronghold.owner, 75, CONSTANTS.STRONGHOLD_RELOAD_TIME),
-              );
-              // Reset stronghold after 3 seconds to prevent constant targeting
-              setTimeout(() => {
-                stronghold.hp = CONSTANTS.STRONGHOLD_HP;
-                stronghold.isCapturing = false;
-              }, 50);
+              // Capture all strongholds at the same Y position
+              for (const s of this.strongholds) {
+                if (s.y === stronghold.y) {
+                  s.owner = bullet.team;
+                  s.isCapturing = true;
+                  s.hp = -1;
+                  this.turrets = this.turrets.filter(
+                    (t) => !(t.x === s.x && t.y === s.y),
+                  );
+                  // 중앙 거점이 아니면 포탑 생성
+                  const isCentralStronghold =
+                    s.x === this.basePos.blue.x &&
+                    s.y === this.bounds.maxY * 0.5;
+                  if (!isCentralStronghold) {
+                    this.turrets.push(
+                      new Turret(s.x, s.y, s.owner, 75),
+                    );
+                  }
+                  // Restore stronghold after 0.05 seconds
+                  setTimeout(() => {
+                    s.hp = 3e3;
+                    s.isCapturing = false;
+                  }, 50);
+                }
+              }
             }
           }
         }
@@ -1179,16 +1078,36 @@
      * - 소유한 거점이 없으면 본진으로
      * - 있으면 적 본진과의 거리 기준으로 가장 전방 거점 선택
      */
-    getSpawnPoint(team) {
+    getSpawnPoints(team) {
       const enemyBaseY = this.basePos[team === "blue" ? "red" : "blue"].y;
       const owned = this.strongholds.filter((s) => s.owner === team);
       if (owned.length === 0) {
-        return { x: this.basePos[team].x, y: this.basePos[team].y };
+        return [{ x: this.basePos[team].x, y: this.basePos[team].y }];
       }
       owned.sort(
         (a, b) => Math.abs(a.y - enemyBaseY) - Math.abs(b.y - enemyBaseY),
       );
-      return { x: owned[0].x, y: owned[0].y };
+      const frontline = owned[0];
+      const baseY = this.basePos[team].y;
+      const enemyStrongholds = this.strongholds.filter((s) => s.owner !== team);
+      let behind = [];
+      if (team === "blue") {
+        behind = enemyStrongholds.filter((s) => s.y > baseY && s.y < frontline.y);
+      } else {
+        behind = enemyStrongholds.filter((s) => s.y < baseY && s.y > frontline.y);
+      }
+      if (behind.length > 0) {
+        // spawn at rearmost owned stronghold (closest to base), split if multiple at same Y
+        owned.sort((a, b) => Math.abs(a.y - baseY) - Math.abs(b.y - baseY));
+        const rearmost = owned[0];
+        // Get all strongholds at the same Y position
+        const spawnPoints = owned.filter((s) => s.y === rearmost.y);
+        return spawnPoints;
+      } else {
+        // Get all strongholds at frontline Y position for division
+        const frontlinePoints = owned.filter((s) => s.y === frontline.y);
+        return frontlinePoints;
+      }
     }
     /**
      * 웨이브 스폰
@@ -1205,8 +1124,9 @@
       const spawnCount = 3 + Math.floor(Math.random() * 2);
       if (blueAlive < this.maxTanksPerTeam) {
         const toSpawn = Math.min(spawnCount, this.maxTanksPerTeam - blueAlive);
-        const spawn = this.getSpawnPoint("blue");
+        const spawnPoints = this.getSpawnPoints("blue");
         for (let i = 0; i < toSpawn; i++) {
+          const spawn = spawnPoints[i % spawnPoints.length];
           const x = spawn.x + (Math.random() - 0.5) * 120;
           const y = spawn.y + (Math.random() - 0.5) * 60;
           this.addTank(new Tank(x, y, "blue", false));
@@ -1214,7 +1134,7 @@
             (s) => s.owner === "blue" && s.x === spawn.x && s.y === spawn.y,
           );
           if (stronghold) {
-            stronghold.hp = clamp(stronghold.hp + 5, 0, CONSTANTS.STRONGHOLD_HP);
+            stronghold.hp = clamp(stronghold.hp + 5, 0, 3e3);
           } else {
             this.baseHealth.blue = clamp(
               this.baseHealth.blue + 5,
@@ -1226,8 +1146,9 @@
       }
       if (redAlive < this.maxTanksPerTeam) {
         const toSpawn = Math.min(spawnCount, this.maxTanksPerTeam - redAlive);
-        const spawn = this.getSpawnPoint("red");
+        const spawnPoints = this.getSpawnPoints("red");
         for (let i = 0; i < toSpawn; i++) {
+          const spawn = spawnPoints[i % spawnPoints.length];
           const x = spawn.x + (Math.random() - 0.5) * 120;
           const y = spawn.y + (Math.random() - 0.5) * 60;
           this.addTank(new Tank(x, y, "red", false));
@@ -1235,7 +1156,7 @@
             (s) => s.owner === "red" && s.x === spawn.x && s.y === spawn.y,
           );
           if (stronghold) {
-            stronghold.hp = clamp(stronghold.hp + 5, 0, CONSTANTS.STRONGHOLD_HP);
+            stronghold.hp = clamp(stronghold.hp + 5, 0, 3e3);
           } else {
             this.baseHealth.red = clamp(
               this.baseHealth.red + 5,
@@ -1288,7 +1209,7 @@
             : "rgba(255, 106, 106, 0.8)";
         ctx.globalAlpha = 0.9;
         ctx.beginPath();
-        const baseSize = isMobile ? 48 : 80;
+        const baseSize = 80;
         ctx.rect(
           screenX - baseSize / 2,
           screenY - baseSize / 2,
@@ -1321,7 +1242,7 @@
               : "rgba(170, 170, 170, 0.8)";
         ctx.globalAlpha = 0.85;
         ctx.beginPath();
-        const strongholdSize = isMobile ? 48 : 72;
+        const strongholdSize = 72;
         ctx.rect(
           screenX - strongholdSize / 2,
           screenY - strongholdSize / 2,
@@ -1361,7 +1282,7 @@
         ctx.fillRect(
           screenX - 36,
           screenY + 44,
-          72 * clamp(stronghold.hp / CONSTANTS.STRONGHOLD_HP, 0, 1),
+          72 * clamp(stronghold.hp / 3e3, 0, 1),
           6,
         );
         ctx.restore();
@@ -1369,82 +1290,17 @@
       for (const turret of this.turrets) {
         turret.draw(ctx, cam);
       }
-      ctx.save();
-      const barWidth = window.isMobile ? 150 : 400;
-      const barHeight = 18;
-      const baseMaxHp = this.defaultBaseHealth;
-      ctx.fillStyle = "#333";
-      ctx.fillRect(
-        ctx.canvas.width / 2 - (40 + barWidth),
-        16,
-        barWidth,
-        barHeight,
-      );
-      ctx.fillStyle = "#5cb3ff";
-      ctx.fillRect(
-        ctx.canvas.width / 2 - (40 + barWidth),
-        16,
-        barWidth * clamp(this.baseHealth.blue / baseMaxHp, 0, 1),
-        barHeight,
-      );
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        ctx.canvas.width / 2 - (40 + barWidth),
-        16,
-        barWidth,
-        barHeight,
-      );
-      ctx.font = "bold 16px sans-serif";
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        `BLUE Base: ${this.baseHealth.blue}`,
-        ctx.canvas.width / 2 - (40 + barWidth),
-        8,
-      );
-      ctx.fillStyle = "#333";
-      ctx.fillRect(ctx.canvas.width / 2 + 40, 16, barWidth, barHeight);
-      ctx.fillStyle = "#ff6a6a";
-      ctx.fillRect(
-        ctx.canvas.width / 2 + 40,
-        16,
-        barWidth * clamp(this.baseHealth.red / baseMaxHp, 0, 1),
-        barHeight,
-      );
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(ctx.canvas.width / 2 + 40, 16, barWidth, barHeight);
-      ctx.font = "bold 16px sans-serif";
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        `RED Base: ${this.baseHealth.red}`,
-        ctx.canvas.width / 2 + 40,
-        8,
-      );
       ctx.restore();
       ctx.save();
       const minimapWidth = 100;
+      const minimapHeight = 400;
+      const margin = 16;
       const mapMinX = this.bounds.minX;
       const mapMaxX = this.bounds.maxX;
       const mapMinY = this.bounds.minY;
       const mapMaxY = this.bounds.maxY;
-      const minimapHeight = this.isMobile ? 320 : 400;   // 모바일은 조금 작게
-      const margin = 16;
-      let minimapX, minimapY;
-
-      if (this.isMobile) {
-        // 모바일: 좌측 상단 (작동 안함)
-        minimapX = margin;
-        minimapY = margin;
-      } else {
-        // PC: 기존 우측 하단
-        minimapX = ctx.canvas.width - minimapWidth - margin;
-        minimapY = ctx.canvas.height - minimapHeight - margin;
-      }
+      const minimapX = ctx.canvas.width - minimapWidth - margin;
+      const minimapY = ctx.canvas.height - minimapHeight - margin;
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = "#222";
       ctx.fillRect(minimapX, minimapY, minimapWidth, minimapHeight);
@@ -1608,63 +1464,35 @@
 
   // input/InputManager.js
   var InputManager = class {
-  constructor(canvas, game) {
-    this.canvas = canvas;
-    this.game = game;
-    this.keys = {};
-    this.mouse = { canvasX: 0, canvasY: 0, down: false, rightDown: false };
-    this.isMobile = window.isMobile || false;
-    this.moveInput = { x: 0, y: 0 };
-    this.aimInput = { x: 0, y: 0 };
-    this.fireInput = false;
-    this.specialAiming = false;
-    this.specialTargetCanvasX = 0;
-    this.specialTargetCanvasY = 0;
-
-    // PC 키보드/마우스
-    window.addEventListener("keydown", e => this.keys[e.key.toLowerCase()] = true);
-    window.addEventListener("keyup", e => this.keys[e.key.toLowerCase()] = false);
-    canvas.addEventListener("mousedown", e => {
-      if (e.button === 0) this.mouse.down = true;
-      if (e.button === 2) this.mouse.rightDown = true;
-    });
-    canvas.addEventListener("mouseup", e => {
-      if (e.button === 0) this.mouse.down = false;
-      if (e.button === 2) this.mouse.rightDown = false;
-    });
-    canvas.addEventListener("mousemove", e => {
-      const rect = canvas.getBoundingClientRect();
-      this.mouse.canvasX = e.clientX - rect.left;
-      this.mouse.canvasY = e.clientY - rect.top;
-    });
-
-    if (this.isMobile) this.setupMobileControls();
-  }
-
-  setupMobileControls() {
-    // 모바일 컨트롤 표시
-    document.getElementById('left-joystick').style.display = 'block';
-    document.getElementById('right-joystick').style.display = 'block';
-    document.getElementById('mobile-instruction').style.display = 'block';
-    document.getElementById('pc-instruction').style.display = 'none';
-
-    // 조이스틱
-    this.leftJoystick = new VirtualJoystick("left-joystick",
-      (x, y) => { this.moveInput = { x, y }; },
-      () => { this.moveInput = { x: 0, y: 0 }; }
-    );
-    this.rightJoystick = new VirtualJoystick("right-joystick",
-      (x, y) => {
-        this.aimInput = { x, y };
-        this.fireInput = true;
-      },
-      () => {
-        this.aimInput = { x: 0, y: 0 };
-        this.fireInput = false;
-      }
-    );
-  }
-};
+    constructor(canvas) {
+      this.keys = {};
+      this.mouse = {
+        canvasX: 0,
+        canvasY: 0,
+        down: false,
+        rightDown: false,
+      };
+      window.addEventListener("keydown", (e) => {
+        this.keys[e.key.toLowerCase()] = true;
+      });
+      window.addEventListener("keyup", (e) => {
+        this.keys[e.key.toLowerCase()] = false;
+      });
+      canvas.addEventListener("mousedown", (e) => {
+        if (e.button === 0) this.mouse.down = true;
+        if (e.button === 2) this.mouse.rightDown = true;
+      });
+      canvas.addEventListener("mouseup", (e) => {
+        if (e.button === 0) this.mouse.down = false;
+        if (e.button === 2) this.mouse.rightDown = false;
+      });
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        this.mouse.canvasX = e.clientX - rect.left;
+        this.mouse.canvasY = e.clientY - rect.top;
+      });
+    }
+  };
 
   // core/managers/UIManager.js
   var UIManager = class {
@@ -1680,6 +1508,13 @@
       this.playerKillEl = document.getElementById("myKill");
       this.specialWeaponEl = document.getElementById("special-weapon");
       this.specialWeaponPointEl = document.getElementById("specialWeaponPoint");
+      this.overlayEl = document.getElementById("game-overlay");
+      this.overlayMessageEl = document.getElementById("overlay-message");
+      this.overlaySubmessageEl = document.getElementById("overlay-submessage");
+      this.blueBaseFillEl = document.getElementById("blue-base-fill");
+      this.redBaseFillEl = document.getElementById("red-base-fill");
+      this.blueBaseValueEl = document.getElementById("blue-base-value");
+      this.redBaseValueEl = document.getElementById("red-base-value");
     }
     /**
      * Update the kill scoreboard text. Accepts the latest kill counts for
@@ -1732,6 +1567,36 @@
         this.specialWeaponPointEl.textContent = `${currentPoint}  `;
       }
     }
+
+    showOverlay(message, submessage = "") {
+      if (!this.overlayEl) return;
+      this.overlayMessageEl.textContent = message;
+      if (this.overlaySubmessageEl) {
+        this.overlaySubmessageEl.textContent = submessage;
+      }
+      this.overlayEl.classList.remove("hidden");
+    }
+
+    hideOverlay() {
+      if (!this.overlayEl) return;
+      this.overlayEl.classList.add("hidden");
+    }
+
+    updateBaseHealth(blue, red) {
+      if (this.blueBaseFillEl) {
+        this.blueBaseFillEl.style.width = `${Math.max(0, Math.min(100, (blue / 10e3) * 100))}%`;
+      }
+      if (this.redBaseFillEl) {
+        this.redBaseFillEl.style.width = `${Math.max(0, Math.min(100, (red / 10e3) * 100))}%`;
+      }
+      if (this.blueBaseValueEl) {
+        this.blueBaseValueEl.textContent = `${Math.max(0, Math.round(blue))}`;
+      }
+      if (this.redBaseValueEl) {
+        this.redBaseValueEl.textContent = `${Math.max(0, Math.round(red))}`;
+      }
+    }
+
     /**
      * Draw a generic overlay message on top of the canvas. This helper is
      * flexible enough to render pause screens, respawn countdowns or any
@@ -1754,7 +1619,7 @@
         opacity = 0.3,
         bgColor = "#000",
         color = "#fff",
-        font = window.isMobile ? "bold 20px sans-serif" : "bold 30px sans-serif",
+        font = "bold 30px sans-serif",
         textAlign = "center",
         textBaseline = "middle",
         offsetY = 0,
@@ -1840,10 +1705,17 @@
     }
     // --- 전체화면 요청 ---
     async requestFullscreen() {
-      if (this.game.isMobile) return;   // ← 모바일에서는 전체화면 안 함
       const elem = this.game.canvas.parentElement || document.documentElement;
       if (!document.fullscreenElement) {
-        try { await elem.requestFullscreen(); } catch (err) {}
+        try {
+          await elem.requestFullscreen();
+          console.log("\uC804\uCCB4\uD654\uBA74 \uC9C4\uC785 \uC131\uACF5");
+        } catch (err) {
+          console.warn(
+            "\uC804\uCCB4\uD654\uBA74 \uC9C4\uC785 \uC2E4\uD328:",
+            err,
+          );
+        }
       }
     }
     // --- 전체화면 해제 ---
@@ -1901,8 +1773,7 @@
       const game = this.game;
       if (!game.running && !game.world.gameOver) {
         // Start a 3-second countdown instead of resuming immediately
-        game.focusCountdown = CONSTANTS.FOCUS_RESUME_DELAY;
-        game.running = false; // Explicitly ensure game stays paused during countdown
+        game.focusCountdown = 3;
       }
     }
     /**
@@ -2002,14 +1873,12 @@
      * - 타임스텝 및 루프 제어 변수 초기화
      */
     async init() {
-      document.getElementById('pc-instruction').style.display = 'block';
       const tempBullet = new Bullet();
       await tempBullet.initSprite("red");
       await tempBullet.initSprite("blue");
       await Explosion.initSprite();
       this.world = new World(this.canvas, this.isSuperMode);
-      this.isMobile = window.isMobile || false;
-      this.input = new InputManager(this.canvas, this);
+      this.input = new InputManager(this.canvas);
       this.bgm = document.getElementById("bgm");
       this.ui = new UIManager(this.canvas);
       this.stateManager = new GameStateManager(this);
@@ -2031,7 +1900,7 @@
       this.world.spawnWave();
       this.lastTime = 0;
       this.accumulator = 0;
-      this.timeStep = CONSTANTS.FIXED_TIMESTEP; // 60 FPS 고정 타임스텝
+      this.timeStep = 1 / 60; // 60 FPS 고정 타임스텝
       this.running = true;
       this.focusCountdown = 0; // Countdown timer when regaining focus
       
@@ -2085,21 +1954,6 @@
       world.specialWeaponPoint++;
       console.log(`SWP: ${this.specialWeaponPoint}`);
     }
-    activateSpecialWeaponMobile(canvasX, canvasY) {
-      const { world, specialWeaponPoint } = this;
-      const cam = world.camera;
-      const mouseWorldX = canvasX + cam.x;
-      const mouseWorldY = canvasY + cam.y;
-      const pending = this.isSuperMode ? 1.0 : 5.0;
-
-      if (world.specialCooldown > 0 || world.pendingExplosion || world.point < specialWeaponPoint) return;
-
-      world.pendingExplosion = { x: mouseWorldX, y: mouseWorldY, timer: pending };
-      world.specialCooldown = world.specialCoolTime;
-      world.point -= specialWeaponPoint;
-      this.specialWeaponPoint++;
-      world.specialWeaponPoint++;
-    }
     /**
      * 플레이어 스폰 위치 계산
      * - 아군(블루) 소유 거점 중 전방(화면 상단에 가까운 y가 작은) 거점을 우선
@@ -2138,10 +1992,9 @@
       this.lastTime = now;
       const dt = dtMs / 1e3;
       
-      // Handle focus countdown timer - keeps game paused during countdown
+      // Handle focus countdown timer
       if (this.focusCountdown > 0) {
         this.focusCountdown -= dt;
-        this.running = false; // Ensure game stays paused during countdown
         if (this.focusCountdown <= 0) {
           this.focusCountdown = 0;
           this.running = true;
@@ -2222,7 +2075,7 @@
         while (this.accumulator >= this.timeStep) {
           if (this.playerTank.hp <= 0) {
             if (this.playerRespawnTimer <= 0) {
-              this.playerRespawnTimer = CONSTANTS.PLAYER_RESPAWN_TIME;
+              this.playerRespawnTimer = 5;
             } else {
               this.playerRespawnTimer -= this.timeStep;
               if (this.playerRespawnTimer <= 0) {
@@ -2251,27 +2104,20 @@
         this.world.specialCoolTime,
         this.world.specialWeaponPoint,
       );
+      this.ui.updateBaseHealth(this.world.baseHealth.blue, this.world.baseHealth.red);
       this.world.draw();
       if (this.focusCountdown > 0) {
-        // Draw focus countdown timer
-        this.ui.drawOverlayMessage(
-          `Resuming in ${Math.ceil(this.focusCountdown)}...`,
-          { opacity: 0.8, color: "#ff6b6b", font: "bold 72px sans-serif", textBaseline: "middle" },
-        );
+        this.ui.showOverlay(`Resuming in ${Math.ceil(this.focusCountdown)}...`, "Get ready to continue");
       } else if (!this.running && !this.world.gameOver) {
-        this.ui.drawOverlayMessage("PAUSED", {
-          opacity: 0.2,
-          textBaseline: "top",
-        });
+        this.ui.showOverlay("PAUSED", "Press P to resume");
       } else {
-        if (this.isSuperMode) {
-          this.ui.drawSuperModeIndicator();
-        }
         if (this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
-          this.ui.drawOverlayMessage(
+          this.ui.showOverlay(
             `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
-            { opacity: 0.7, color: "#ffe600", font: isMobile ? "bold 32px sans-serif" : "bold 64px sans-serif" },
+            "Stay patient. Your tank will return soon.",
           );
+        } else {
+          this.ui.hideOverlay();
         }
         if (this.world.gameOver && !this.endingExplosions) {
           this.stateManager.handleGameOver();
@@ -2294,9 +2140,9 @@
   var AudioPool = class {
     /**
      * @param {string[]} srcList 오디오 파일 경로 목록
-     * @param {number} [size=20] 풀 크기(동시 재생 최대 수에 영향)
+     * @param {number} [size=50] 풀 크기(동시 재생 최대 수에 영향)
      */
-    constructor(srcList, size = 20) {
+    constructor(srcList, size = 50) {
       this.pool = [];
       for (let i = 0; i < size; i++) {
         const src = srcList[i % srcList.length];
@@ -2398,69 +2244,7 @@
       }
     }
   };
-  // ==============================
-// Virtual Joystick (모바일 전용)
-// ==============================
-var VirtualJoystick = class {
-  constructor(elementId, onMove, onEnd) {
-    this.element = document.getElementById(elementId);
-    this.knob = this.element.querySelector('.joystick-knob');
-    this.onMove = onMove;
-    this.onEnd = onEnd;
-    this.active = false;
-    this.baseX = 0; this.baseY = 0;
-    this.maxDist = 55;
-    this.setup();
-  }
-  setup() {
-    this.element.addEventListener('touchstart', e => { e.preventDefault(); this.start(e); }, { passive: false });
-    this.element.addEventListener('touchmove', e => { e.preventDefault(); this.move(e); }, { passive: false });
-    this.element.addEventListener('touchend', e => { e.preventDefault(); this.end(e); });
-    this.element.addEventListener('touchcancel', e => { e.preventDefault(); this.end(e); });
-  }
-  start(e) {
-    this.active = true;
-    const touch = e.changedTouches[0];
-    this.touchId = touch.identifier;
-    this.baseX = touch.clientX;
-    this.baseY = touch.clientY;
-    this.knob.style.transform = 'translate(-50%, -50%)';
-  }
-  move(e) {
-    if (!this.active) return;
-    for (let touch of e.changedTouches) {
-      if (touch.identifier === this.touchId) {
-        this.update(touch);
-        break;
-      }
-    }
-  }
-  end(e) {
-    if (!this.active) return;
-    for (let touch of e.changedTouches) {
-      if (touch.identifier === this.touchId) {
-        this.active = false;
-        this.knob.style.transform = 'translate(-50%, -50%)';
-        if (this.onEnd) this.onEnd();
-        this.touchId = null;
-        break;
-      }
-    }
-  }
-  update(touch) {
-    const dx = touch.clientX - this.baseX;
-    const dy = touch.clientY - this.baseY;
-    const dist = Math.hypot(dx, dy);
-    const angle = Math.atan2(dy, dx);
-    const limited = Math.min(dist, this.maxDist);
-    const nx = Math.cos(angle) * limited;
-    const ny = Math.sin(angle) * limited;
-    this.knob.style.transform = `translate(${nx}px, ${ny}px)`;
-    const normX = limited > 0 ? nx / this.maxDist : 0;
-    const normY = limited > 0 ? ny / this.maxDist : 0;
-    if (this.onMove) this.onMove(normX, normY);
-  }
-};
+
   // main.js
   var shootSFXPool = new AudioPool(
     [
@@ -2481,9 +2265,9 @@ var VirtualJoystick = class {
     ],
     50,
   );
-  var turretSFXPool = new AudioPool(["./assets/Turret.wav"], 20);
-  var bulletPool = new Pool(() => new Bullet(), 200);
-  var explosionPool = new Pool(() => new Explosion(), 50);
+  var turretSFXPool = new AudioPool(["./assets/Turret.wav"], 50);
+  var bulletPool = new Pool(() => new Bullet(), 150);
+  var explosionPool = new Pool(() => new Explosion(), 75);
   window.shootSFXPool = shootSFXPool;
   window.deathSFXPool = deathSFXPool;
   window.turretSFXPool = turretSFXPool;
@@ -2510,112 +2294,41 @@ var VirtualJoystick = class {
     }
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
-    function drawLoadingScreen(progress) {
-      ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "white";
-      const fontSize = isMobile ? 32 : 64;
-      ctx.font = `bold ${fontSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(
-        "Loading Assets...",
-        canvas.width / 2,
-        canvas.height / 2 - (isMobile ? 20 : 40),
-      );
-      ctx.fillStyle = "#333";
-      const barWidth = isMobile ? 200 : 400,
-        barHeight = isMobile ? 10 : 20;
-      ctx.fillRect(
-        canvas.width / 2 - barWidth / 2,
-        canvas.height / 2,
-        barWidth,
-        barHeight,
-      );
-      ctx.fillStyle = "white";
-      ctx.fillRect(
-        canvas.width / 2 - barWidth / 2,
-        canvas.height / 2,
-        barWidth * (progress / 100),
-        barHeight,
-      );
+    const loadingScreenEl = document.getElementById("loading-screen");
+    const loadingTitleEl = document.getElementById("loading-title");
+    const loadingBarFillEl = document.getElementById("loading-bar-fill");
+    const loadingStatusEl = document.getElementById("loading-status");
+    const loadingHintEl = document.getElementById("loading-hint");
+
+    function updateLoadingScreen(progress, ready = false) {
+      if (!loadingScreenEl) return;
+      loadingScreenEl.classList.remove("hidden");
+      if (loadingBarFillEl) {
+        loadingBarFillEl.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+      }
+      if (loadingStatusEl) {
+        loadingStatusEl.textContent = `${Math.min(100, Math.max(0, Math.round(progress)))}%`;
+      }
+      if (loadingTitleEl) {
+        loadingTitleEl.textContent = ready ? "Ready to Start" : "Loading Assets...";
+      }
+      if (loadingHintEl) {
+        loadingHintEl.classList.toggle("hidden", !ready);
+      }
     }
-    drawLoadingScreen(0);
+
+    updateLoadingScreen(0);
     await preloadSprites();
     let loadingProgress = 0;
     const loadingInterval = setInterval(() => {
       loadingProgress += 2.5;
-      drawLoadingScreen(loadingProgress);
+      updateLoadingScreen(loadingProgress);
       if (loadingProgress >= 100) {
         clearInterval(loadingInterval);
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        if (isMobile) {
-          document.getElementById('start-buttons').style.display = 'block';
-        } else {
-          ctx.fillStyle = "#ffe600";
-          ctx.font = "bold 64px sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(
-            "Press SPACE to Start",
-            canvas.width / 2,
-            canvas.height / 2,
-          );
-          ctx.fillStyle = "gray";
-          ctx.font = "24px sans-serif";
-          ctx.fillText(
-            "Press ENTER to Enter Super Mode",
-            canvas.width / 2,
-            canvas.height / 2 + 60,
-          );
-        }
+        updateLoadingScreen(100, true);
         gameReady = true;
       }
     }, 100);
-    // Button events for mobile
-    document.getElementById('normal-mode').addEventListener('click', () => {
-      if (!gameStarted && gameReady) {
-        gameStarted = true;
-        game = new Game(canvas, false);
-        document.getElementById('start-buttons').style.display = 'none';
-        const bgm = document.getElementById("bgm");
-        if (bgm) {
-          bgm.currentTime = 0;
-          bgm.volume = 0;
-          bgm.play();
-          let vol = 0;
-          const fadeIn = setInterval(() => {
-            vol += 0.01;
-            if (vol >= 1) {
-              vol = 1;
-              clearInterval(fadeIn);
-            }
-            bgm.volume = vol;
-          }, 100);
-        }
-      }
-    });
-    document.getElementById('super-mode').addEventListener('click', () => {
-      if (!gameStarted && gameReady) {
-        gameStarted = true;
-        game = new Game(canvas, true);
-        document.getElementById('start-buttons').style.display = 'none';
-        const bgm = document.getElementById("bgm");
-        if (bgm) {
-          bgm.currentTime = 0;
-          bgm.volume = 0;
-          bgm.play();
-          let vol = 0;
-          const fadeIn = setInterval(() => {
-            vol += 0.01;
-            if (vol >= 1) {
-              vol = 1;
-              clearInterval(fadeIn);
-            }
-            bgm.volume = vol;
-          }, 100);
-        }
-      }
-    });
     window.addEventListener("keydown", (e) => {
       if (
         !gameStarted &&
@@ -2624,6 +2337,17 @@ var VirtualJoystick = class {
       ) {
         gameStarted = true;
         game = e.code === "Enter" ? new Game(canvas, true) : new Game(canvas);
+        const instructionEl = document.getElementById("instruction");
+        if (instructionEl) {
+          instructionEl.style.display = "block";
+        }
+        const baseHealthEl = document.getElementById("base-health-ui");
+        if (baseHealthEl) {
+          baseHealthEl.style.display = "flex";
+        }
+        if (loadingScreenEl) {
+          loadingScreenEl.classList.add("hidden");
+        }
         const bgm = document.getElementById("bgm");
         if (bgm) {
           // bgm.currentTime = 51.5;
