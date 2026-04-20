@@ -1,4 +1,5 @@
 (() => {
+  const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
   // entities/Bullet.js
   var Bullet = class _Bullet {
     // 팀별 스프라이트 캐시(빨강/파랑)
@@ -838,12 +839,14 @@
           y: this.bounds.maxY * 0.25,
           hp: 3e3,
           owner: "red",
+          isTurret: true,
         },
         {
           x: canvas.width / 3 * 2,
           y: this.bounds.maxY * 0.25,
           hp: 3e3,
           owner: "red",
+          isTurret: true,
         },
         //=========================================
         // 중앙 거점 (포탑 없음)
@@ -853,6 +856,7 @@
           y: this.bounds.maxY * 0.5,
           hp: 3e3,
           owner: null,
+          isTurret: false,
         },
         //=========================================
         // 아군 쌍둥이 거점
@@ -862,12 +866,14 @@
           y: this.bounds.maxY * 0.75,
           hp: 3e3,
           owner: "blue",
+          isTurret: true,
         },
         {
           x: canvas.width / 3 * 2,
           y: this.bounds.maxY * 0.75,
           hp: 3e3,
           owner: "blue",
+          isTurret: true,
         },
         //=========================================
       ];
@@ -878,6 +884,14 @@
       this.turrets.push(
         new Turret(this.basePos.red.x, this.basePos.red.y, "red", 75, 0.5),
       );
+      // isTurret가 true인 강점은 게임 시작 시에도 포탑 생성
+      for (const stronghold of this.strongholds) {
+        if (stronghold.isTurret && stronghold.owner) {
+          this.turrets.push(
+            new Turret(stronghold.x, stronghold.y, stronghold.owner, 75),
+          );
+        }
+      }
       this.gameOver = false;
       this.specialCooldown = 0;
       this.specialCoolTime = this.isSuperMode ? 1 : 30;
@@ -1030,11 +1044,8 @@
                   this.turrets = this.turrets.filter(
                     (t) => !(t.x === s.x && t.y === s.y),
                   );
-                  // 중앙 거점이 아니면 포탑 생성
-                  const isCentralStronghold =
-                    s.x === this.basePos.blue.x &&
-                    s.y === this.bounds.maxY * 0.5;
-                  if (!isCentralStronghold) {
+                  // isTurret 플래그가 true인 강점만 포탑 생성
+                  if (s.isTurret) {
                     this.turrets.push(
                       new Turret(s.x, s.y, s.owner, 75),
                     );
@@ -1668,6 +1679,8 @@
     constructor(game) {
       this.game = game;
       const canvas = game.canvas;
+      this.pointerDragActive = false;
+      this.lastPointer = { x: 0, y: 0 };
       this.requestFullscreen();
       window.addEventListener("keydown", (e) => {
         if (e.key === "p" || e.key === "P") {
@@ -1696,6 +1709,44 @@
         if (typeof game.activateSpecialWeapon === "function") {
           game.activateSpecialWeapon(e);
         }
+      });
+      canvas.style.touchAction = "none";
+      canvas.addEventListener("pointerdown", (e) => {
+        if (!game.isSpectatorMode || !e.isPrimary) return;
+        e.preventDefault();
+        this.pointerDragActive = true;
+        this.lastPointer.x = e.clientX;
+        this.lastPointer.y = e.clientY;
+        canvas.setPointerCapture?.(e.pointerId);
+      });
+      canvas.addEventListener("pointermove", (e) => {
+        if (!game.isSpectatorMode || !this.pointerDragActive) return;
+        e.preventDefault();
+        const dx = e.clientX - this.lastPointer.x;
+        const dy = e.clientY - this.lastPointer.y;
+        this.lastPointer.x = e.clientX;
+        this.lastPointer.y = e.clientY;
+        const world = game.world;
+        if (!world) return;
+        world.camera.x = clamp(
+          world.camera.x - dx,
+          world.bounds.minX,
+          world.bounds.maxX - canvas.width,
+        );
+        world.camera.y = clamp(
+          world.camera.y - dy,
+          world.bounds.minY,
+          world.bounds.maxY - canvas.height,
+        );
+      });
+      canvas.addEventListener("pointerup", (e) => {
+        if (!game.isSpectatorMode || !e.isPrimary) return;
+        this.pointerDragActive = false;
+        canvas.releasePointerCapture?.(e.pointerId);
+      });
+      canvas.addEventListener("pointercancel", (e) => {
+        if (!game.isSpectatorMode) return;
+        this.pointerDragActive = false;
       });
       document.addEventListener("fullscreenchange", () => {
         if (!document.fullscreenElement) {
@@ -1820,14 +1871,18 @@
       game.input = new InputManager(game.canvas);
       const spawn = game.getPlayerSpawn();
       game.playerRespawnTimer = 0;
-      game.playerTank = new Tank(
-        spawn.x,
-        spawn.y,
-        "blue",
-        true,
-        game.isSuperMode ? true : false,
-      );
-      game.world.addTank(game.playerTank);
+      if (!game.isSpectatorMode) {
+        game.playerTank = new Tank(
+          spawn.x,
+          spawn.y,
+          "blue",
+          true,
+          game.isSuperMode ? true : false,
+        );
+        game.world.addTank(game.playerTank);
+      } else {
+        game.playerTank = null;
+      }
       game.world.spawnWave();
       game.accumulator = 0;
       game.lastTime = performance.now();
@@ -1856,9 +1911,10 @@
 
   // core/Game.js
   var Game = class {
-    constructor(canvas, isSuperMode = false) {
+    constructor(canvas, isSuperMode = false, isSpectatorMode = false) {
       this.canvas = canvas;
       this.isSuperMode = isSuperMode;
+      this.isSpectatorMode = isSpectatorMode || isMobileDevice;
       this.restartTimer = 0;
       this.init().then(() => {
         console.log("\u2705 All assets loaded, starting game");
@@ -1887,16 +1943,20 @@
       this.specialWeaponPoint = 5;
       const playerSpawn = this.getPlayerSpawn();
       this.playerRespawnTimer = 0;
-      this.playerTank = new Tank(
-        playerSpawn.x,
-        playerSpawn.y,
-        "blue",
-        true,
-        // isPlayer
-        this.isSuperMode,
-        // 슈퍼 모드에 따라 파라미터 상이
-      );
-      this.world.addTank(this.playerTank);
+      if (!this.isSpectatorMode) {
+        this.playerTank = new Tank(
+          playerSpawn.x,
+          playerSpawn.y,
+          "blue",
+          true,
+          // isPlayer
+          this.isSuperMode,
+          // 슈퍼 모드에 따라 파라미터 상이
+        );
+        this.world.addTank(this.playerTank);
+      } else {
+        this.playerTank = null;
+      }
       this.world.spawnWave();
       this.lastTime = 0;
       this.accumulator = 0;
@@ -2073,7 +2133,7 @@
       }
       if (this.running) {
         while (this.accumulator >= this.timeStep) {
-          if (this.playerTank.hp <= 0) {
+          if (this.playerTank && this.playerTank.hp <= 0) {
             if (this.playerRespawnTimer <= 0) {
               this.playerRespawnTimer = 5;
             } else {
@@ -2111,7 +2171,7 @@
       } else if (!this.running && !this.world.gameOver) {
         this.ui.showOverlay("PAUSED", "Press P to resume");
       } else {
-        if (this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
+        if (this.playerTank && this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
           this.ui.showOverlay(
             `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
             "Stay patient. Your tank will return soon.",
@@ -2317,6 +2377,38 @@
       }
     }
 
+    function startGame(useSuper = false) {
+      gameStarted = true;
+      game = useSuper ? new Game(canvas, true) : new Game(canvas);
+      const instructionEl = document.getElementById("instruction");
+      if (instructionEl) {
+        instructionEl.style.display = game.isSpectatorMode ? "none" : "block";
+      }
+      const baseHealthEl = document.getElementById("base-health-ui");
+      if (baseHealthEl) {
+        baseHealthEl.style.display = "flex";
+      }
+      if (loadingScreenEl) {
+        loadingScreenEl.classList.add("hidden");
+      }
+      const bgm = document.getElementById("bgm");
+      if (bgm) {
+        // bgm.currentTime = 51.5;
+        bgm.currentTime = 0;
+        bgm.volume = 0;
+        bgm.play();
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+          vol += 0.01;
+          if (vol >= 1) {
+            vol = 1;
+            clearInterval(fadeIn);
+          }
+          bgm.volume = vol;
+        }, 100);
+      }
+    }
+
     updateLoadingScreen(0);
     await preloadSprites();
     let loadingProgress = 0;
@@ -2330,40 +2422,14 @@
       }
     }, 100);
     window.addEventListener("keydown", (e) => {
-      if (
-        !gameStarted &&
-        gameReady &&
-        (e.code === "Space" || e.code === "Enter")
-      ) {
-        gameStarted = true;
-        game = e.code === "Enter" ? new Game(canvas, true) : new Game(canvas);
-        const instructionEl = document.getElementById("instruction");
-        if (instructionEl) {
-          instructionEl.style.display = "block";
-        }
-        const baseHealthEl = document.getElementById("base-health-ui");
-        if (baseHealthEl) {
-          baseHealthEl.style.display = "flex";
-        }
-        if (loadingScreenEl) {
-          loadingScreenEl.classList.add("hidden");
-        }
-        const bgm = document.getElementById("bgm");
-        if (bgm) {
-          // bgm.currentTime = 51.5;
-          bgm.currentTime = 0;
-          bgm.volume = 0;
-          bgm.play();
-          let vol = 0;
-          const fadeIn = setInterval(() => {
-            vol += 0.01;
-            if (vol >= 1) {
-              vol = 1;
-              clearInterval(fadeIn);
-            }
-            bgm.volume = vol;
-          }, 100);
-        }
+      if (!gameStarted && gameReady && (e.code === "Space" || e.code === "Enter")) {
+        startGame(e.code === "Enter");
+      }
+    });
+
+    window.addEventListener("pointerdown", (e) => {
+      if (!gameStarted && gameReady && e.isPrimary) {
+        startGame(false);
       }
     });
   });
