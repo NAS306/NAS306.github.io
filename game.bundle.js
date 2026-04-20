@@ -789,7 +789,7 @@
 
   // core/World.js
   var World = class {
-    constructor(canvas, isSuperMode) {
+    constructor(canvas, isSuperMode, isSpectatorMode) {
       this.canvas = canvas;
       this.ctx = canvas.getContext("2d");
       this.bounds = {
@@ -813,7 +813,8 @@
       this.spawnInterval = 1;
       this.maxTanksPerTeam = 36;
       this.isSuperMode = isSuperMode;
-      this.point = this.isSuperMode ? 999999 : 10;
+      this.isSpectatorMode = isSpectatorMode;
+      this.point = this.isSuperMode || this.isSpectatorMode ? 999999 : 10;
       this.pointDisplay = null;
       this.killcount = { player: 0, blue: 0, red: 0 };
       this.redTeamKillDisplay = null;
@@ -894,7 +895,7 @@
       }
       this.gameOver = false;
       this.specialCooldown = 0;
-      this.specialCoolTime = this.isSuperMode ? 1 : 30;
+      this.specialCoolTime = this.isSuperMode ? 1 :(this.isSpectatorMode ? 5 : 20);
       this.pendingExplosion = null;
       this.specialWeaponText = null;
       this.specialWeaponPoint = 5;
@@ -933,7 +934,7 @@
         );
         this.camera.y =
           clamp(player.y - ch / 2, this.bounds.minY, this.bounds.maxY - ch) -
-          100;
+          200;
       }
       if (this.baseHealth.blue <= 0 || this.baseHealth.red <= 0) {
         this.gameOver = true;
@@ -1935,7 +1936,7 @@
       await tempBullet.initSprite("red");
       await tempBullet.initSprite("blue");
       await Explosion.initSprite();
-      this.world = new World(this.canvas, this.isSuperMode);
+      this.world = new World(this.canvas, this.isSuperMode, this.isSpectatorMode);
       this.input = new InputManager(this.canvas);
       this.bgm = document.getElementById("bgm");
       this.ui = new UIManager(this.canvas);
