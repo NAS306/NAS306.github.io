@@ -44,6 +44,9 @@
     0 0 32px currentColor;
   }
 
+  #gameCanvas {
+    touch-action: none;
+  }
   #game-overlay,
   #loading-screen {
     position: fixed;
@@ -144,7 +147,7 @@
 
   .base-health {
     min-width: 240px;
-    width: 500px;
+    width: 400px;
     display: grid;
     grid-template-columns: 1fr auto;
     color:#fff;
@@ -220,12 +223,12 @@
     <div class="base-health base-blue">
       <div class="label"><div id="blue-base-value" class="value">10000</div></div>
       <div class="bar-track"><div id="blue-base-fill" class="bar-fill"></div></div>
-          <div style="color:#fff">Try not to pause the game Because the game will somehow bugs.</div>
+          <!-- <div style="color:#fff">Try not to pause the game Because the game will somehow bugs.</div> -->
     </div>
     <div class="base-health base-red">
       <div class="label"><div id="red-base-value" class="value">10000</div></div>
       <div class="bar-track"><div id="red-base-fill" class="bar-fill"></div></div>
-          <div style="color:#fff">IDK why but it happens.</div>
+          <!-- <div style="color:#fff">IDK why but it happens.</div> -->
     </div>
   </div>
   <div id="instruction">
@@ -238,7 +241,7 @@
       <p>Point:                   <span id="point">10</span></p>
       <p>Special Weapon Cooldown: <span id="special-weapon">[██████████] </span>Cost <span id="specialWeaponPoint"> 5</span></p>
   </div>
-  <!-- <div id="fps" style="position:fixed;top:5px;left:5px;color:white"></div> -->
+  <div id="fps" style="position:fixed;top:5px;left:5px;color:white"></div>
   <audio id="bgm" src="./assets/BGM.mp3" preload="auto" loop></audio>
   <audio class="hit" src="./assets/Impact_1.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_2.wav" preload="auto"></audio>
@@ -248,7 +251,7 @@
   <!-- <script type="module" src="./main.js"></script> -->
   <script type="module" src="./game.bundle.js"></script>
   <!-- FPS 측정 -->
-  <!-- <script>
+  <script>
     let frameCount = 0;
     let lastTime = performance.now();
     const fpsDisplay = document.getElementById("fps");
@@ -268,6 +271,6 @@
     }
 
     requestAnimationFrame(loop);
-  </script> -->
+  </script>
 </body>
 </html>
