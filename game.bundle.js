@@ -1681,7 +1681,9 @@
       const canvas = game.canvas;
       this.pointerDragActive = false;
       this.lastPointer = { x: 0, y: 0 };
-      this.requestFullscreen();
+      if (!game.isSpectatorMode) {
+        this.requestFullscreen();
+      }
       window.addEventListener("keydown", (e) => {
         if (e.key === "p" || e.key === "P") {
           game.stateManager.togglePause();
