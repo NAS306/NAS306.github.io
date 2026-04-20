@@ -1,101 +1,270 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Tank Battle Game</title>
   <style>
-    html, body {
-      margin: 0; padding: 0; overflow: hidden; background: #000;
-    }
-    #gameCanvas { display: block; }
-    
-    /* Instruction */
-    .instruction {
-      position: absolute; color: white;
-      font-family: Arial, sans-serif; font-size: 14px; pointer-events: none;
-      background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px;
-    }
-    #pc-instruction { display: none; bottom: 10px; left: 10px; }
-    #mobile-instruction { display: none; top: 30px; left: 10px; }
+  html,body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000; /* 검은 배경 */
+  }
+  #instruction {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    /* background: rgba(0, 0, 0, 0.2); */
+    padding: 5px 10px;
+    border-radius: 5px;
+    pointer-events: none; /* 클릭이 div를 통과하여 canvas로 전달 */
+    display: none; /* 초기에는 숨김 */
+  }
+  #special-weapon {
+    color: #00ffffff;
+    font-weight: bold;
+  }
+  #point {
+    color: #00ffffff;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  #specialWeaponPoint {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+  #point, #special-weapon, #specialWeaponPoint {
+    text-shadow: 
+    0 0 4px  currentColor, 
+    0 0 8px currentColor,
+    0 0 16px currentColor,
+    0 0 32px currentColor;
+  }
 
-    /* Virtual Joystick */
-    .joystick-container {
-      position: absolute; width: 130px; height: 130px;
-      background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.4);
-      border-radius: 50%; display: none; touch-action: none;
-    }
-    .joystick-knob {
-      position: absolute; width: 55px; height: 55px;
-      background: rgba(255,230,0,0.7); border-radius: 50%;
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
-      box-shadow: 0 0 15px rgba(255,230,0,0.8);
-    }
-    #left-joystick { left: 20px; bottom: 20px; }
-    #right-joystick { right: 20px; bottom: 20px; }
+  #game-overlay,
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 20;
+  }
 
-    #fps { position: fixed; top: 5px; left: 5px; color: white; font-size: 12px; }
+  #game-overlay.hidden,
+  #loading-screen.hidden {
+    display: none;
+  }
+
+  #game-overlay {
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  #overlay-content,
+  #loading-panel {
+    pointer-events: auto;
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid #6cf;
+    border-radius: 16px;
+    padding: 28px 32px;
+    min-width: 320px;
+    max-width: 520px;
+    text-align: center;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  }
+
+  #overlay-message {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  #overlay-submessage {
+    margin-top: 14px;
+    font-size: 1rem;
+    color: #d4d4d4;
+  }
+
+  #loading-title {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  #loading-bar {
+    width: 100%;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  #loading-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #25d7ff, #4f99ff);
+    transition: width 0.15s ease;
+  }
+
+  #loading-status {
+    margin-bottom: 18px;
+    font-size: 1rem;
+    color: #a6c8ff;
+  }
+
+  #loading-hint {
+    color: #b1f7ff;
+    opacity: 0.95;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  #loading-hint.hidden {
+    display: none;
+  }
+
+  #base-health-ui {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 16px;
+    z-index: 15;
+    pointer-events: none;
+  }
+
+  .base-health {
+    min-width: 240px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    color:#fff;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .base-health .label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .bar-track {
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    grid-column: 1 / -1;
+  }
+
+  .bar-fill {
+    width: 100%;
+    height: 100%;
+    transition: width 0.15s ease;
+  }
+
+  .base-blue .bar-fill {
+    background: #5cb3ff;
+  }
+
+  .base-red .bar-fill {
+    background: #ff6a6a;
+  }
+
+  #super-mode-border {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    box-shadow: inset 0 0 30px #00ffffff;
+    pointer-events: none;
+    z-index: 5;
+    display: none;
+  }
   </style>
 </head>
 <body>
+  <!-- Canvas for the game -->
   <canvas id="gameCanvas"></canvas>
-
-  <!-- PC Instruction -->
-  <div id="pc-instruction" class="instruction" style="display: none;">
-    <p>WASD / 화살표: 이동</p>
-    <p>마우스: 조준</p>
-    <p>좌클릭: 발사</p>
-    <p>우클릭: Orbital Strike</p>
-    <p>Space + Scroll: Free Camera</p>
-    <p>Blue: <span id="blueTeamKill">0</span> | Red: <span id="redTeamKill">0</span> | My: <span id="myKill">0</span></p>
-    <p>Point: <span id="point">10</span></p>
-    <p>Special: <span id="special-weapon">[██████████]</span> Cost <span id="specialWeaponPoint">5</span></p>
+  <div id="super-mode-border"></div>
+  <div id="game-overlay" class="overlay hidden">
+    <div id="overlay-content">
+      <div id="overlay-message"></div>
+      <div id="overlay-submessage"></div>
+    </div>
   </div>
-
-  <!-- Mobile Instruction -->
-  <div id="mobile-instruction" class="instruction">
-    <p>좌측 조이스틱: 이동</p>
-    <p>우측 조이스틱: 조준 + 자동 발사</p>
-    <!-- <p>Blue: <span id="blueTeamKill">0</span> | Red: <span id="redTeamKill">0</span> | My: <span id="myKill">0</span></p> -->
+  <div id="loading-screen">
+    <div id="loading-panel">
+      <div id="loading-title">Loading Assets...</div>
+      <div id="loading-bar"><div id="loading-bar-fill"></div></div>
+      <div id="loading-status">0%</div>
+      <div id="loading-hint" class="hidden"><strong>SPACE to Start</strong><br><small>ENTER to play as Super Mode</small></div>
+    </div>
   </div>
-
-  <!-- Joysticks & Special Button -->
-  <div id="left-joystick" class="joystick-container">
-    <div class="joystick-knob" id="left-knob"></div>
+  <div id="base-health-ui">
+    <div class="base-health base-blue">
+      <div class="label"><div id="blue-base-value" class="value">10000</div></div>
+      <div class="bar-track"><div id="blue-base-fill" class="bar-fill"></div></div>
+    </div>
+    <div class="base-health base-red">
+      <div class="label"><div id="red-base-value" class="value">10000</div></div>
+      <div class="bar-track"><div id="red-base-fill" class="bar-fill"></div></div>
+    </div>
   </div>
-  <div id="right-joystick" class="joystick-container">
-    <div class="joystick-knob" id="right-knob"></div>
+  <div id="instruction">
+      <p>WASD: Move</p>
+      <p>Mouse: Aim</p>
+      <p>Left Click: Shoot</p>
+      <p>Right Click: Special Weapon (Oribtal Strike)</p>
+      <p>Space + Scroll: FreeCamera</p>
+      <p>Blue:<span id="blueTeamKill">0</span> | Red:<span id="redTeamKill">0</span> | My:<span id="myKill">0</span></p>
+      <p>Point:                   <span id="point">10</span></p>
+      <p>Special Weapon Cooldown: <span id="special-weapon">[██████████] </span>Cost <span id="specialWeaponPoint"> 5</span></p>
   </div>
-
-  <!-- <div id="fps"></div> -->
-
-  <!-- Start Buttons for Mobile -->
-  <div id="start-buttons" style="display: none; width: fit-content; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
-    <button id="normal-mode" style="margin: 10px; padding: 10px 20px; font-size: 32px; background: transparent; font-weight: bold; color: rgb(255, 170, 43); border: none; border-radius: 5px;">Start Game</button><br>
-    <button id="super-mode" style="margin: 10px; padding: 10px 20px; font-size: 12px; background: transparent; color: rgb(99, 99, 99); border: none; border-radius: 5px;">Enter Super Mode</button>
-  </div>
-
+  <!-- <div id="fps" style="position:fixed;top:5px;left:5px;color:white"></div> -->
   <audio id="bgm" src="./assets/BGM.mp3" preload="auto" loop></audio>
   <audio class="hit" src="./assets/Impact_1.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_2.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_3.wav" preload="auto"></audio>
   <audio class="hit" src="./assets/Impact_4.wav" preload="auto"></audio>
-
+  <!-- Load the main module (ES module entry point) -->
+  <!-- <script type="module" src="./main.js"></script> -->
   <script type="module" src="./game.bundle.js"></script>
-
-  <!-- FPS -->
+  <!-- FPS 측정 -->
   <!-- <script>
-    let frameCount = 0, lastTime = performance.now();
+    let frameCount = 0;
+    let lastTime = performance.now();
     const fpsDisplay = document.getElementById("fps");
+
     function loop() {
       frameCount++;
       const now = performance.now();
-      if (now - lastTime >= 1000) {
+      const delta = now - lastTime;
+
+      if (delta >= 1000) {
         fpsDisplay.textContent = `FPS: ${frameCount}`;
-        frameCount = 0; lastTime = now;
+        frameCount = 0;
+        lastTime = now;
       }
+
       requestAnimationFrame(loop);
     }
+
     requestAnimationFrame(loop);
   </script> -->
 </body>
