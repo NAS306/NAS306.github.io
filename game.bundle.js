@@ -843,14 +843,14 @@
         {
           x: canvas.width / 3 * 1,
           y: this.bounds.maxY * 0.25,
-          hp: 3e3,
+          hp: 4e3,
           owner: "red",
           isTurret: true,
         },
         {
           x: canvas.width / 3 * 2,
           y: this.bounds.maxY * 0.25,
-          hp: 3e3,
+          hp: 4e3,
           owner: "red",
           isTurret: true,
         },
@@ -860,14 +860,14 @@
         {
           x: canvas.width / 2,
           y: this.bounds.maxY * 0.5,
-          hp: 3e3,
+          hp: 4e3,
           owner: null,
           isTurret: false,
         },
         // {
         //   x: canvas.width / 3 * 2,
         //   y: this.bounds.maxY * 0.5,
-        //   hp: 3e3,
+        //   hp: 4e3,
         //   owner: null,
         //   isTurret: false,
         // },
@@ -877,14 +877,14 @@
         {
           x: canvas.width / 3 * 1,
           y: this.bounds.maxY * 0.75,
-          hp: 3e3,
+          hp: 4e3,
           owner: "blue",
           isTurret: true,
         },
         {
           x: canvas.width / 3 * 2,
           y: this.bounds.maxY * 0.75,
-          hp: 3e3,
+          hp: 4e3,
           owner: "blue",
           isTurret: true,
         },
@@ -1072,7 +1072,7 @@
                   }
                   // Restore stronghold after 0.05 seconds
                   setTimeout(() => {
-                    s.hp = 3e3;
+                    s.hp = 4e3;
                     s.isCapturing = false;
                   }, 50);
                 }
@@ -1165,7 +1165,7 @@
             (s) => s.owner === "blue" && s.x === spawn.x && s.y === spawn.y,
           );
           if (stronghold) {
-            stronghold.hp = clamp(stronghold.hp + 5, 0, 3e3);
+            stronghold.hp = clamp(stronghold.hp + 5, 0, 4e3);
           } else {
             this.baseHealth.blue = clamp(
               this.baseHealth.blue + 5,
@@ -1187,7 +1187,7 @@
             (s) => s.owner === "red" && s.x === spawn.x && s.y === spawn.y,
           );
           if (stronghold) {
-            stronghold.hp = clamp(stronghold.hp + 5, 0, 3e3);
+            stronghold.hp = clamp(stronghold.hp + 5, 0, 4e3);
           } else {
             this.baseHealth.red = clamp(
               this.baseHealth.red + 5,
@@ -1313,7 +1313,7 @@
         ctx.fillRect(
           screenX - 36,
           screenY + 44,
-          72 * clamp(stronghold.hp / 3e3, 0, 1),
+          72 * clamp(stronghold.hp / 4e3, 0, 1),
           6,
         );
         ctx.restore();
