@@ -17,6 +17,7 @@
       this.lifetime = 1;
       this.age = 0;
       this.penRate = 1;
+      this.isTurretSpecial = false;
     }
     /**
      * 스프라이트 로딩(팀 색상별)
@@ -50,7 +51,7 @@
      * - 위치/속도/팀/데미지/반지름/수명 초기화
      * - 팀별 스프라이트 자동 연결(이미 캐시되어 있으면 즉시 바인딩)
      */
-    init({ x, y, vx, vy, team, damage, isPlayerBullet, radius, lifetime, penRate }) {
+    init({ x, y, vx, vy, team, damage, isPlayerBullet, radius, lifetime, penRate, isTurretSpecial }) {
       this.active = true;
       this.x = x;
       this.y = y;
@@ -63,6 +64,7 @@
       this.age = 0;
       this.lifetime = lifetime;
       this.penRate = penRate;
+      this.isTurretSpecial = isTurretSpecial ?? false;
       if (_Bullet.spriteCache[this.team]) {
         this.sprite = _Bullet.spriteCache[this.team];
       }
@@ -717,8 +719,8 @@
       this.projectileRadius = 8;
       this.projectileSpeed = 2400;
       this.range = 700;
-      this.projectileLifeTime = 0.4
-      this.penRate = 3; // 3개 목표물 맞추면 총알 소멸 (관통 가능)
+      this.projectileLifeTime = 0.4;
+      this.penRate = 1; 
     }
     /**
      * 프레임별 갱신
@@ -754,7 +756,9 @@
      */
     tryShoot(world) {
       if (this.fireCooldown > 0) return;
-      const angle = this.targetAngle;
+      const maxSpread = 5 * Math.PI / 180; // 5도 spread
+      const spread = (Math.random() - 0.5) * 2 * maxSpread;
+      const angle = this.targetAngle + spread;
       const vx = Math.cos(angle) * this.projectileSpeed;
       const vy = Math.sin(angle) * this.projectileSpeed;
       world.bulletPool.spawn({
@@ -766,7 +770,8 @@
         damage: this.damage,
         radius: this.projectileRadius,
         lifetime: this.projectileLifeTime,
-        penRate: this.penRate
+        penRate: this.penRate,
+        isTurretSpecial: true
       });
       turretSFXPool.playSpatial(this.y, world.camera.y, 0.9, 1500);
       this.fireCooldown = this.reloadTime;
@@ -810,7 +815,7 @@
         if (Explosion.sprite) explosion.sprite = Explosion.sprite;
       }
       this.spawnTimer = 0;
-      this.spawnInterval = 1;
+      this.spawnInterval = 2;
       this.maxTanksPerTeam = 36;
       this.isSuperMode = isSuperMode;
       this.isSpectatorMode = isSpectatorMode;
@@ -859,6 +864,13 @@
           owner: null,
           isTurret: false,
         },
+        // {
+        //   x: canvas.width / 3 * 2,
+        //   y: this.bounds.maxY * 0.5,
+        //   hp: 3e3,
+        //   owner: null,
+        //   isTurret: false,
+        // },
         //=========================================
         // 아군 쌍둥이 거점
         //-----------------------------------------
@@ -889,7 +901,7 @@
       for (const stronghold of this.strongholds) {
         if (stronghold.isTurret && stronghold.owner) {
           this.turrets.push(
-            new Turret(stronghold.x, stronghold.y, stronghold.owner, 75),
+            new Turret(stronghold.x, stronghold.y, stronghold.owner, 75, 1.5),
           );
         }
       }
@@ -980,27 +992,34 @@
           const distSq = dx * dx + dy * dy;
           const combinedRadius = bullet.radius + tank.radius;
           if (distSq <= combinedRadius * combinedRadius) {
-            tank.hp -= bullet.damage || 25;
-            // 관통 가능한 총알
-            if (bullet.penRate <= 1) {
+            // Turret 특수 포탄: 충돌 시 소규모 Orbital Strike 발생
+            if (bullet.isTurretSpecial) {
+              this.causeTurretOrbitalStrike(bullet.x, bullet.y, bullet.team, bullet.damage);
               bullet.active = false;
             } else {
-              bullet.penRate --;
-            }
-            if (tank.isPlayer === true) {
-              const hitSounds = document.querySelectorAll("audio.hit");
-              const randomIndex = Math.floor(Math.random() * hitSounds.length);
-              hitSounds[randomIndex].play();
-            }
-            if (tank.hp <= 0) {
-              this.killcount[bullet.team]++;
-              this.baseHealth[tank.team] -= 5;
-              if (bullet.isPlayerBullet === true) {
-                this.killcount.player++;
-                this.point++;
+              // 일반 포탄 처리
+              tank.hp -= bullet.damage || 25;
+              // 관통 가능한 총알
+              if (bullet.penRate <= 1) {
+                bullet.active = false;
+              } else {
+                bullet.penRate --;
               }
-              this.explosionPool.spawn({ x: tank.x, y: tank.y, maxRadius: 36 });
-              deathSFXPool.playSpatial(tank.y, this.camera.y);
+              if (tank.isPlayer === true) {
+                const hitSounds = document.querySelectorAll("audio.hit");
+                const randomIndex = Math.floor(Math.random() * hitSounds.length);
+                hitSounds[randomIndex].play();
+              }
+              if (tank.hp <= 0) {
+                this.killcount[bullet.team]++;
+                this.baseHealth[tank.team] -= 5;
+                if (bullet.isPlayerBullet === true) {
+                  this.killcount.player++;
+                  this.point++;
+                }
+                this.explosionPool.spawn({ x: tank.x, y: tank.y, maxRadius: 36 });
+                deathSFXPool.playSpatial(tank.y, this.camera.y);
+              }
             }
             break;
           }
@@ -1437,6 +1456,48 @@
         ctx.restore();
       }
       ctx.restore();
+    }
+    /**
+     * Turret 포탄 전용 소규모 폭발
+     * - 포탄이 탱크에 충돌했을 때 발생
+     * - 반경 100~110의 소규모 폭발
+     * - 폭발 범위 내 탱크에 피해(25~50) 및 넉백(500~600) 적용
+     */
+    causeTurretOrbitalStrike(x, y, bulletTeam, baseDamage) {
+      const strikeRadius = 105; // 반경 100~110의 중간값
+      this.explosionPool.spawn({ x, y, maxRadius: 80 }); // 작은 폭발 이펙트
+      deathSFXPool.playSpatial(y, this.camera.y, 0.6); // 사운드 재생
+      
+      for (const tank of this.tanks) {
+        if (tank.hp <= 0) continue;
+        
+        const dx = tank.x - x;
+        const dy = tank.y - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < strikeRadius) {
+          // 거리에 따른 피해 계산 (최소 25, 최대 50)
+          const damageRatio = 1 - (dist / strikeRadius);
+          const damage = 25 + (50 - 25) * damageRatio;
+          tank.hp -= damage;
+          
+          // 넉백 적용 (push force 500~600)
+          if (tank.hp > 0 || dist < strikeRadius) {
+            const pushForce = 550;
+            const angle = Math.atan2(dy, dx);
+            tank.vx += Math.cos(angle) * pushForce;
+            tank.vy += Math.sin(angle) * pushForce;
+          }
+          
+          // 탱크 파괴 시 처리
+          if (tank.hp <= 0) {
+            this.explosionPool.spawn({ x: tank.x, y: tank.y, maxRadius: 36 });
+            deathSFXPool.playSpatial(tank.y, this.camera.y, 1);
+            this.killcount[bulletTeam]++;
+            this.baseHealth[tank.team] -= 5;
+          }
+        }
+      }
     }
     /**
      * 대형 특수 폭발 생성
@@ -2396,8 +2457,7 @@
       }
       const bgm = document.getElementById("bgm");
       if (bgm) {
-        // bgm.currentTime = 51.5;
-        bgm.currentTime = 0;
+        bgm.currentTime = 51.5;
         bgm.volume = 0;
         bgm.play();
         let vol = 0;
