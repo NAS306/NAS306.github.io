@@ -159,7 +159,7 @@
   }
 
   .base-health .label {
-    font-size: 0.95rem;
+    font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -172,7 +172,6 @@
     background: rgba(255, 255, 255, 0.3);
     overflow: hidden;
     grid-column: 1 / -1;
-    margin-bottom: -20px;
   }
 
   .bar-fill {
@@ -200,6 +199,13 @@
     z-index: 5;
     display: none;
   }
+
+  .killcount {
+    font-size: 1.3rem;
+    color: #d4d4d4;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    margin-top: -6px;
+  }
   </style>
 </head>
 <body>
@@ -224,13 +230,14 @@
     <div class="base-health base-blue">
       <div class="label"><div id="blue-base-value" class="value">10000</div></div>
       <div class="bar-track"><div id="blue-base-fill" class="bar-fill"></div></div>
-      <p>Blue Team Kills: <span id="blueTeamKill" style="color: #5cb3ff;">0</span></p>
+      <p class="killcount">Blue Team Kills: <span id="blueTeamKill" style="color: #5cb3ff;">0</span></p>
       <span id="special-weapon">[██████████] </span>
     </div>
     <div class="base-health base-red">
       <div class="label"><div id="red-base-value" class="value">10000</div></div>
       <div class="bar-track"><div id="red-base-fill" class="bar-fill"></div></div>
-      <p>Red Team Kills: <span id="redTeamKill" style="color: #ff6a6a;">0</span></p>
+      <p class="killcount">Red Team Kills: <span id="redTeamKill" style="color: #ff6a6a;">0</span></p>
+      <div>Point:<span id="point">10</span>&nbsp;&nbsp;&nbsp;&nbsp;</span>Orbital Cost <span id="specialWeaponPoint"> 5</span></div>
     </div>
   </div>
   <div id="instruction">
@@ -240,8 +247,6 @@
       <p>Right Click: Special Weapon (Oribtal Strike)</p>
       <p>Space + Scroll: FreeCamera</p>
       <p>My kill score: <span id="myKill" style="color: #fff;">0</span></p>
-      <p>Point:                   <span id="point">10</span></p>
-      <p></span>Cost <span id="specialWeaponPoint"> 5</span></p>
   <div id="fps" style="position:fixed;top:5px;left:5px;color:white"></div>
   <audio id="bgm" src="./assets/BGM.mp3" preload="auto" loop></audio>
   <audio class="hit" src="./assets/Impact_1.wav" preload="auto"></audio>
