@@ -327,6 +327,10 @@ export class World {
       maxY: 5e3,
     };
     this.camera = { x: 0, y: 0 };
+    this.shakeIntensity = 0;
+    this.shakeDuration = 0;
+    this.shakeOffsetX = 0;
+    this.shakeOffsetY = 0;
     this.tanks = [];
     this.ready = false;
     this.bulletPool = bulletPool;
@@ -442,6 +446,14 @@ export class World {
     this.tanks.push(tank);
   }
   /**
+   * 카메라 흔들림 트리거
+   * @param {number} damage - 입은 피해 양
+   */
+  triggerShake(damage) {
+    this.shakeIntensity = Math.min(damage / 5, 20); // 피해에 비례, 최대 20
+    this.shakeDuration = 0.5; // 0.5초 동안 흔들림
+  }
+  /**
    * 월드 틱 업데이트
    * - 웨이브 스폰, 탱크 업데이트, 풀 업데이트(총알/폭발), 충돌 처리
    * - 카메라 추적, 본진 파괴 체크, 포탑 업데이트, 특수 무기 처리
@@ -498,6 +510,16 @@ export class World {
         }
       }
     }
+    // 카메라 흔들림 처리
+    if (this.shakeDuration > 0) {
+      this.shakeDuration -= dt;
+      this.shakeOffsetX = (Math.random() - 0.5) * this.shakeIntensity * 2;
+      this.shakeOffsetY = (Math.random() - 0.5) * this.shakeIntensity * 2;
+      this.shakeIntensity *= 0.95; // 감쇠
+    } else {
+      this.shakeOffsetX = 0;
+      this.shakeOffsetY = 0;
+    }
   }
   /**
    * 충돌 처리
@@ -521,7 +543,11 @@ export class World {
             bullet.active = false;
           } else {
             // 일반 포탄 처리
-            tank.hp -= bullet.damage || 25;
+            const damage = bullet.damage || 25;
+            tank.hp -= damage;
+            if (tank.isPlayer) {
+              this.triggerShake(damage);
+            }
             // 관통 가능한 총알
             if (bullet.penRate <= 1) {
               bullet.active = false;
@@ -727,7 +753,10 @@ export class World {
    */
   draw() {
     const ctx = this.ctx;
-    const cam = this.camera;
+    const cam = {
+      x: this.camera.x + this.shakeOffsetX,
+      y: this.camera.y + this.shakeOffsetY
+    };
     ctx.fillStyle = "#000000ff";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.strokeStyle = "#444";
@@ -1003,6 +1032,9 @@ export class World {
         const damageRatio = 1 - (dist / strikeRadius);
         const damage = 25 + (50 - 25) * damageRatio;
         tank.hp -= damage;
+        if (tank.isPlayer) {
+          this.triggerShake(damage);
+        }
         
         // 넉백 적용 (push force 500~600)
         if (tank.hp > 0 || dist < strikeRadius) {
@@ -1037,6 +1069,9 @@ export class World {
       if (dist < 250) {
         const damage = Math.max(50, 200 * (1 - dist / 250));
         tank.hp -= damage;
+        if (tank.isPlayer) {
+          this.triggerShake(damage);
+        }
         if (tank.hp > 0) {
           const push = 1500;
           const angle = Math.atan2(dy, dx);
