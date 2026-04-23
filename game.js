@@ -141,7 +141,7 @@ export class UIManager {
 
   /**
    * Draw a generic overlay message on top of the canvas. This helper is
-   * flexible enough to render pause screens, respawn countdowns or any
+   * flexible enough to render respawn countdowns or any
    * arbitrary message by configuring its appearance. It first draws a
    * semi-transparent backdrop and then the message on top.
    *
@@ -216,9 +216,6 @@ export class EventManager {
       this.requestFullscreen();
     }
     window.addEventListener("keydown", (e) => {
-      if (e.key === "p" || e.key === "P") {
-        game.stateManager.togglePause();
-      }
       if (e.key === "Escape") {
         this.exitFullscreen();
       }
@@ -323,40 +320,6 @@ export class GameStateManager {
    */
   constructor(game) {
     this.game = game;
-  }
-  /**
-   * Toggle the pause state of the game. Pausing stops the game loop
-   * updates and pauses background music. Resuming restarts music and
-   * updates if the world isn't over.
-   */
-  togglePause() {
-    const game = this.game;
-    game.running = !game.running;
-    if (game.running && !game.world.gameOver) {
-      game.bgm.play();
-    } else {
-      game.bgm.pause();
-    }
-  }
-  /**
-   * Pause the game without toggling. Used when the window loses focus.
-   */
-  pauseGame() {
-    const game = this.game;
-    if (game.running) {
-      game.running = false;
-      game.bgm.pause();
-    }
-  }
-  /**
-   * Resume the game if it is currently paused and the world hasn't ended.
-   */
-  resumeGame() {
-    const game = this.game;
-    if (!game.running && !game.world.gameOver) {
-      // Start a 3-second countdown instead of resuming immediately
-      game.focusCountdown = 3;
-    }
   }
   /**
    * Handle the transition into the game over state. This is called once
@@ -494,14 +457,6 @@ export class Game {
     this.timeStep = 1 / 60; // 60 FPS 고정 타임스텝
     this.running = true;
     this.focusCountdown = 0; // Countdown timer when regaining focus
-    
-    // Add focus/blur event listeners to pause/resume game when tab loses/gains focus
-    window.addEventListener("blur", () => {
-      this.stateManager.pauseGame();
-    });
-    window.addEventListener("focus", () => {
-      this.stateManager.resumeGame();
-    });
   }
   /**
    * 특수 무기(지정 지점 대규모 폭발) 활성화
@@ -682,22 +637,16 @@ export class Game {
     );
     this.ui.updateBaseHealth(this.world.baseHealth.blue, this.world.baseHealth.red);
     this.world.draw();
-    if (this.focusCountdown > 0) {
-      this.ui.showOverlay(`Resuming in ${Math.ceil(this.focusCountdown)}...`, "Get ready to continue");
-    } else if (!this.running && !this.world.gameOver) {
-      this.ui.showOverlay("PAUSED", "Press P to resume");
+    if (this.playerTank && this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
+      this.ui.showOverlay(
+        `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
+        "Stay patient. Your tank will return soon.",
+      );
     } else {
-      if (this.playerTank && this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
-        this.ui.showOverlay(
-          `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
-          "Stay patient. Your tank will return soon.",
-        );
-      } else {
-        this.ui.hideOverlay();
-      }
-      if (this.world.gameOver && !this.endingExplosions) {
-        this.stateManager.handleGameOver();
-      }
+      this.ui.hideOverlay();
+    }
+    if (this.world.gameOver && !this.endingExplosions) {
+      this.stateManager.handleGameOver();
     }
     requestAnimationFrame(this.loop.bind(this));
   }

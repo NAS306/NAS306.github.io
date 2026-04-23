@@ -1066,12 +1066,11 @@ export class World {
       const dx = tank.x - x;
       const dy = tank.y - y;
       const dist = Math.sqrt(dx * dx + dy * dy);
+      // 멀수록 적게 흔들림
+      this.triggerShake(dist);
       if (dist < 250) {
         const damage = Math.max(50, 200 * (1 - dist / 250));
         tank.hp -= damage;
-        if (tank.isPlayer) {
-          this.triggerShake(damage);
-        }
         if (tank.hp > 0) {
           const push = 1500;
           const angle = Math.atan2(dy, dx);
