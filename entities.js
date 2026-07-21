@@ -1,8 +1,19 @@
 // entities.js
-import { shootSFXPool, turretSFXPool } from './game.js';
-import { clamp, distance, getLeadAngle } from './systems.js';
+import { clamp, distance, getLeadAngle } from './math.js';
+import {
+  DEFAULT_WEAPON_ID,
+  getProjectileAngles,
+  resolveWeaponProfile,
+} from './weapon-config.js';
 
-const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
+export function getEquilateralTriangleVertices(radius) {
+  const halfHeight = Math.sqrt(3) * radius / 2;
+  return [
+    { x: radius, y: 0 },
+    { x: -radius / 2, y: -halfHeight },
+    { x: -radius / 2, y: halfHeight },
+  ];
+}
 
 // entities/Bullet.js
 export class Bullet {
@@ -22,6 +33,8 @@ export class Bullet {
     this.age = 0;
     this.penRate = 1;
     this.isTurretSpecial = false;
+    this.explosion = null;
+    this.hitTargets = new Set();
   }
   /**
    * 스프라이트 로딩(팀 색상별)
@@ -33,13 +46,10 @@ export class Bullet {
       this.sprite = Bullet.spriteCache[team];
       return;
     }
-    // const pathMap = {
-    //   red: "../assets/sprites/bullets/projectile_red.png",
-    //   blue: "../assets/sprites/bullets/projectile_blue.png",
-    // };
     const pathMap = {
-      red: "../assets/sprites/bullets/projectile_red.png",
-      blue: "../assets/sprites/bullets/projectile_blue.png",
+      red: "./assets/sprites/bullets/projectile_red.png",
+      blue: "./assets/sprites/bullets/projectile_blue.png",
+      player: "./assets/sprites/bullets/projectile_yellow.png",
     };
     const path = pathMap[team];
     const img = new Image();
@@ -55,10 +65,25 @@ export class Bullet {
    * - 위치/속도/팀/데미지/반지름/수명 초기화
    * - 팀별 스프라이트 자동 연결(이미 캐시되어 있으면 즉시 바인딩)
    */
-  init({ x, y, vx, vy, team, damage, isPlayerBullet, radius, lifetime, penRate, isTurretSpecial }) {
+  init({
+    x,
+    y,
+    vx,
+    vy,
+    team,
+    damage,
+    isPlayerBullet,
+    radius,
+    lifetime,
+    penRate,
+    isTurretSpecial,
+    explosion,
+  }) {
     this.active = true;
     this.x = x;
     this.y = y;
+    this.previousX = x;
+    this.previousY = y;
     this.vx = vx;
     this.vy = vy;
     this.team = team;
@@ -69,8 +94,11 @@ export class Bullet {
     this.lifetime = lifetime;
     this.penRate = penRate;
     this.isTurretSpecial = isTurretSpecial ?? false;
-    if (Bullet.spriteCache[this.team]) {
-      this.sprite = Bullet.spriteCache[this.team];
+    this.explosion = explosion ?? null;
+    this.hitTargets.clear();
+    const spriteKey = this.isPlayerBullet ? "player" : this.team;
+    if (Bullet.spriteCache[spriteKey]) {
+      this.sprite = Bullet.spriteCache[spriteKey];
     }
   }
   /**
@@ -83,6 +111,8 @@ export class Bullet {
       this.active = false;
       return;
     }
+    this.previousX = this.x;
+    this.previousY = this.y;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
   }
@@ -129,7 +159,7 @@ export class Explosion {
   static async initSprite() {
     if (Explosion.sprite) return;
     const img = new Image();
-    img.src = "../assets/sprites/explosion/explosion.png";
+    img.src = "./assets/sprites/explosion/explosion.png";
     await new Promise((res) => (img.onload = res));
     Explosion.sprite = await createImageBitmap(img);
     console.log("\u2705 Explosion sprite loaded");
@@ -186,11 +216,15 @@ export class Explosion {
 };
 
 // entities/Tank.js
-import { handleTankAI } from './systems.js';
-
 export class Tank {
-  static sprite = null;
-  constructor(x, y, team, isPlayer = false, supertank = false) {
+  constructor(
+    x,
+    y,
+    team,
+    isPlayer = false,
+    supertank = false,
+    weaponId = DEFAULT_WEAPON_ID,
+  ) {
     this.x = x;
     this.y = y;
     this.team = team;
@@ -201,16 +235,36 @@ export class Tank {
     this.hp = supertank ? 500 : 125;
     this.radius = 11;
     this.fireCooldown = 0;
-    this.reloadTime = supertank ? 0.05 : 0.5;
-    this.target = null;
+    this.weaponId = weaponId;
+    this.weapon = resolveWeaponProfile(weaponId);
+    this.reloadTime = this.weapon.reloadTime * (supertank ? 0.04 : 1);
+    this.currentTarget = null;
     this.strafeDir = Math.random() < 0.5 ? -1 : 1;
     this.strafeTimer = Math.random() * 1;
     this.supertank = supertank;
     this.vx = 0;
     this.vy = 0;
-    this.bulletCount = 1;
-    this.projectileLifeTime = 1.5;
-    this.penRate = 1; // 1개 탱크 맞추면 총알 소멸
+    this.wallSides = Object.create(null);
+  }
+  setWeapon(weaponId) {
+    this.weaponId = weaponId;
+    this.weapon = resolveWeaponProfile(weaponId);
+    this.reloadTime = this.weapon.reloadTime * (this.supertank ? 0.04 : 1);
+  }
+  respawn(x, y, hp = this.supertank ? 500 : 125) {
+    const forwardAngle = this.team === "blue" ? -Math.PI / 2 : Math.PI / 2;
+    this.x = x;
+    this.y = y;
+    this.hp = hp;
+    this.angle = forwardAngle;
+    this.turretAngle = forwardAngle;
+    this.vx = 0;
+    this.vy = 0;
+    this.fireCooldown = 0;
+    this.currentTarget = null;
+    // A respawn can occur behind a different siege wall. Keeping the old
+    // side cache would make collision resolution snap the tank outside it.
+    this.wallSides = Object.create(null);
   }
   /**
    * 프레임별 갱신
@@ -221,7 +275,7 @@ export class Tank {
     if (this.isPlayer) {
       this.handlePlayerInput(dt, world, input);
     } else {
-      handleTankAI(this, dt, world);
+      world.updateTankAI(this, dt);
     }
     if (this.fireCooldown > 0) {
       this.fireCooldown -= dt;
@@ -270,7 +324,7 @@ export class Tank {
     const mouseWorldY = input.mouse.canvasY + cam.y;
     this.turretAngle = Math.atan2(mouseWorldY - this.y, mouseWorldX - this.x);
     if (input.mouse.down) {
-      this.tryShoot(world, this.bulletCount);
+      this.tryShoot(world);
     }
   }
   /**
@@ -278,24 +332,14 @@ export class Tank {
    * - bulletCount 만큼 부채꼴/스프레드로 탄환 발사하도록 구현하는 곳
    * - bulletPool.spawn(...) 호출로 총알 오브젝트 활성화
    */
-  tryShoot(world, bulletCount = this.bulletCount) {
+  tryShoot(world) {
     if (this.fireCooldown > 0) return;
     const baseAngle = this.turretAngle;
-    const bulletSpeed = 450;
-    const maxSpread = Math.PI / 36;
-    const uniformSpreadAngle = Math.PI / 10;
-    for (let i = 0; i < bulletCount; i++) {
-      let angle;
-      if (bulletCount === 1) {
-        const spread = (Math.random() - 0.5) * 2 * maxSpread;
-        angle = baseAngle + spread;
-      } else {
-        const startAngle = baseAngle - uniformSpreadAngle / 2;
-        const step = uniformSpreadAngle / (bulletCount - 1);
-        angle = startAngle + step * i;
-      }
-      const vx = Math.cos(angle) * bulletSpeed;
-      const vy = Math.sin(angle) * bulletSpeed;
+    const weapon = this.weapon;
+    const projectileAngles = getProjectileAngles(weapon, baseAngle);
+    for (const angle of projectileAngles) {
+      const vx = Math.cos(angle) * weapon.projectileSpeed;
+      const vy = Math.sin(angle) * weapon.projectileSpeed;
       world.bulletPool.spawn({
         x: this.x + Math.cos(angle) * (this.radius + 6),
         y: this.y + Math.sin(angle) * (this.radius + 6),
@@ -303,29 +347,15 @@ export class Tank {
         vy,
         team: this.team,
         isPlayerBullet: this.isPlayer,
-        lifetime: this.projectileLifeTime,
-        penRate: this.penRate
+        damage: weapon.damage,
+        radius: weapon.projectileRadius,
+        lifetime: weapon.projectileLifetime,
+        penRate: weapon.penetration,
+        explosion: weapon.explosion,
       });
     }
-    shootSFXPool.playSpatial(this.y, world.camera.y, 0.4);
+    world.playSpatialAudio("shoot", this.y, 0.4);
     this.fireCooldown = this.reloadTime;
-  }
-
-  /**
-   * 스프라이트 비동기 로드
-   * - 경로가 유효하면 createImageBitmap으로 비트맵 생성
-   */
-  static async loadSprite(path) {
-    try {
-      const img = await fetch(path)
-        .then((res) => res.blob())
-        .then((blob) => createImageBitmap(blob));
-      Tank.sprite = img;
-      console.log("Tank sprite loaded successfully");
-    } catch (err) {
-      console.warn("Failed to load tank sprite:", err);
-      Tank.sprite = null; // 실패하면 기본 드로잉 사용
-    }
   }
 
   draw(ctx, camera) {
@@ -334,40 +364,39 @@ export class Tank {
     const screenX = this.x - camera.x;
     const screenY = this.y - camera.y;
 
-    if (Tank.sprite) {
-      ctx.save();
-      ctx.translate(screenX, screenY);
-      ctx.rotate(this.angle);
-      ctx.drawImage(
-        Tank.sprite,
-        -Tank.sprite.width / 2,
-        -Tank.sprite.height / 2
+    ctx.save();
+    ctx.translate(screenX, screenY);
+    ctx.rotate(this.angle);
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = this.isPlayer
+      ? "rgba(255, 230, 0, 0.8)"
+      : this.team === "blue"
+        ? "rgba(92, 179, 255, 0.8)"
+        : "rgba(255, 106, 106, 0.8)";
+    ctx.beginPath();
+    if (this.weapon.tankShape === "square") {
+      ctx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+    } else if (this.weapon.tankShape === "triangle") {
+      const [front, upperRear, lowerRear] = getEquilateralTriangleVertices(
+        this.radius + 2,
       );
-      ctx.restore();
+      ctx.moveTo(front.x, front.y);
+      ctx.lineTo(upperRear.x, upperRear.y);
+      ctx.lineTo(lowerRear.x, lowerRear.y);
+      ctx.closePath();
     } else {
-      // 기존 ctx 벡터 드로잉
-      ctx.save();
-      ctx.translate(screenX, screenY);
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = this.isPlayer
-        ? "rgba(255, 230, 0, 0.8)"
-        : this.team === "blue"
-          ? "rgba(92, 179, 255, 0.8)"
-          : "rgba(255, 106, 106, 0.8)";
-      ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-      ctx.fillStyle = this.isPlayer
-        ? "#ffe600ff"
-        : this.team === "blue"
-          ? "#5cb3ff"
-          : "#ff6a6a";
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#fff";
-      ctx.stroke();
-      ctx.restore();
-      ctx.shadowBlur = 0;
     }
+    ctx.fillStyle = this.isPlayer
+      ? "#ffe600ff"
+      : this.team === "blue"
+        ? "#5cb3ff"
+        : "#ff6a6a";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+    ctx.restore();
 
     // HP 바 항상 그리기
     const maxHP = this.supertank ? 500 : 125;
@@ -466,7 +495,7 @@ export class Turret {
       penRate: this.penRate,
       isTurretSpecial: true
     });
-    turretSFXPool.playSpatial(this.y, world.camera.y, 0.9, 1500);
+    world.playSpatialAudio("turret", this.y, 0.9, 1500);
     this.fireCooldown = this.reloadTime;
   }
   /**
