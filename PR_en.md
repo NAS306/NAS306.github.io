@@ -1,97 +1,130 @@
 # ⚡ FORMATION BREAKER
 
-### — Control the Formation. Control the Battlefield. —
+### Stable Release — Control the Formation. Control the Battlefield.
 
-You may enter expecting a simple shooter.
+You may enter expecting a simple shooter. You will quickly realize it is not.
 
-You will quickly realize it isn’t.
+**FORMATION BREAKER** is a large-scale top-down tactical shooter where victory depends on how armies move, spread, and reshape the battlefield. Dense formations bring overwhelming firepower, but one explosive shell or well-placed tactical item can tear them apart.
 
-**FORMATION BREAKER** is a large-scale **36 vs 36 top-down tactical shooter** where victory is decided not by aim alone, but by how armies *move, spread, and reshape the battlefield itself.*
+The desktop player always fights for the **Blue Team**. Each scenario changes Blue's role, force composition, and objective.
 
 ---
 
 ## 🎮 Large-Scale Bulletfield Warfare
 
-* 72 active combat units fighting simultaneously
-* Massive overlapping bullet patterns
-* Units automatically maintain distance and perform evasive maneuvers
+- Battles ranging from a 36 vs 36 frontline clash to asymmetric 96 vs 32 sieges
+- Independent AI movement, target selection, spacing, strafing, and evasive maneuvers
+- Dense projectile patterns supported by pooled bullets, explosions, and audio
+- A fixed-step 60 Hz simulation designed to remain stable under heavy unit counts
+- Yellow player shells that remain visible inside red-and-blue crossfire
 
-This is not about reflex shooting.
-
-It’s about positioning.
-
-👉 Where your forces stand
-👉 How your formation evolves
-
-**Formation equals firepower.**
+Aim matters, but formation decides how much firepower reaches the enemy—and how much survives the return volley.
 
 ---
 
-## 🗺 A Battlefield Designed for Strategy
+## 🛡️ Four Ways to Break a Formation
 
-The vertically structured battlefield contains three critical zones:
+### Frontline
 
-* **Bases** at both ends
-* A decisive **Central Objective**
-* The contested **Twin Objectives** between them
+The original 36 vs 36 battle. Capture and defend the central and twin Strongholds, move the spawn line forward, and destroy the enemy Base.
 
-The map itself creates tactical asymmetry:
+### Siege — Attack
 
-* Attackers spawn from a single direction → naturally form **dense formations**
-* Defenders spawn from two sides → naturally create **spread formations**
+Blue attacks with waves of 32 tanks and may field up to 96 units against 32 defenders. Break through three full-width defensive walls, collapse the twin Strongholds behind the first two lines, and destroy the final Red Base before the seven-minute limit.
 
-Defenders begin with positional advantage.
+Each wall has **50,000 HP**. Attacking shells cannot pass through it and damage the wall instead, while defending shells pass through it. AI never selects the wall itself as a target. When one of the first two walls falls, its linked Strongholds detonate and the defenders begin spawning from the next line.
 
-But the battlefield fights back.
+### Siege — Defense
 
-Objective turrets fire **ultra-fast explosive shells with knockback**, forcibly dispersing clustered assaults and continuously reshaping combat lines.
+The same battlefield is reversed. Blue holds three layered defensive lines against Red's massed waves. Protect the final Blue Base for **seven minutes** to win; losing it ends the defense.
 
-Frontlines are never static.
+### Breakthrough
 
----
+A pure ticket war with no Strongholds or turrets. Both teams deploy recurring 40-tank waves every 12 seconds and may field up to 80 tanks at once. The Bases at opposite ends cannot be attacked and serve only as formation anchors.
 
-## ☄️ Orbital Strike — Rewrite the Battle
-
-The player gains access to a powerful strategic weapon earned through combat performance.
-
-**Orbital Strike**
-
-* 5-second targeting delay
-* Instant destruction at ground zero
-* Massive knockback shockwave
-* No friendly-fire protection
-
-This is not just a weapon.
-
-It is a **formation control system**.
-
-Use it to:
-
-* Collapse enemy concentrations
-* Break defensive stalemates
-* Expand allied formations
-* Reset entire engagements
-
-Used poorly, it strengthens the enemy.
-Used perfectly, it changes the course of the war.
+Each destroyed AI tank removes **5 tickets** from its team. Both sides begin with **10,000 tickets**, and the first team to run out loses. The player's death never consumes team tickets in any scenario.
 
 ---
 
-## 🧠 What Kind of Game Is This?
+## 💥 Breakthrough Weapon Classes
 
-Shooter ✔
-Strategy ✔
-Tactical Simulation ✔
+Breakthrough mixes three data-driven weapon profiles:
 
-**FORMATION BREAKER is not about shooting better.
-It’s about commanding chaos.**
+- **Standard Cannon — 70%:** circular tanks with accurate, sustained single-shot fire
+- **Heavy Cannon — 10%:** square tanks with a three-times-longer reload, extended range, and 25–30 splash damage with strong knockback
+- **Scatter Cannon — 20%:** equilateral-triangle tanks firing three standard shells across a 30-degree arc, spaced at 15-degree intervals
+
+In Breakthrough, the player can cycle weapons with **Q** every 10 seconds—or every 2 seconds in Super Mode. The current weapon, firing pattern, description, reload, and switch cooldown are shown in a dedicated HUD panel.
 
 ---
 
-## 🔥 The Question Is Simple
+## 🛰️ Points and Tactical Items
 
-Will you advance as a wall of fire?
-Will you spread and dominate the bulletfield?
-Or will one perfectly timed strike reshape the entire war?
+Normal play begins with **10 points**. The player gains 1 point per kill and another 1 point every 5 seconds.
+
+Orbital Strike and Barrier share one escalating **Item Cost**. It begins at 5 points and rises by 1 whenever either item is used, so every deployment is a strategic commitment.
+
+### Orbital Strike
+
+- Five-second targeting warning in normal desktop play
+- Up to 200 damage within a 250-unit blast radius
+- Massive knockback with no friendly-fire protection
+- 20-second desktop cooldown
+
+Use it to break concentrations, reset a collapsing line, or create space for an advance.
+
+### Barrier
+
+- Places one short, horizontal 180-unit wall
+- Starts with 5,000 HP and loses 100 HP per second
+- Blocks tanks and every projectile from both teams
+- Takes damage from every projectile it blocks
+- Only one Barrier may exist at a time; placement has a 60-second cooldown
+
+A Barrier survives for 50 seconds if it takes no battle damage, but concentrated fire can remove it much sooner.
+
+---
+
+## 🖱️ Desktop Controls
+
+- **WASD:** Move
+- **Mouse:** Aim
+- **Left Click:** Fire
+- **1 / 2:** Select Orbital Strike or Barrier
+- **Right Click:** Deploy the selected item
+- **Q:** Cycle weapons in Breakthrough
+- **Space + Mouse Wheel:** Free camera
+- **Esc:** Exit fullscreen
+- **1–4 on the start screen:** Select a scenario
+- **Hold a scenario button + Enter:** Start that scenario in Super Mode
+
+---
+
+## 📱 Mobile Spectator Mode
+
+Mobile runs without a player tank, keeping direct controls simple and the battlefield readable.
+
+- Drag the battlefield to move the camera
+- Long-press the battlefield to deploy Orbital Strike
+- Barrier placement and weapon switching remain desktop-only
+- Mobile HUD text, scenario buttons, safe areas, and portrait/landscape layouts are handled separately from the game-world scale
+
+---
+
+## 🔁 A Battle That Keeps Moving
+
+When a match ends, the game announces the next scenario and its one-line objective during a 10-second transition, then restarts with a different randomly selected scenario. The current scenario and objective remain visible during play.
+
+Maps, scenarios, team rules, objectives, and weapon profiles are data-driven, while automated regression checks cover the major combat, spawning, collision, mobile-input, and scenario-validation rules.
+
+---
+
+## What Kind of Game Is This?
+
+Shooter? Strategy? Tactical simulation?
+
+**FORMATION BREAKER is not only about shooting better. It is about commanding chaos.**
+
+Will you advance as a wall of fire, spread out to survive the bulletfield, or reshape the entire engagement with one perfectly timed strike?
 
 **The battlefield is waiting.**
