@@ -1,12 +1,31 @@
 // game.js
 import { Bullet, Explosion, Tank, Turret } from './entities.js';
-import { World, AudioPool, Pool, handleTankAI, clamp } from './systems.js';
+import { World, AudioPool, Pool } from './systems.js';
+import { clampFrameDelta } from './runtime.js';
+import { detectMobileDevice, getLayoutDragThreshold } from './mobile-support.js';
+import { ATTRITION_WEAPON_IDS } from './weapon-config.js';
+import {
+  chooseRandomScenarioId,
+  loadLevelCatalog,
+  resolveScenario,
+} from './level-config.js';
 
-const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS/i.test(navigator.userAgent);
+const isMobileDevice = detectMobileDevice({
+  userAgent: navigator.userAgent,
+  platform: navigator.platform,
+  maxTouchPoints: navigator.maxTouchPoints,
+  userAgentDataMobile: navigator.userAgentData?.mobile,
+  coarsePointer: window.matchMedia?.("(pointer: coarse)")?.matches ?? false,
+  screenWidth: window.screen?.width,
+  screenHeight: window.screen?.height,
+});
+const ITEM_BY_KEY = Object.freeze({ "1": "orbital", "2": "barrier" });
+const MOBILE_LONG_PRESS_MS = 650;
 
 // input/InputManager.js
 export class InputManager {
   constructor(canvas) {
+    this.canvas = canvas;
     this.keys = {};
     this.mouse = {
       canvasX: 0,
@@ -14,25 +33,44 @@ export class InputManager {
       down: false,
       rightDown: false,
     };
-    window.addEventListener("keydown", (e) => {
+    this.onKeyDown = (e) => {
       this.keys[e.key.toLowerCase()] = true;
-    });
-    window.addEventListener("keyup", (e) => {
+    };
+    this.onKeyUp = (e) => {
       this.keys[e.key.toLowerCase()] = false;
-    });
-    canvas.addEventListener("mousedown", (e) => {
+    };
+    this.onMouseDown = (e) => {
       if (e.button === 0) this.mouse.down = true;
       if (e.button === 2) this.mouse.rightDown = true;
-    });
-    canvas.addEventListener("mouseup", (e) => {
+    };
+    this.onMouseUp = (e) => {
       if (e.button === 0) this.mouse.down = false;
       if (e.button === 2) this.mouse.rightDown = false;
-    });
-    canvas.addEventListener("mousemove", (e) => {
+    };
+    this.onMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
       this.mouse.canvasX = e.clientX - rect.left;
       this.mouse.canvasY = e.clientY - rect.top;
-    });
+    };
+    window.addEventListener("keydown", this.onKeyDown);
+    window.addEventListener("keyup", this.onKeyUp);
+    canvas.addEventListener("mousedown", this.onMouseDown);
+    canvas.addEventListener("mouseup", this.onMouseUp);
+    canvas.addEventListener("mousemove", this.onMouseMove);
+  }
+
+  reset() {
+    this.keys = {};
+    this.mouse.down = false;
+    this.mouse.rightDown = false;
+  }
+
+  dispose() {
+    window.removeEventListener("keydown", this.onKeyDown);
+    window.removeEventListener("keyup", this.onKeyUp);
+    this.canvas.removeEventListener("mousedown", this.onMouseDown);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+    this.canvas.removeEventListener("mousemove", this.onMouseMove);
   }
 }
 
@@ -48,7 +86,8 @@ export class UIManager {
     this.blueKillEl = document.getElementById("blueTeamKill");
     this.redKillEl = document.getElementById("redTeamKill");
     this.playerKillEl = document.getElementById("myKill");
-    this.specialWeaponEl = document.getElementById("special-weapon");
+    this.orbitalStatusEl = document.getElementById("orbital-status");
+    this.orbitalCooldownFillEl = document.getElementById("orbital-cooldown-fill");
     this.specialWeaponPointEl = document.getElementById("specialWeaponPoint");
     this.overlayEl = document.getElementById("game-overlay");
     this.overlayMessageEl = document.getElementById("overlay-message");
@@ -57,6 +96,25 @@ export class UIManager {
     this.redBaseFillEl = document.getElementById("red-base-fill");
     this.blueBaseValueEl = document.getElementById("blue-base-value");
     this.redBaseValueEl = document.getElementById("red-base-value");
+    this.timerEl = document.getElementById("match-timer");
+    this.scenarioNameEl = document.getElementById("scenario-name");
+    this.scenarioObjectiveEl = document.getElementById("scenario-objective");
+    this.barrierStatusEl = document.getElementById("barrier-status");
+    this.barrierCooldownFillEl = document.getElementById("barrier-cooldown-fill");
+    this.weaponPanelEl = document.getElementById("weapon-panel");
+    this.weaponNameEl = document.getElementById("weapon-name");
+    this.weaponDescriptionEl = document.getElementById("weapon-description");
+    this.weaponFireModeEl = document.getElementById("weapon-fire-mode");
+    this.weaponReloadEl = document.getElementById("weapon-reload");
+    this.weaponSwitchStatusEl = document.getElementById("weapon-switch-status-panel");
+    this.weaponSwitchFillEl = document.getElementById("weapon-switch-fill");
+    this.weaponTankSymbolEl = document.getElementById("weapon-tank-symbol");
+    this.weaponFirePatternEl = document.getElementById("weapon-fire-pattern");
+    this.bottomHudEl = document.getElementById("bottom-hud");
+    this.itemEls = {
+      orbital: document.getElementById("orbital-item"),
+      barrier: document.getElementById("barrier-item"),
+    };
   }
   /**
    * Update the kill scoreboard text. Accepts the latest kill counts for
@@ -92,21 +150,19 @@ export class UIManager {
    * @param {number} currentPoint Current cost for using the special weapon.
    */
   updateSpecialWeaponBar(cooldown, maxCooldown, currentPoint) {
-    if (!this.specialWeaponEl) return;
-    const barLength = 10;
-    if (cooldown > 0 && maxCooldown > 0) {
-      const currentBars = Math.ceil(
-        ((maxCooldown - cooldown) / maxCooldown) * barLength,
-      );
-      const bars = "\u2588".repeat(currentBars);
-      const emptyBars = "\u2591".repeat(barLength - currentBars);
-      this.specialWeaponEl.textContent = `[${bars}${emptyBars}] `;
-      this.specialWeaponPointEl.textContent = `${currentPoint}  `;
-      this.specialWeaponEl.style.color = "#ffe600";
-    } else {
-      this.specialWeaponEl.style.color = "#00ffff";
-      this.specialWeaponEl.textContent = `[${"\u2588".repeat(barLength)}] `;
-      this.specialWeaponPointEl.textContent = `${currentPoint}  `;
+    const progress = maxCooldown > 0
+      ? Math.max(0, Math.min(1, 1 - cooldown / maxCooldown))
+      : 1;
+    if (this.orbitalCooldownFillEl) {
+      this.orbitalCooldownFillEl.style.width = `${progress * 100}%`;
+    }
+    if (this.orbitalStatusEl) {
+      this.orbitalStatusEl.textContent = cooldown > 0
+        ? `${Math.ceil(cooldown)}s`
+        : "READY";
+    }
+    if (this.specialWeaponPointEl) {
+      this.specialWeaponPointEl.textContent = `${currentPoint}`;
     }
   }
 
@@ -124,18 +180,109 @@ export class UIManager {
     this.overlayEl.classList.add("hidden");
   }
 
-  updateBaseHealth(blue, red) {
+  updateBaseHealth(blue, red, maxValue = 10e3, label = "Base") {
+    const blueLabel = document.getElementById("blue-status-label");
+    const redLabel = document.getElementById("red-status-label");
+    if (blueLabel) blueLabel.textContent = `Blue ${label}`;
+    if (redLabel) redLabel.textContent = `Red ${label}`;
     if (this.blueBaseFillEl) {
-      this.blueBaseFillEl.style.width = `${Math.max(0, Math.min(100, (blue / 10e3) * 100))}%`;
+      this.blueBaseFillEl.style.width = `${Math.max(0, Math.min(100, (blue / maxValue) * 100))}%`;
     }
     if (this.redBaseFillEl) {
-      this.redBaseFillEl.style.width = `${Math.max(0, Math.min(100, (red / 10e3) * 100))}%`;
+      this.redBaseFillEl.style.width = `${Math.max(0, Math.min(100, (red / maxValue) * 100))}%`;
     }
     if (this.blueBaseValueEl) {
       this.blueBaseValueEl.textContent = `${Math.max(0, Math.round(blue))}`;
     }
     if (this.redBaseValueEl) {
       this.redBaseValueEl.textContent = `${Math.max(0, Math.round(red))}`;
+    }
+  }
+
+  updateTimer(remainingTime) {
+    if (!this.timerEl) return;
+    if (remainingTime === null) {
+      this.timerEl.textContent = "";
+      return;
+    }
+    const seconds = Math.max(0, Math.ceil(remainingTime));
+    const minutes = Math.floor(seconds / 60);
+    this.timerEl.textContent = `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+  }
+
+  updateScenario(scenario) {
+    if (this.scenarioNameEl) this.scenarioNameEl.textContent = scenario?.title ?? "";
+    if (this.scenarioObjectiveEl) {
+      this.scenarioObjectiveEl.textContent = scenario?.objective ?? "";
+    }
+  }
+
+  updatePlayerWeapon(world, player, cooldown, maxCooldown) {
+    const visible = Boolean(world?.mode === "attrition" && player);
+    if (this.weaponPanelEl) {
+      this.weaponPanelEl.style.display = visible ? "grid" : "none";
+    }
+    if (!visible) return;
+    const weapon = player.weapon;
+    if (this.weaponPanelEl) this.weaponPanelEl.dataset.weaponId = weapon.id;
+    if (this.weaponNameEl) this.weaponNameEl.textContent = weapon.title;
+    if (this.weaponDescriptionEl) {
+      this.weaponDescriptionEl.textContent = weapon.description;
+    }
+    if (this.weaponFireModeEl) this.weaponFireModeEl.textContent = weapon.fireMode;
+    if (this.weaponReloadEl) {
+      this.weaponReloadEl.textContent = `Reload ${weapon.reloadTime.toFixed(1)}s`;
+    }
+    if (this.weaponTankSymbolEl) {
+      this.weaponTankSymbolEl.className = `shape-${weapon.tankShape}`;
+    }
+    if (this.weaponFirePatternEl) {
+      this.weaponFirePatternEl.className = `pattern-${weapon.id}`;
+    }
+    if (this.weaponSwitchStatusEl) {
+      this.weaponSwitchStatusEl.textContent = cooldown > 0
+        ? `${Math.ceil(cooldown)}s`
+        : "READY";
+    }
+    if (this.weaponSwitchFillEl) {
+      const progress = maxCooldown > 0
+        ? Math.max(0, Math.min(1, 1 - cooldown / maxCooldown))
+        : 1;
+      this.weaponSwitchFillEl.style.width = `${progress * 100}%`;
+    }
+  }
+
+  getBottomHudReserve() {
+    if (!this.bottomHudEl) return 110;
+    const rect = this.bottomHudEl.getBoundingClientRect();
+    return Math.max(0, this.canvas.height - rect.top + 24);
+  }
+
+  updateBarrierStatus(world) {
+    if (!this.barrierStatusEl) return;
+    const wall = world.deployableWall;
+    if (wall?.active) {
+      this.barrierStatusEl.textContent = `${Math.ceil(wall.hp)} HP`;
+      this.barrierStatusEl.style.color = "#5cb3ff";
+    } else if (world.deployableWallCooldown > 0) {
+      this.barrierStatusEl.textContent = `${Math.ceil(world.deployableWallCooldown)}s`;
+      this.barrierStatusEl.style.color = "#ffcf70";
+    } else {
+      this.barrierStatusEl.textContent = "READY";
+      this.barrierStatusEl.style.color = "#8fd8ff";
+    }
+    if (this.barrierCooldownFillEl) {
+      const maxCooldown = world.deployableWallRules.cooldown;
+      const progress = Math.max(
+        0,
+        Math.min(1, 1 - world.deployableWallCooldown / maxCooldown),
+      );
+      this.barrierCooldownFillEl.style.width = `${progress * 100}%`;
+    }
+  }
+  updateItemSelection(selectedItemId) {
+    for (const [itemId, element] of Object.entries(this.itemEls)) {
+      element?.classList.toggle("selected", itemId === selectedItemId);
     }
   }
 
@@ -187,22 +334,6 @@ export class UIManager {
    * The border and label emphasise the player's enhanced state. This
    * method should be called after the world has been drawn.
    */
-  drawSuperModeIndicator() {
-    const ctx = this.ctx;
-    ctx.save();
-    ctx.shadowColor = "rgba(255, 0, 0, 0.8)";
-    ctx.shadowBlur = 20;
-    ctx.strokeStyle = "#ff0000";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = "#ffffffff";
-    ctx.font = "bold 16px sans-serif";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "top";
-    ctx.fillText("SUPER MODE: ON", this.canvas.width - 20, 20);
-    ctx.restore();
-  }
 };
 
 // core/managers/EventManager.js
@@ -211,11 +342,19 @@ export class EventManager {
     this.game = game;
     const canvas = game.canvas;
     this.pointerDragActive = false;
+    this.dragConfirmed = false;
+    this.longPressTimer = null;
+    this.longPressTriggered = false;
+    this.dragThreshold = getLayoutDragThreshold(window.visualViewport?.scale);
+    this.pressStart = { x: 0, y: 0 };
     this.lastPointer = { x: 0, y: 0 };
     if (!game.isSpectatorMode) {
       this.requestFullscreen();
     }
     window.addEventListener("keydown", (e) => {
+      const itemId = ITEM_BY_KEY[e.key];
+      if (itemId) game.selectItem(itemId);
+      if (e.code === "KeyQ" && !e.repeat) game.switchPlayerWeapon();
       if (e.key === "Escape") {
         this.exitFullscreen();
       }
@@ -236,22 +375,46 @@ export class EventManager {
     );
     canvas.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (typeof game.activateSpecialWeapon === "function") {
-        game.activateSpecialWeapon(e);
-      }
+      if (game.isSpectatorMode) return;
+      game.useSelectedItem(e);
     });
     canvas.style.touchAction = "none";
     canvas.addEventListener("pointerdown", (e) => {
       if (!game.isSpectatorMode || !e.isPrimary) return;
       e.preventDefault();
       this.pointerDragActive = true;
+      this.dragConfirmed = false;
+      this.longPressTriggered = false;
+      this.pressStart.x = e.clientX;
+      this.pressStart.y = e.clientY;
+      this.dragThreshold = getLayoutDragThreshold(window.visualViewport?.scale);
       this.lastPointer.x = e.clientX;
       this.lastPointer.y = e.clientY;
+      this.cancelLongPress();
+      const target = { clientX: e.clientX, clientY: e.clientY };
+      this.longPressTimer = window.setTimeout(() => {
+        this.longPressTimer = null;
+        if (!this.pointerDragActive) return;
+        this.longPressTriggered = game.useSelectedItem(target);
+      }, MOBILE_LONG_PRESS_MS);
       canvas.setPointerCapture?.(e.pointerId);
     });
     canvas.addEventListener("pointermove", (e) => {
       if (!game.isSpectatorMode || !this.pointerDragActive) return;
       e.preventDefault();
+      const totalDx = e.clientX - this.pressStart.x;
+      const totalDy = e.clientY - this.pressStart.y;
+      if (!this.dragConfirmed && Math.hypot(totalDx, totalDy) <= this.dragThreshold) {
+        return;
+      }
+      if (!this.dragConfirmed) {
+        this.dragConfirmed = true;
+        this.cancelLongPress();
+        this.lastPointer.x = e.clientX;
+        this.lastPointer.y = e.clientY;
+        return;
+      }
+      if (this.longPressTriggered) return;
       const dx = e.clientX - this.lastPointer.x;
       const dy = e.clientY - this.lastPointer.y;
       this.lastPointer.x = e.clientX;
@@ -269,11 +432,13 @@ export class EventManager {
     });
     canvas.addEventListener("pointerup", (e) => {
       if (!game.isSpectatorMode || !e.isPrimary) return;
+      this.cancelLongPress();
       this.pointerDragActive = false;
       canvas.releasePointerCapture?.(e.pointerId);
     });
     canvas.addEventListener("pointercancel", (e) => {
       if (!game.isSpectatorMode) return;
+      this.cancelLongPress();
       this.pointerDragActive = false;
     });
     document.addEventListener("fullscreenchange", () => {
@@ -283,6 +448,12 @@ export class EventManager {
     });
   }
   // --- 전체화면 요청 ---
+  cancelLongPress() {
+    if (this.longPressTimer !== null) {
+      window.clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
   async requestFullscreen() {
     const elem = this.game.canvas.parentElement || document.documentElement;
     if (!document.fullscreenElement) {
@@ -330,25 +501,31 @@ export class GameStateManager {
    */
   handleGameOver() {
     const game = this.game;
+    game.ui.hideOverlay();
+    game.playerRespawnTimer = 0;
+    game.playerWeaponSwitchCooldown = 0;
     game.bgm.pause();
-    if (window.shootSFXPool) {
-      for (const audio of window.shootSFXPool.pool) audio.volume = 0;
+    for (const audioPool of Object.values(game.resources.audio)) {
+      for (const audio of audioPool.pool) audio.volume = 0;
     }
-    if (window.hitSFXPool) {
-      for (const audio of window.hitSFXPool.pool) audio.volume = 0;
-    }
+    const nextLevel = game.scenarioProvider?.(game.levelDefinition?.id)
+      ?? game.levelDefinition;
+    game.nextLevelDefinition = nextLevel;
     game.endingExplosions = {
       timer: 10,
       nextIdx: 0,
       explosions: [],
+      message: game.world.gameOverMessage,
+      nextScenario: nextLevel,
     };
-    const destroyedTeam = game.world.baseHealth.blue <= 0 ? "blue" : "red";
-    const base = game.world.basePos[destroyedTeam];
-    game.world.camera.targetY = base.y - game.canvas.height / 2;
+    const losingTeam = game.world.winner === "blue" ? "red" : "blue";
+    const target = game.world.gameOverTarget ?? game.world.basePos[losingTeam];
+    game.endingExplosions.target = target;
+    game.world.camera.targetY = target.y - game.canvas.height / 2;
     const exp = game.world.explosionPool.factory();
-    exp.init({ x: base.x, y: base.y, maxRadius: 120 });
+    exp.init({ x: target.x, y: target.y, maxRadius: 120 });
     game.endingExplosions.explosions.push(exp);
-    deathSFXPool.playSpatial(base.y, game.world.camera.y, 1);
+    game.world.playSpatialAudio("death", target.y, 1);
     game.endingExplosions.nextIdx++;
   }
   /**
@@ -358,18 +535,32 @@ export class GameStateManager {
    */
   restartGame() {
     const game = this.game;
+    const nextLevel = game.nextLevelDefinition
+      ?? game.scenarioProvider?.(game.levelDefinition?.id);
+    if (nextLevel) {
+      game.levelDefinition = nextLevel;
+      game.playerTeam = nextLevel.playerTeam;
+    }
+    game.nextLevelDefinition = null;
     // Reset all active projectiles and explosions from previous game
-    window.bulletPool.reset();
-    window.explosionPool.reset();
-    game.world = new World(game.canvas, game.isSuperMode);
-    game.input = new InputManager(game.canvas);
+    game.resources.bulletPool.reset();
+    game.resources.explosionPool.reset();
+    game.world = new World(
+      game.canvas,
+      game.isSuperMode,
+      game.isSpectatorMode,
+      game.resources,
+      game.levelDefinition,
+    );
+    game.input.reset();
     const spawn = game.getPlayerSpawn();
     game.playerRespawnTimer = 0;
+    game.playerWeaponSwitchCooldown = 0;
     if (!game.isSpectatorMode) {
       game.playerTank = new Tank(
         spawn.x,
         spawn.y,
-        "blue",
+        game.playerTeam,
         true,
         game.isSuperMode ? true : false,
       );
@@ -381,6 +572,7 @@ export class GameStateManager {
     game.accumulator = 0;
     game.lastTime = performance.now();
     game.endingExplosions = null;
+    game.ui.updateScenario(game.levelDefinition);
     game.running = true;
     game.bgm.currentTime = 50;
     game.bgm.volume = 0;
@@ -394,26 +586,48 @@ export class GameStateManager {
       }
       game.bgm.volume = vol;
     }, 100);
-    if (window.shootSFXPool) {
-      for (const audio of window.shootSFXPool.pool) audio.volume = 1;
-    }
-    if (window.hitSFXPool) {
-      for (const audio of window.hitSFXPool.pool) audio.volume = 1;
+    for (const audioPool of Object.values(game.resources.audio)) {
+      for (const audio of audioPool.pool) audio.volume = 1;
     }
   }
 };
 
 // core/Game.js
 export class Game {
-  constructor(canvas, isSuperMode = false, isSpectatorMode = false) {
+  constructor(
+    canvas,
+    isSuperMode = false,
+    isSpectatorMode = false,
+    levelDefinition = null,
+    scenarioProvider = null,
+  ) {
     this.canvas = canvas;
     this.isSuperMode = isSuperMode;
     this.isSpectatorMode = isSpectatorMode || isMobileDevice;
+    this.levelDefinition = levelDefinition;
+    this.playerTeam = levelDefinition?.playerTeam ?? "blue";
+    this.scenarioProvider = scenarioProvider;
+    this.nextLevelDefinition = null;
+    this.playerWeaponSwitchCooldown = 0;
+    this.playerWeaponSwitchCoolTime = this.isSuperMode ? 2 : 10;
+    this.selectedItemId = "orbital";
+    this.itemActions = {
+      orbital: (event) => this.activateSpecialWeapon(event),
+      barrier: (event) => this.placeBarrierAtPointer(event),
+    };
     this.restartTimer = 0;
-    this.init().then(() => {
-      console.log("\u2705 All assets loaded, starting game");
-      this.start();
-    });
+    this.boundLoop = this.loop.bind(this);
+    this.animationFrameId = null;
+    this.maxFrameDelta = 0.25;
+    this.maxUpdatesPerFrame = 8;
+    this.init()
+      .then(() => {
+        console.log("\u2705 All assets loaded, starting game");
+        this.start();
+      })
+      .catch((error) => {
+        console.error("Game initialization failed", error);
+      });
   }
   /**
    * 비동기 초기화
@@ -426,26 +640,32 @@ export class Game {
     const tempBullet = new Bullet();
     await tempBullet.initSprite("red");
     await tempBullet.initSprite("blue");
+    await tempBullet.initSprite("player");
     await Explosion.initSprite();
-    this.world = new World(this.canvas, this.isSuperMode, this.isSpectatorMode);
+    this.resources = gameResources;
+    this.world = new World(
+      this.canvas,
+      this.isSuperMode,
+      this.isSpectatorMode,
+      this.resources,
+      this.levelDefinition,
+    );
     this.input = new InputManager(this.canvas);
     this.bgm = document.getElementById("bgm");
     this.ui = new UIManager(this.canvas);
+    this.ui.updateScenario(this.levelDefinition);
     this.stateManager = new GameStateManager(this);
     this.eventManager = new EventManager(this);
     this.endingExplosions = null;
-    this.specialWeaponPoint = 5;
     const playerSpawn = this.getPlayerSpawn();
     this.playerRespawnTimer = 0;
     if (!this.isSpectatorMode) {
       this.playerTank = new Tank(
         playerSpawn.x,
         playerSpawn.y,
-        "blue",
+        this.playerTeam,
         true,
-        // isPlayer
         this.isSuperMode,
-        // 슈퍼 모드에 따라 파라미터 상이
       );
       this.world.addTank(this.playerTank);
     } else {
@@ -456,7 +676,6 @@ export class Game {
     this.accumulator = 0;
     this.timeStep = 1 / 60; // 60 FPS 고정 타임스텝
     this.running = true;
-    this.focusCountdown = 0; // Countdown timer when regaining focus
   }
   /**
    * 특수 무기(지정 지점 대규모 폭발) 활성화
@@ -464,7 +683,7 @@ export class Game {
    * - 쿨다운/포인트 조건 검사 후 발동
    */
   activateSpecialWeapon(e) {
-    const { canvas, world, specialWeaponPoint } = this;
+    const { canvas, world } = this;
     const rect = canvas.getBoundingClientRect();
     const mouseCanvasX = e.clientX - rect.left;
     const mouseCanvasY = e.clientY - rect.top;
@@ -476,7 +695,7 @@ export class Game {
     if (
       world.specialCooldown > 0 ||
       world.pendingExplosion ||
-      world.point < specialWeaponPoint
+      world.point < world.itemPointCost
     ) {
       // console.debug("Special weapon blocked (cooldown/pending/insufficient points)");
       return;
@@ -493,12 +712,70 @@ export class Game {
       timer: pending,
     };
     world.specialCooldown = world.specialCoolTime;
-    world.point -= specialWeaponPoint;
+    world.commitItemUse();
 
     // 다음 사용 비용 증가(게임/월드 표기 동기화 유지)
-    this.specialWeaponPoint++;
-    world.specialWeaponPoint++;
-    console.log(`SWP: ${this.specialWeaponPoint}`);
+    return true;
+  }
+  selectItem(itemId) {
+    if (!this.itemActions[itemId] || this.isSpectatorMode) return;
+    this.selectedItemId = itemId;
+    this.ui.updateItemSelection(itemId);
+    this.canvas.style.cursor = "crosshair";
+  }
+  switchPlayerWeapon() {
+    if (
+      this.world?.mode !== "attrition" ||
+      !this.playerTank ||
+      this.playerTank.hp <= 0 ||
+      this.playerWeaponSwitchCooldown > 0 ||
+      this.world.gameOver
+    ) {
+      return false;
+    }
+    const currentIndex = ATTRITION_WEAPON_IDS.indexOf(this.playerTank.weaponId);
+    const nextIndex = (Math.max(0, currentIndex) + 1) % ATTRITION_WEAPON_IDS.length;
+    this.playerTank.setWeapon(ATTRITION_WEAPON_IDS[nextIndex]);
+    this.playerWeaponSwitchCooldown = this.playerWeaponSwitchCoolTime;
+    return true;
+  }
+  useSelectedItem(e) {
+    if (this.world.gameOver) return false;
+    if (this.isSpectatorMode) return this.activateSpecialWeapon(e) === true;
+    return this.itemActions[this.selectedItemId]?.(e) === true;
+  }
+  placeBarrierAtPointer(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left + this.world.camera.x;
+    const y = e.clientY - rect.top + this.world.camera.y;
+    const result = this.world.placeDeployableWall(x, y, this.playerTeam);
+    return result.ok;
+  }
+  drawSelectedItemPreview() {
+    if (this.selectedItemId !== "barrier" || this.isSpectatorMode) return;
+    if (this.world.deployableWall?.active || this.world.deployableWallCooldown > 0) return;
+    const x = this.input.mouse.canvasX + this.world.camera.x;
+    const y = this.input.mouse.canvasY + this.world.camera.y;
+    const placement = this.world.getDeployableWallPlacement(x, y);
+    const rules = this.world.deployableWallRules;
+    const ctx = this.canvas.getContext("2d");
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = placement.ok ? "#5cb3ff" : "#ff6a6a";
+    ctx.fillRect(
+      this.input.mouse.canvasX - rules.width / 2,
+      this.input.mouse.canvasY - rules.thickness / 2,
+      rules.width,
+      rules.thickness,
+    );
+    ctx.font = "12px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      placement.reason,
+      this.input.mouse.canvasX,
+      this.input.mouse.canvasY - 14,
+    );
+    ctx.restore();
   }
   /**
    * 플레이어 스폰 위치 계산
@@ -506,8 +783,12 @@ export class Game {
    * - 없으면 본진 위치로 스폰
    */
   getPlayerSpawn() {
+    if (this.world.mode === "siege") {
+      const [spawn] = this.world.getSpawnPoints(this.playerTeam);
+      return { x: spawn.x, y: spawn.y };
+    }
     const ownedStrongholds = this.world.strongholds.filter(
-      (s) => s.owner === "blue",
+      (s) => s.owner === this.playerTeam,
     );
     if (ownedStrongholds.length > 0) {
       let frontStronghold = ownedStrongholds[0];
@@ -518,14 +799,19 @@ export class Game {
       }
       return { x: frontStronghold.x, y: frontStronghold.y };
     }
-    return { x: this.world.basePos.blue.x, y: this.world.basePos.blue.y };
+    return {
+      x: this.world.basePos[this.playerTeam].x,
+      y: this.world.basePos[this.playerTeam].y,
+    };
   }
   /**
    * 게임 루프 시작(브라우저 애니메이션 프레임 사용)
    */
   start() {
     this.lastTime = performance.now();
-    requestAnimationFrame(this.loop.bind(this));
+    if (this.animationFrameId === null) {
+      this.animationFrameId = requestAnimationFrame(this.boundLoop);
+    }
   }
   /**
    * 메인 루프
@@ -534,29 +820,17 @@ export class Game {
    * - 평시에는 월드 업데이트 → UI 동기화 → 그리기
    */
   loop(now) {
-    const dtMs = now - this.lastTime;
+    this.animationFrameId = null;
+    const dtMs = Math.max(0, now - this.lastTime);
     this.lastTime = now;
-    const dt = dtMs / 1e3;
-    
-    // Handle focus countdown timer
-    if (this.focusCountdown > 0) {
-      this.focusCountdown -= dt;
-      if (this.focusCountdown <= 0) {
-        this.focusCountdown = 0;
-        this.running = true;
-        if (this.bgm) {
-          this.bgm.play();
-        }
-      }
-    }
+    const dt = clampFrameDelta(dtMs / 1e3, this.maxFrameDelta);
     
     if (this.running) {
       this.accumulator += dt;
     }
     if (this.endingExplosions) {
-      const destroyedTeam = this.world.baseHealth.blue <= 0 ? "blue" : "red";
-      const base = this.world.basePos[destroyedTeam];
-      const targetY = base.y - this.world.canvas.height / 2;
+      const target = this.endingExplosions.target;
+      const targetY = target.y - this.world.canvas.height / 2;
       const camera = this.world.camera;
       const distance2 = targetY - camera.y;
       if (Math.abs(distance2) > 0.5) {
@@ -576,52 +850,74 @@ export class Game {
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       ctx.globalAlpha = 1;
       for (const exp of this.endingExplosions.explosions) {
-        exp.update(dt);
         exp.draw(ctx, this.world.camera);
       }
       ctx.fillStyle = "#fff";
       ctx.font = "bold 64px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      let msg = "";
-      if (this.world.baseHealth.blue <= 0) msg = "Blue Base Destroyed!";
-      if (this.world.baseHealth.red <= 0) msg = "Red Base Destroyed!";
-      ctx.fillText(msg, this.canvas.width / 2, this.canvas.height / 2 - 60);
+      const msg = this.endingExplosions.message;
+      const centerX = this.canvas.width / 2;
+      const centerY = this.canvas.height / 2;
+      ctx.fillText(msg, centerX, centerY - 100);
+      const nextScenario = this.endingExplosions.nextScenario;
+      ctx.fillStyle = "#7fd6ff";
+      ctx.font = "bold 30px sans-serif";
+      ctx.fillText(`Next: ${nextScenario.title}`, centerX, centerY - 15, this.canvas.width - 40);
+      ctx.fillStyle = "#fff";
+      ctx.font = "18px sans-serif";
+      ctx.fillText(nextScenario.summary, centerX, centerY + 25, this.canvas.width - 40);
       ctx.fillStyle = "#ffe600";
-      ctx.font = "bold 48px sans-serif";
+      ctx.font = "bold 40px sans-serif";
       ctx.fillText(
         `Restarting in ${Math.ceil(this.endingExplosions.timer)}...`,
-        this.canvas.width / 2,
-        this.canvas.height / 2 + 40,
+        centerX,
+        centerY + 100,
       );
       ctx.restore();
       if (this.endingExplosions.timer <= 0) {
         this.endingExplosions = null;
         this.restartGame();
       }
-      requestAnimationFrame(this.loop.bind(this));
+      this.animationFrameId = requestAnimationFrame(this.boundLoop);
       return;
     }
+    this.world.bottomHudReserve = this.ui.getBottomHudReserve();
     if (this.running) {
-      while (this.accumulator >= this.timeStep) {
-        if (this.playerTank && this.playerTank.hp <= 0) {
+      let updates = 0;
+      while (
+        this.accumulator >= this.timeStep &&
+        updates < this.maxUpdatesPerFrame
+      ) {
+        this.playerWeaponSwitchCooldown = Math.max(
+          0,
+          this.playerWeaponSwitchCooldown - this.timeStep,
+        );
+        if (
+          this.playerTank &&
+          this.playerTank.hp <= 0
+        ) {
           if (this.playerRespawnTimer <= 0) {
             this.playerRespawnTimer = 5;
           } else {
             this.playerRespawnTimer -= this.timeStep;
             if (this.playerRespawnTimer <= 0) {
               const spawn = this.getPlayerSpawn();
-              this.playerTank.x = spawn.x;
-              this.playerTank.y = spawn.y;
-              this.playerTank.hp = this.isSuperMode ? 300 : 125;
-              this.playerTank.angle = -Math.PI / 2;
-              this.playerTank.turretAngle = -Math.PI / 2;
+              this.playerTank.respawn(
+                spawn.x,
+                spawn.y,
+                this.isSuperMode ? 500 : 125,
+              );
               this.playerRespawnTimer = 0;
             }
           }
         }
         this.world.update(this.timeStep, this.input);
         this.accumulator -= this.timeStep;
+        updates++;
+      }
+      if (updates === this.maxUpdatesPerFrame) {
+        this.accumulator %= this.timeStep;
       }
     }
     this.ui.updateScoreboard(
@@ -633,11 +929,36 @@ export class Game {
     this.ui.updateSpecialWeaponBar(
       this.world.specialCooldown,
       this.world.specialCoolTime,
-      this.world.specialWeaponPoint,
+      this.world.itemPointCost,
     );
-    this.ui.updateBaseHealth(this.world.baseHealth.blue, this.world.baseHealth.red);
+    if (this.world.mode === "attrition") {
+      this.ui.updateBaseHealth(
+        this.world.baseHealth.blue,
+        this.world.baseHealth.red,
+        this.world.defaultBaseHealth,
+        "Tickets",
+      );
+    } else {
+      this.ui.updateBaseHealth(this.world.baseHealth.blue, this.world.baseHealth.red);
+    }
+    this.ui.updateTimer(this.world.remainingTime);
+    this.ui.updateBarrierStatus(this.world);
+    this.ui.updatePlayerWeapon(
+      this.world,
+      this.playerTank,
+      this.playerWeaponSwitchCooldown,
+      this.playerWeaponSwitchCoolTime,
+    );
     this.world.draw();
-    if (this.playerTank && this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
+    this.drawSelectedItemPreview();
+    if (this.world.gameOver) {
+      this.ui.hideOverlay();
+      if (!this.endingExplosions) this.stateManager.handleGameOver();
+    } else if (
+      this.playerTank &&
+      this.playerTank.hp <= 0 &&
+      this.playerRespawnTimer > 0
+    ) {
       this.ui.showOverlay(
         `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
         "Stay patient. Your tank will return soon.",
@@ -645,10 +966,7 @@ export class Game {
     } else {
       this.ui.hideOverlay();
     }
-    if (this.world.gameOver && !this.endingExplosions) {
-      this.stateManager.handleGameOver();
-    }
-    requestAnimationFrame(this.loop.bind(this));
+    this.animationFrameId = requestAnimationFrame(this.boundLoop);
   }
   /**
    * 게임 재시작
@@ -682,30 +1000,50 @@ export const deathSFXPool = new AudioPool(
   50,
 );
 export const turretSFXPool = new AudioPool(["./assets/Turret.wav"], 50);
+export const hitSFXPool = new AudioPool(
+  [
+    "./assets/Impact_1.wav",
+    "./assets/Impact_2.wav",
+    "./assets/Impact_3.wav",
+    "./assets/Impact_4.wav",
+  ],
+  20,
+);
 export const bulletPool = new Pool(() => new Bullet(), 150);
 export const explosionPool = new Pool(() => new Explosion(), 75);
-window.shootSFXPool = shootSFXPool;
-window.deathSFXPool = deathSFXPool;
-window.turretSFXPool = turretSFXPool;
-window.bulletPool = bulletPool;
-window.explosionPool = explosionPool;
+const gameResources = {
+  bulletPool,
+  explosionPool,
+  audio: {
+    shoot: shootSFXPool,
+    death: deathSFXPool,
+    turret: turretSFXPool,
+    hit: hitSFXPool,
+  },
+};
 async function preloadSprites() {
   await Bullet.prototype.initSprite("red");
   await Bullet.prototype.initSprite("blue");
+  await Bullet.prototype.initSprite("player");
   await Explosion.initSprite();
-  await Tank.loadSprite("PATH TO TANK SPRITE");
 }
 window.addEventListener("DOMContentLoaded", async () => {
+  document.body.classList.toggle("mobile-mode", isMobileDevice);
   const canvas = document.getElementById("gameCanvas");
   let game,
     gameStarted = false;
   let gameReady = false;
+  let levelCatalog = null;
+  let heldScenario = null;
   const ctx = canvas.getContext("2d");
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    if (game) {
-      game.world.bounds.maxX = canvas.width;
+    const world = game?.world;
+    if (world) {
+      world.resize(canvas.width);
+      const maxCameraY = Math.max(world.bounds.minY, world.bounds.maxY - canvas.height);
+      world.camera.y = Math.max(world.bounds.minY, Math.min(world.camera.y, maxCameraY));
     }
   }
   window.addEventListener("resize", resizeCanvas);
@@ -733,17 +1071,33 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function startGame(useSuper = false) {
+  function startGame(scenarioId = "frontline", useSuper = false) {
     gameStarted = true;
-    game = useSuper ? new Game(canvas, true) : new Game(canvas);
+    const levelDefinition = resolveScenario(levelCatalog, scenarioId);
+    const scenarioProvider = (currentId) => {
+      const nextId = chooseRandomScenarioId(levelCatalog, currentId);
+      return resolveScenario(levelCatalog, nextId);
+    };
+    game = new Game(
+      canvas,
+      useSuper,
+      false,
+      levelDefinition,
+      scenarioProvider,
+    );
     const instructionEl = document.getElementById("instruction");
     if (instructionEl) {
       instructionEl.style.display = game.isSpectatorMode ? "none" : "block";
     }
     const baseHealthEl = document.getElementById("base-health-ui");
     if (baseHealthEl) {
-      baseHealthEl.style.display = "flex";
+      baseHealthEl.style.display = "grid";
     }
+    const itemToolbarEl = document.getElementById("item-toolbar");
+    if (itemToolbarEl) {
+      itemToolbarEl.style.display = game.isSpectatorMode ? "none" : "block";
+    }
+    document.body.classList.toggle("mobile-mode", game.isSpectatorMode);
     if (loadingScreenEl) {
       loadingScreenEl.classList.add("hidden");
     }
@@ -765,7 +1119,19 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   updateLoadingScreen(0);
-  await preloadSprites();
+  try {
+    [levelCatalog] = await Promise.all([
+      loadLevelCatalog(),
+      preloadSprites().then(() => null),
+    ]);
+  } catch (error) {
+    console.error("Asset loading failed", error);
+    if (loadingTitleEl) loadingTitleEl.textContent = "Loading Failed";
+    if (loadingStatusEl) {
+      loadingStatusEl.textContent = "Check the console and asset paths.";
+    }
+    return;
+  }
   let loadingProgress = 0;
   const loadingInterval = setInterval(() => {
     loadingProgress += 2.5;
@@ -777,14 +1143,44 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }, 100);
   window.addEventListener("keydown", (e) => {
-    if (!gameStarted && gameReady && (e.code === "Space" || e.code === "Enter")) {
-      startGame(e.code === "Enter");
-    }
+    if (gameStarted || !gameReady) return;
+    const focusedScenarioButton = e.target.closest?.("[data-scenario]");
+    const isHeldScenarioShortcut = e.code === "Enter" && heldScenario !== null;
+    if (focusedScenarioButton && !isHeldScenarioShortcut) return;
+    if (e.code === "Digit1" || e.code === "Space") startGame("frontline");
+    if (e.code === "Digit2") startGame("siege");
+    if (e.code === "Digit3") startGame("defense");
+    if (e.code === "Digit4") startGame("breakthrough");
+    if (e.code === "Enter") startGame(heldScenario ?? "frontline", true);
   });
 
+  for (const button of document.querySelectorAll("[data-scenario]")) {
+    button.addEventListener("pointerdown", (e) => {
+      if (gameStarted || !gameReady) return;
+      e.stopPropagation();
+      heldScenario = button.dataset.scenario;
+      button.classList.add("held");
+      button.setPointerCapture?.(e.pointerId);
+    });
+    button.addEventListener("pointerup", (e) => {
+      e.stopPropagation();
+      button.classList.remove("held");
+      heldScenario = null;
+    });
+    button.addEventListener("pointercancel", () => {
+      button.classList.remove("held");
+      heldScenario = null;
+    });
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!gameStarted && gameReady) startGame(button.dataset.scenario);
+    });
+  }
+
   window.addEventListener("pointerdown", (e) => {
+    if (e.target.closest?.("[data-scenario]")) return;
     if (!gameStarted && gameReady && e.isPrimary) {
-      startGame(false);
+      startGame("frontline");
     }
   });
 });
