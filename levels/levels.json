@@ -1,0 +1,79 @@
+{
+  "maps": {
+    "frontline": {
+      "worldHeight": 5000
+    },
+    "breakthrough": {
+      "worldHeight": 5000
+    },
+    "three_lines": {
+      "worldHeight": 5000,
+      "timeLimit": 420,
+      "attackerSpawn": { "xs": [0.25, 0.75], "y": 0.94 },
+      "defenseLines": [
+        { "id": "outer", "wallY": 0.50, "objectiveY": 0.47, "objectiveType": "stronghold", "hp": 4000 },
+        { "id": "middle", "wallY": 0.30, "objectiveY": 0.27, "objectiveType": "stronghold", "hp": 5000 },
+        { "id": "inner", "wallY": 0.10, "objectiveY": 0.07, "objectiveType": "base", "hp": 10000 }
+      ],
+      "wallThickness": 10,
+      "wallHp": 50000,
+      "strongholdXs": [0.25, 0.75]
+    }
+  },
+  "scenarios": {
+    "frontline": {
+      "title": "Frontline",
+      "summary": "Capture the battlefield and break the enemy Base.",
+      "objective": "Capture Strongholds and destroy the Red Base.",
+      "mode": "frontline",
+      "map": "frontline",
+      "playerTeam": "blue"
+    },
+    "siege": {
+      "title": "Siege - Attack",
+      "summary": "Lead massed Blue waves through three defensive lines.",
+      "objective": "Break all three walls and destroy the final Red Base.",
+      "mode": "siege",
+      "map": "three_lines",
+      "playerTeam": "blue",
+      "attackerTeam": "blue",
+      "defenderTeam": "red",
+      "teams": {
+        "blue": { "maxTanks": 96, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 32 },
+        "red": { "maxTanks": 32, "spawnInterval": 4 }
+      }
+    },
+    "defense": {
+      "title": "Siege - Defense",
+      "summary": "Hold three defensive lines against the Red onslaught.",
+      "objective": "Keep the Blue Base alive for 7 minutes.",
+      "mode": "siege",
+      "map": "three_lines",
+      "playerTeam": "blue",
+      "attackerTeam": "red",
+      "defenderTeam": "blue",
+      "teams": {
+        "blue": { "maxTanks": 32, "spawnInterval": 4 },
+        "red": { "maxTanks": 96, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 32 }
+      }
+    },
+    "breakthrough": {
+      "title": "Breakthrough",
+      "summary": "Spend the enemy's 10,000 tickets with recurring 40-tank waves.",
+      "objective": "Drain all Red tickets before Blue runs out of reinforcements.",
+      "mode": "attrition",
+      "map": "breakthrough",
+      "playerTeam": "blue",
+      "victoryCondition": "tickets",
+      "weaponDistribution": [
+        { "id": "standard", "weight": 0.7 },
+        { "id": "heavy", "weight": 0.1 },
+        { "id": "scatter", "weight": 0.2 }
+      ],
+      "teams": {
+        "blue": { "maxTanks": 80, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 40 },
+        "red": { "maxTanks": 80, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 40 }
+      }
+    }
+  }
+}
