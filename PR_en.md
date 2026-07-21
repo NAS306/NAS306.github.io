@@ -44,17 +44,19 @@ A pure ticket war with no Strongholds or turrets. Both teams deploy recurring 40
 
 Each destroyed AI tank removes **5 tickets** from its team. Both sides begin with **10,000 tickets**, and the first team to run out loses. The player's death never consumes team tickets in any scenario.
 
+To clear dense spawn formations, freshly spawned attackers—Blue in Siege Attack and Red in Siege Defense—and both Breakthrough teams begin at **2× movement speed**. The bonus decreases linearly to normal speed over two seconds. It applies to every AI tank and the normal player, but never to a Super Mode player.
+
 ---
 
-## 💥 Breakthrough Weapon Classes
+## 💥 Player Weapons and Breakthrough Classes
 
-Breakthrough mixes three data-driven weapon profiles:
+The player can use all three data-driven weapon profiles in every desktop scenario. Breakthrough also assigns them to AI tanks in the following mix:
 
 - **Standard Cannon — 70%:** circular tanks with accurate, sustained single-shot fire
 - **Heavy Cannon — 10%:** square tanks with a three-times-longer reload, extended range, and 25–30 splash damage with strong knockback
 - **Scatter Cannon — 20%:** equilateral-triangle tanks firing three standard shells across a 30-degree arc, spaced at 15-degree intervals
 
-In Breakthrough, the player can cycle weapons with **Q** every 10 seconds—or every 2 seconds in Super Mode. The current weapon, firing pattern, description, reload, and switch cooldown are shown in a dedicated HUD panel.
+The player can cycle weapons with **Q** every 10 seconds in every scenario—or every 2 seconds in Super Mode. The current weapon, firing pattern, description, reload, and switch cooldown are shown in a dedicated HUD panel. AI tanks outside Breakthrough continue to use the Standard Cannon only.
 
 ---
 
@@ -92,7 +94,7 @@ A Barrier survives for 50 seconds if it takes no battle damage, but concentrated
 - **Left Click:** Fire
 - **1 / 2:** Select Orbital Strike or Barrier
 - **Right Click:** Deploy the selected item
-- **Q:** Cycle weapons in Breakthrough
+- **Q:** Cycle player weapons
 - **Space + Mouse Wheel:** Free camera
 - **Esc:** Exit fullscreen
 - **1–4 on the start screen:** Select a scenario
