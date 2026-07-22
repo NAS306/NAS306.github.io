@@ -11,7 +11,13 @@ const REQUIRED_POSITIVE_FIELDS = [
 ];
 
 export const DEFAULT_WEAPON_ID = "standard";
-export const ATTRITION_WEAPON_IDS = Object.freeze(["standard", "heavy", "scatter"]);
+export const PLAYER_WEAPON_IDS = Object.freeze(["standard", "heavy", "scatter"]);
+
+export function getNextPlayerWeaponId(currentWeaponId) {
+  const currentIndex = PLAYER_WEAPON_IDS.indexOf(currentWeaponId);
+  if (currentIndex < 0) return PLAYER_WEAPON_IDS[0];
+  return PLAYER_WEAPON_IDS[(currentIndex + 1) % PLAYER_WEAPON_IDS.length];
+}
 
 const WEAPON_DEFINITIONS = {
   standard: {
