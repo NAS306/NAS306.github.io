@@ -39,7 +39,7 @@
       "attackerTeam": "blue",
       "defenderTeam": "red",
       "teams": {
-        "blue": { "maxTanks": 96, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 32 },
+        "blue": { "maxTanks": 96, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 32, "spawnSpeedBoost": { "multiplier": 2, "duration": 2 } },
         "red": { "maxTanks": 32, "spawnInterval": 4 }
       }
     },
@@ -54,7 +54,7 @@
       "defenderTeam": "blue",
       "teams": {
         "blue": { "maxTanks": 32, "spawnInterval": 4 },
-        "red": { "maxTanks": 96, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 32 }
+        "red": { "maxTanks": 96, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 32, "spawnSpeedBoost": { "multiplier": 2, "duration": 2 } }
       }
     },
     "breakthrough": {
@@ -71,8 +71,8 @@
         { "id": "scatter", "weight": 0.2 }
       ],
       "teams": {
-        "blue": { "maxTanks": 80, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 40 },
-        "red": { "maxTanks": 80, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 40 }
+        "blue": { "maxTanks": 80, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 40, "spawnSpeedBoost": { "multiplier": 2, "duration": 2 } },
+        "red": { "maxTanks": 80, "spawnInterval": 12, "spawnMode": "wave", "waveSize": 40, "spawnSpeedBoost": { "multiplier": 2, "duration": 2 } }
       }
     }
   }
