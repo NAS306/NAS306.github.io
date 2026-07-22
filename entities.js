@@ -232,6 +232,9 @@ export class Tank {
     this.angle = 300;
     this.turretAngle = 0;
     this.speed = supertank ? 300 : (isPlayer ? 125 : 100);
+    this.spawnSpeedBoostMultiplier = 1;
+    this.spawnSpeedBoostDuration = 0;
+    this.spawnSpeedBoostRemaining = 0;
     this.hp = supertank ? 500 : 125;
     this.radius = 11;
     this.fireCooldown = 0;
@@ -245,6 +248,47 @@ export class Tank {
     this.vx = 0;
     this.vy = 0;
     this.wallSides = Object.create(null);
+  }
+  resetSpawnSpeedBoost() {
+    this.spawnSpeedBoostMultiplier = 1;
+    this.spawnSpeedBoostDuration = 0;
+    this.spawnSpeedBoostRemaining = 0;
+  }
+  applySpawnSpeedBoost(boost) {
+    this.resetSpawnSpeedBoost();
+    if (this.isPlayer && this.supertank) return false;
+    if (
+      !boost ||
+      !Number.isFinite(boost.multiplier) ||
+      boost.multiplier <= 1 ||
+      !Number.isFinite(boost.duration) ||
+      boost.duration <= 0
+    ) {
+      return false;
+    }
+    this.spawnSpeedBoostMultiplier = boost.multiplier;
+    this.spawnSpeedBoostDuration = boost.duration;
+    this.spawnSpeedBoostRemaining = boost.duration;
+    return true;
+  }
+  getMovementSpeed() {
+    if (this.spawnSpeedBoostRemaining <= 0 || this.spawnSpeedBoostDuration <= 0) {
+      return this.speed;
+    }
+    const remainingRatio = clamp(
+      this.spawnSpeedBoostRemaining / this.spawnSpeedBoostDuration,
+      0,
+      1,
+    );
+    const multiplier = 1 +
+      (this.spawnSpeedBoostMultiplier - 1) * remainingRatio;
+    return this.speed * multiplier;
+  }
+  updateSpawnSpeedBoost(dt) {
+    this.spawnSpeedBoostRemaining = Math.max(
+      0,
+      this.spawnSpeedBoostRemaining - dt,
+    );
   }
   setWeapon(weaponId) {
     this.weaponId = weaponId;
@@ -262,6 +306,7 @@ export class Tank {
     this.vy = 0;
     this.fireCooldown = 0;
     this.currentTarget = null;
+    this.resetSpawnSpeedBoost();
     // A respawn can occur behind a different siege wall. Keeping the old
     // side cache would make collision resolution snap the tank outside it.
     this.wallSides = Object.create(null);
@@ -296,6 +341,7 @@ export class Tank {
     this.vy *= 0.92;
     if (Math.abs(this.vx) < 0.1) this.vx = 0;
     if (Math.abs(this.vy) < 0.1) this.vy = 0;
+    this.updateSpawnSpeedBoost(dt);
   }
   /**
    * 플레이어 입력 처리
@@ -315,8 +361,9 @@ export class Tank {
       const len = Math.sqrt(dx * dx + dy * dy);
       dx /= len;
       dy /= len;
-      this.x += dx * this.speed * dt;
-      this.y += dy * this.speed * dt;
+      const movementSpeed = this.getMovementSpeed();
+      this.x += dx * movementSpeed * dt;
+      this.y += dy * movementSpeed * dt;
       this.angle = Math.atan2(dy, dx);
     }
     const cam = world.camera;
