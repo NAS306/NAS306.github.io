@@ -3,7 +3,7 @@ import { Bullet, Explosion, Tank, Turret } from './entities.js';
 import { World, AudioPool, Pool } from './systems.js';
 import { clampFrameDelta } from './runtime.js';
 import { detectMobileDevice, getLayoutDragThreshold } from './mobile-support.js';
-import { ATTRITION_WEAPON_IDS } from './weapon-config.js';
+import { getNextPlayerWeaponId } from './weapon-config.js';
 import {
   chooseRandomScenarioId,
   loadLevelCatalog,
@@ -217,8 +217,8 @@ export class UIManager {
     }
   }
 
-  updatePlayerWeapon(world, player, cooldown, maxCooldown) {
-    const visible = Boolean(world?.mode === "attrition" && player);
+  updatePlayerWeapon(player, cooldown, maxCooldown) {
+    const visible = Boolean(player);
     if (this.weaponPanelEl) {
       this.weaponPanelEl.style.display = visible ? "grid" : "none";
     }
@@ -725,7 +725,7 @@ export class Game {
   }
   switchPlayerWeapon() {
     if (
-      this.world?.mode !== "attrition" ||
+      !this.world ||
       !this.playerTank ||
       this.playerTank.hp <= 0 ||
       this.playerWeaponSwitchCooldown > 0 ||
@@ -733,9 +733,7 @@ export class Game {
     ) {
       return false;
     }
-    const currentIndex = ATTRITION_WEAPON_IDS.indexOf(this.playerTank.weaponId);
-    const nextIndex = (Math.max(0, currentIndex) + 1) % ATTRITION_WEAPON_IDS.length;
-    this.playerTank.setWeapon(ATTRITION_WEAPON_IDS[nextIndex]);
+    this.playerTank.setWeapon(getNextPlayerWeaponId(this.playerTank.weaponId));
     this.playerWeaponSwitchCooldown = this.playerWeaponSwitchCoolTime;
     return true;
   }
@@ -908,6 +906,7 @@ export class Game {
                 spawn.y,
                 this.isSuperMode ? 500 : 125,
               );
+              this.world.applySpawnSpeedBoost(this.playerTank);
               this.playerRespawnTimer = 0;
             }
           }
@@ -944,7 +943,6 @@ export class Game {
     this.ui.updateTimer(this.world.remainingTime);
     this.ui.updateBarrierStatus(this.world);
     this.ui.updatePlayerWeapon(
-      this.world,
       this.playerTank,
       this.playerWeaponSwitchCooldown,
       this.playerWeaponSwitchCoolTime,
