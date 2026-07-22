@@ -234,7 +234,7 @@ export function handleTankAI(tank, dt, world) {
     forwardDir = -1;
   }
   
-  const moveSpeed = tank.speed;
+  const moveSpeed = tank.getMovementSpeed();
   
   initializeAIState(tank);
   updateAIState(tank, dt);
@@ -624,7 +624,12 @@ export class World {
    */
   addTank(tank) {
     tank.setWeapon(this.weaponId);
+    this.applySpawnSpeedBoost(tank);
     this.tanks.push(tank);
+  }
+  applySpawnSpeedBoost(tank) {
+    const boost = this.teamRules[tank.team]?.spawnSpeedBoost;
+    return tank.applySpawnSpeedBoost(boost);
   }
   /**
    * 카메라 흔들림 트리거
