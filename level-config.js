@@ -36,6 +36,16 @@ function validateTeamRules(rules, team, { requireWave = false } = {}) {
       throw new Error(`Invalid waveSize for ${team}`);
     }
   }
+  if (rules.spawnSpeedBoost !== undefined) {
+    const boost = rules.spawnSpeedBoost;
+    if (!boost || !Number.isFinite(boost.multiplier) || boost.multiplier <= 1) {
+      throw new Error(`Invalid spawnSpeedBoost multiplier for ${team}`);
+    }
+    requirePositiveNumber(
+      boost.duration,
+      `spawnSpeedBoost duration for ${team}`,
+    );
+  }
 }
 
 export function resolveScenario(catalog, scenarioId) {
