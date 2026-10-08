@@ -81,10 +81,14 @@ libx264 2패스, yuv420p, AAC, faststart를 사용합니다. 크기 초과 시 �
 - 새 배포 후 기존 탭 종료·재접속으로 캐시 갱신
 - 저장 공간 부족·메모리 부족 상황에서 안내와 브라우저 강제 종료 한계 확인
 
-실제 Pages, 모바일 실기기, 80MB/20MB 입력, 모든 브라우저, 강제 메모리 부족은 별도 검증 대상입니다. 모바일 성능 향상을 주장하는 최적화는 실측 후 추가하세요.
+실제 Pages는 Windows Edge에서 검증했습니다. 모바일 실기기, 80MB/20MB 입력, 모든 브라우저, 강제 메모리 부족은 별도 검증 대상입니다. 모바일 성능 향상을 주장하는 최적화는 실측 후 추가하세요.
 
 FFmpeg 사용 방식은 공식 문서 https://ffmpegwasm.netlify.app/docs/getting-started/usage/ 와 API 문서 https://ffmpegwasm.netlify.app/docs/api/ffmpeg/classes/ffmpeg/ 를 참고했습니다. 배포·상업 사용 시 포함된 FFmpeg/libx264 라이선스도 확인하세요.
 
 ## 이번 구현에서 실행한 검증
 
-2026-10-08: npm 의존성 설치, 단위 테스트 6개, Vite 배포 빌드 성공. Windows Edge 헤드리스에서 실제 libx264 2패스 압축(0.1MB 미만), 무음 입력, 음성 입력의 AAC 인코딩, 취소 후 재시작, 320px 화면 가로 넘침 없음, 서비스 워커 캐싱 후 오프라인 새로고침·실제 인코딩·MP4 재생 메타데이터 확인을 통과했습니다. MediaRecorder 샘플의 FPS가 신뢰할 수 없는 경우 미확인으로 표시하고 30FPS를 사용합니다. 실기기 모바일 및 실제 Pages 배포는 미검증입니다.
+2026-10-08: npm 의존성 설치, 단위 테스트 6개, Vite 배포 빌드 성공. Windows Edge 헤드리스에서 실제 libx264 2패스 압축(0.1MB 미만), 무음 입력, 음성 입력의 AAC 인코딩, 취소 후 재시작, 320px 화면 가로 넘침 없음, 서비스 워커 캐싱 후 오프라인 새로고침·실제 인코딩·MP4 재생 메타데이터 확인을 통과했습니다. MediaRecorder 샘플의 FPS가 신뢰할 수 없는 경우 미확인으로 표시하고 30FPS를 사용합니다. 실기기 모바일은 미검증입니다. 실제 Pages 배포 검증은 아래 기록을 참고하세요.
+
+## 공개 배포 검증
+
+2026-10-08: https://nas306.github.io/videocompressor/ 배포 완료. GitHub Pages build and deployment가 성공했습니다. 공개 HTTPS 주소의 Windows Edge에서 실제 MP4 압축, 음성 AAC 인코딩, 취소 후 재시작, 320px 화면, 서비스 워커 캐싱 후 오프라인 새로고침·압축·재생 정보를 확인했습니다. /videocompressor 주소는 /videocompressor/로 정상 이동합니다. 기존 블로그 루트는 HTTP 200이며 모듈 소스 경로 _apps/는 공개 사이트에서 HTTP 404로 제외됨을 확인했습니다.
