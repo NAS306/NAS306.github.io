@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-08T14:13:09.468Z",
+  "cpu": "AMD Ryzen 5 5600U with Radeon Graphics         ",
+  "logicalCPUs": 12,
+  "memoryGB": 14,
+  "browser": "154.0.4258.62",
+  "samples": [
+    {
+      "width": 1280,
+      "height": 720,
+      "duration": 10,
+      "targetMB": 2,
+      "inputBytes": 12014542,
+      "coldLoadMs": 255.29999995231628,
+      "prepareMs": 32.59999990463257,
+      "repeatedPrepareMs": 0,
+      "mounted": true,
+      "presets": [
+        {
+          "preset": "fast",
+          "passMs": [
+            10605.799999952316,
+            18465.300000190735
+          ],
+          "encodeMs": 29071.10000014305,
+          "outputBytes": 1939739,
+          "readMs": 1.5,
+          "ssim": 0.986997,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.29999995231628
+        },
+        {
+          "preset": "veryfast",
+          "passMs": [
+            10378,
+            7217.5
+          ],
+          "encodeMs": 17595.5,
+          "outputBytes": 1936303,
+          "readMs": 0.9000000953674316,
+          "ssim": 0.986837,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.5
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "duration": 5,
+      "targetMB": 2,
+      "inputBytes": 12464282,
+      "coldLoadMs": 255.29999995231628,
+      "prepareMs": 17.09999990463257,
+      "repeatedPrepareMs": 0,
+      "mounted": true,
+      "presets": [
+        {
+          "preset": "fast",
+          "passMs": [
+            10933,
+            19331.700000047684
+          ],
+          "encodeMs": 30264.700000047684,
+          "outputBytes": 1941063,
+          "readMs": 1.2999999523162842,
+          "ssim": 0.98792,
+          "ssimCode": 0,
+          "maxUiGapMs": 65.10000014305115
+        },
+        {
+          "preset": "veryfast",
+          "passMs": [
+            10841.799999952316,
+            7259
+          ],
+          "encodeMs": 18100.799999952316,
+          "outputBytes": 1933963,
+          "readMs": 0.7000000476837158,
+          "ssim": 0.987796,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.5
+        }
+      ]
+    }
+  ]
+}

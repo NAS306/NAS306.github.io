@@ -1,0 +1,21 @@
+{
+  "name": "framefit-video-compressor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "node build.js",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js",
+    "predev": "node prepare-assets.js"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "0.12.15",
+    "@ffmpeg/core": "0.12.10"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0",
+    "@playwright/test": "^1.55.0"
+  }
+}

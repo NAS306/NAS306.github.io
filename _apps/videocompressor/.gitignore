@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*_BU.*
+test-results/
+
+.npm-cache/
+
+public/ffmpeg/
+.gitignore_BU
+
+deployment/

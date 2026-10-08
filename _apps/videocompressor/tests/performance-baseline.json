@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-08T14:09:31.582Z",
+  "cpu": "AMD Ryzen 5 5600U with Radeon Graphics         ",
+  "logicalCPUs": 12,
+  "memoryGB": 14,
+  "browser": "154.0.4258.62",
+  "samples": [
+    {
+      "width": 1280,
+      "height": 720,
+      "duration": 10,
+      "targetMB": 2,
+      "inputBytes": 12014542,
+      "coldLoadMs": 255.80000019073486,
+      "prepareMs": 36.90000009536743,
+      "repeatedPrepareMs": 13.599999904632568,
+      "presets": [
+        {
+          "preset": "fast",
+          "passMs": [
+            10332.900000095367,
+            18322.200000047684
+          ],
+          "encodeMs": 28655.10000014305,
+          "outputBytes": 1939739,
+          "readMs": 1.0999999046325684,
+          "ssim": null,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.09999990463257
+        },
+        {
+          "preset": "faster",
+          "passMs": [
+            10175.399999856949,
+            14503.900000095367
+          ],
+          "encodeMs": 24679.299999952316,
+          "outputBytes": 1934494,
+          "readMs": 0.40000009536743164,
+          "ssim": null,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.29999995231628
+        },
+        {
+          "preset": "veryfast",
+          "passMs": [
+            10129.900000095367,
+            6917.799999952316
+          ],
+          "encodeMs": 17047.700000047684,
+          "outputBytes": 1936303,
+          "readMs": 0.5,
+          "ssim": null,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.29999995231628
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "duration": 5,
+      "targetMB": 2,
+      "inputBytes": 12464282,
+      "coldLoadMs": 255.80000019073486,
+      "prepareMs": 22.600000143051147,
+      "repeatedPrepareMs": 13.199999809265137,
+      "presets": [
+        {
+          "preset": "fast",
+          "passMs": [
+            11048.700000047684,
+            19292.700000047684
+          ],
+          "encodeMs": 30341.400000095367,
+          "outputBytes": 1941063,
+          "readMs": 1,
+          "ssim": null,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.29999995231628
+        },
+        {
+          "preset": "faster",
+          "passMs": [
+            10779.200000047684,
+            14674
+          ],
+          "encodeMs": 25453.200000047684,
+          "outputBytes": 1954912,
+          "readMs": 1.7999999523162842,
+          "ssim": null,
+          "ssimCode": 0,
+          "maxUiGapMs": 64.70000004768372
+        },
+        {
+          "preset": "veryfast",
+          "passMs": [
+            10940.299999952316,
+            10544.800000190735
+          ],
+          "encodeMs": 21485.10000014305,
+          "outputBytes": 1933963,
+          "readMs": 0.5,
+          "ssim": null,
+          "ssimCode": 0,
+          "maxUiGapMs": 66
+        }
+      ]
+    }
+  ]
+}
