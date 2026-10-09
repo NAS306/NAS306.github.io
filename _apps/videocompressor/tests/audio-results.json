@@ -1,0 +1,30 @@
+[
+  {
+    "kind": "aac-mp4",
+    "bytes": 230645,
+    "audioBitrate": 188343,
+    "audioHash": "41ed26625b2c6cf5b95a5eba89bf254f16c35417a0cf4edb17ddfd11ecb45843",
+    "originalPayloadUnchanged": true
+  },
+  {
+    "kind": "aac-mkv",
+    "bytes": 230766,
+    "audioBitrate": 193137,
+    "audioHash": "41ed26625b2c6cf5b95a5eba89bf254f16c35417a0cf4edb17ddfd11ecb45843",
+    "originalPayloadUnchanged": true
+  },
+  {
+    "kind": "pcm",
+    "bytes": 229297,
+    "audioMode": "encode",
+    "plannedAudioBitrate": 256000,
+    "actualAudioBitrate": 239770,
+    "channels": 2,
+    "sampleRate": 48000
+  },
+  {
+    "kind": "quality-off-and-audio-removal",
+    "compactAudioBitrate": 63716,
+    "passed": true
+  }
+]

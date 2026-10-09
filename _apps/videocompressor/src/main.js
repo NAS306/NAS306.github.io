@@ -25,13 +25,11 @@ async function selectFile(selected) {
 $('file').addEventListener('change', e => selectFile(e.target.files[0]));
 $('drop').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!busy) $('file').click(); } });
 for (const event of ['dragover','drop']) $('drop').addEventListener(event, e => { e.preventDefault(); if (event === 'drop') selectFile(e.dataTransfer.files[0]); });
-for (const button of document.querySelectorAll('[data-size]')) button.onclick = () => { $('target').value = button.dataset.size; updatePresets(); };
-function updatePresets() { for (const button of document.querySelectorAll('[data-size]')) button.setAttribute('aria-pressed', String(Number(button.dataset.size) === Number($('target').value))); }
-$('target').oninput = updatePresets; $('custom').onclick = () => { $('target').focus(); $('target').select(); };
+$('audio').onchange = () => { $('audio-quality').disabled = !$('audio').checked; };
 $('start').onclick = async () => {
   if (busy || !meta) return;
   let plan;
-  try { plan = planCompression(meta, { targetMB: Number($('target').value), mode: $('mode').value, audio: $('audio').checked, keepResolution: $('resolution').checked }); } catch (error) { message(error.message, true); return; }
+  try { plan = planCompression(meta, { targetMB: Number($('target').value), maxFPS: Number($('fps').value), audio: $('audio').checked, preserveAudioQuality: $('audio-quality').checked, keepResolution: $('resolution').checked }); } catch (error) { message(error.message, true); return; }
   $('preview').pause();
   clearResult(); message(plan.warning); lock(true); started = performance.now();
   timer = setInterval(() => $('elapsed').textContent = `${Math.floor((performance.now()-started)/1000)}초`,1000);
@@ -42,7 +40,7 @@ $('start').onclick = async () => {
     const filename = file.name.replace(/\.[^.]+$/, '') + '_compressed.mp4';
     $('download').href = outputURL; $('download').download = filename;
     const reduction = (1 - outputBlob.size / file.size) * 100;
-    $('stats').textContent = `원본 ${mb(file.size)} → 결과 ${mb(outputBlob.size)} / 절약 ${mb(Math.max(0,file.size-outputBlob.size))} (${reduction.toFixed(1)}%) / ${meta.width}×${meta.height} → ${plan.width}×${plan.height} · ${plan.fps.toFixed(2)}FPS / ${((performance.now()-started)/1000).toFixed(1)}초`;
+    $('stats').textContent = `원본 ${mb(file.size)} → 결과 ${mb(outputBlob.size)} / 절약 ${mb(Math.max(0,file.size-outputBlob.size))} (${reduction.toFixed(1)}%) / ${meta.width}×${meta.height} → ${plan.width}×${plan.height} · ${plan.fps.toFixed(2)}FPS / ${((performance.now()-started)/1000).toFixed(1)}초 / ${plan.audioMode === 'copy' ? '음성 원본 그대로' : plan.audioMode === 'encode' ? (plan.preserveAudioQuality ? '고음질 AAC' : '용량 우선 AAC') : '음성 없음'}`;
     $('result').hidden = false;
     $('share').hidden = !navigator.canShare?.({ files: [new File([outputBlob], filename, { type:'video/mp4' })] });
     message(outputBlob.size >= file.size ? '목표 용량은 달성했지만 결과가 원본보다 큽니다. 원본을 사용하는 편이 좋습니다.' : '목표 용량 미만의 MP4가 준비되었습니다.');

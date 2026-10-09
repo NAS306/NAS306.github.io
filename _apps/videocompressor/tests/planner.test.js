@@ -1,12 +1,18 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planCompression, lowerBitrate, encodingArgs } from '../src/core/compressionPlanner.js';
-const meta = { duration:120, width:1920, height:1080, fps:60, hasAudio:true };
-test('decimal MB and audio budget',()=>{const p=planCompression(meta,{targetMB:10,audio:true,mode:'auto'});assert.equal(p.targetBytes,10000000);assert.equal(p.videoBitrate,Math.floor(10000000*.97*8/120-64000));assert.equal(p.fps,30);assert.equal(p.width%2,0);});
-test('silent input reserves no audio',()=>{assert.equal(planCompression({...meta,hasAudio:false},{targetMB:5,audio:true,mode:'auto'}).audioBitrate,0);});
-test('quality mode preserves frame rate and locked resolution',()=>{const p=planCompression(meta,{targetMB:10,audio:true,mode:'quality',keepResolution:true});assert.equal(p.fps,60);assert.equal(p.width,1920);});
-test('impossible budgets rejected',()=>{assert.throws(()=>planCompression(meta,{targetMB:.01,audio:true,mode:'auto'}));});
-test('oversize adjustment reduces bitrate',()=>assert.ok(lowerBitrate(100000,1100000,1000000)<100000));
-test('two pass commands use shared pass log',()=>{const p=planCompression(meta,{targetMB:5,audio:false,mode:'extreme'});assert.ok(encodingArgs(p,1).includes('odo-pass'));assert.ok(encodingArgs(p,2).includes('output.mp4'));});
-
-test('speed policy retains quality mode preset',()=>{for(const mode of ['auto','extreme','quality']) { const plan=planCompression(meta,{targetMB:10,audio:true,mode}); assert.equal(plan.preset,mode==='quality'?'fast':'veryfast'); const args=encodingArgs(plan,2); assert.equal(args[args.indexOf('-preset')+1],plan.preset); }});
+const meta = { duration:120, width:1920, height:1080, fps:60, hasAudio:true, audioCodec:'aac', audioBitrate:192000, audioChannels:2, audioSampleRate:48000 };
+const settings={targetMB:10,audio:true,maxFPS:30};
+test('quality preservation is ON by default and reserves original AAC budget',()=>{const p=planCompression(meta,settings);assert.equal(p.targetBytes,10000000);assert.equal(p.audioMode,'copy');assert.equal(p.audioBitrate,192000);assert.equal(p.videoBitrate,Math.floor(10000000*.97*8/120-192000));});
+test('AAC copy adds no audio encoder or bitrate reduction',()=>{const args=encodingArgs(planCompression(meta,settings),2);assert.equal(args[args.indexOf('-c:a')+1],'copy');assert.ok(!args.includes('-b:a'));assert.ok(!args.includes('-ar'));assert.ok(!args.includes('-ac'));});
+test('non-AAC stereo uses high quality AAC instead of 64kbps',()=>{const p=planCompression({...meta,audioCodec:'opus',audioBitrate:128000},settings);assert.equal(p.audioMode,'encode');assert.equal(p.audioBitrate,256000);const args=encodingArgs(p,2);assert.equal(args[args.indexOf('-c:a')+1],'aac');assert.equal(args[args.indexOf('-b:a')+1],'256000');});
+test('high quality preserves channel budget and high bitrate compressed audio',()=>{assert.equal(planCompression({...meta,audioCodec:'mp3',audioBitrate:320000},settings).audioBitrate,320000);assert.equal(planCompression({...meta,audioCodec:'flac',audioChannels:6},settings).audioBitrate,512000);});
+test('quality OFF explicitly enables compact AAC',()=>{const p=planCompression(meta,{...settings,preserveAudioQuality:false});assert.equal(p.audioMode,'encode');assert.equal(p.audioBitrate,64000);});
+test('silent or removed audio reserves no bytes',()=>{for(const p of [planCompression({...meta,hasAudio:false},settings),planCompression(meta,{...settings,audio:false})]){assert.equal(p.audioBitrate,0);assert.equal(p.audioMode,'none');assert.ok(encodingArgs(p,2).includes('-an'));}});
+test('too small audio budget is rejected without degrading sound',()=>{assert.throws(()=>planCompression(meta,{...settings,targetMB:.5}),/음질/);assert.throws(()=>planCompression(meta,{...settings,targetMB:.5,preserveAudioQuality:false}));});
+test('unknown AAC bitrate cannot silently switch to lossy audio',()=>{assert.throws(()=>planCompression({...meta,audioBitrate:0},settings),/원본 음성 용량/);});
+test('manual FPS limit never exceeds original FPS',()=>{assert.equal(planCompression(meta,settings).fps,30);assert.equal(planCompression(meta,{...settings,maxFPS:60}).fps,60);assert.equal(planCompression({...meta,fps:24},{...settings,maxFPS:60}).fps,24);assert.equal(planCompression({...meta,fps:null},settings).fps,30);});
+test('invalid direct input rejected',()=>{for(const maxFPS of [0,121,29.5,NaN])assert.throws(()=>planCompression(meta,{...settings,maxFPS}));for(const targetMB of [0,2001,NaN])assert.throws(()=>planCompression(meta,{...settings,targetMB}));});
+test('locked resolution and even dimensions retained',()=>{const p=planCompression(meta,{...settings,keepResolution:true});assert.equal(p.width,1920);assert.equal(p.height,1080);assert.equal(planCompression(meta,settings).width%2,0);});
+test('retry reduces video budget while reserving unchanged audio',()=>{assert.ok(lowerBitrate(100000,1100000,1000000)<100000);assert.ok(lowerBitrate(100000,1100000,1000000,700000)<lowerBitrate(100000,1100000,1000000));});
+test('two pass and fast encoder remain fixed',()=>{const p=planCompression(meta,settings);assert.ok(encodingArgs(p,1).includes('odo-pass'));assert.ok(encodingArgs(p,1).includes('-an'));assert.ok(encodingArgs(p,2).includes('output.mp4'));assert.equal(p.preset,'veryfast');});

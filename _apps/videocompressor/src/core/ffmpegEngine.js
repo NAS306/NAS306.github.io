@@ -43,8 +43,20 @@ export class FFmpegEngine {
     if (!(duration > 0) || !video.width || !video.height) throw new Error('영상 길이 또는 해상도를 확인할 수 없습니다.');
     const rotation = Number(video.tags?.rotate || video.side_data_list?.find(s => s.rotation !== undefined)?.rotation || 0);
     const swap = Math.abs(rotation) % 180 === 90;
+    const audio = info.streams.find(s => s.codec_type === 'audio');
+    let audioBitrate = Number(audio?.bit_rate) || 0;
+    if (audio?.codec_name === 'aac' && !audioBitrate) {
+      status('원본 음성 용량 확인 중…');
+      // Only when metadata lacks AAC bitrate: remux without decoding to reserve its real size.
+      if (await f.exec(['-i',this.inputPath,'-map','0:a:0','-c:a','copy','audio-budget.m4a']) !== 0) throw new Error('원본 AAC 음성 용량을 확인하지 못했습니다.');
+      const audioData = await f.readFile('audio-budget.m4a');
+      audioBitrate = Math.ceil(audioData.byteLength * 8 / duration);
+      await f.deleteFile('audio-budget.m4a');
+    } else if (audioBitrate) {
+      audioBitrate = Math.ceil(audioBitrate * (Number(audio?.duration) || duration) / duration);
+    }
     this.preparedFile = file;
-    return this.metadata = { duration, width: swap ? video.height : video.width, height: swap ? video.width : video.height, fps, hasAudio: info.streams.some(s => s.codec_type === 'audio') };
+    return this.metadata = { duration, width: swap ? video.height : video.width, height: swap ? video.width : video.height, fps, hasAudio: !!audio, audioCodec: audio?.codec_name || null, audioBitrate, audioChannels: Number(audio?.channels) || 0, audioSampleRate: Number(audio?.sample_rate) || 0 };
   }
   async encode(plan, status) {
     const f = this.ffmpeg;
@@ -61,7 +73,7 @@ export class FFmpegEngine {
       const data = await f.readFile('output.mp4');
       if (data.byteLength < plan.targetBytes) return new Blob([data], { type: 'video/mp4' });
       await f.deleteFile('output.mp4');
-      plan.videoBitrate = lowerBitrate(plan.videoBitrate, data.byteLength, plan.targetBytes);
+      plan.videoBitrate = lowerBitrate(plan.videoBitrate, data.byteLength, plan.targetBytes, plan.audioBitrate * this.duration / 8);
       if (plan.videoBitrate < 12000) break;
     }
     throw new Error('재압축 후에도 목표 용량을 달성하지 못했습니다. 목표 용량을 늘려 다시 시도하세요.');

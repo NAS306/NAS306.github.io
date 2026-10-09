@@ -1,4 +1,4 @@
-﻿import { chromium } from '@playwright/test';
+import { chromium } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
@@ -33,7 +33,7 @@ const result=await page.evaluate(async config=>{
   let t=performance.now();const meta=await engine.prepare(file,()=>{});const prepareMs=performance.now()-t;
   t=performance.now();await engine.prepare(file,()=>{});const repeatedPrepareMs=performance.now()-t;
   engine.duration=meta.duration;
-  const p=planCompression(meta,{targetMB:config.targetMB,mode:'auto',audio:true,keepResolution:true});
+  const p=planCompression(meta,{targetMB:config.targetMB,audio:true,keepResolution:true});
   const presets=[];
   for(const preset of ['fast','veryfast']) {
     const passMs=[];let uiGaps=[];let last=performance.now();const heartbeat=setInterval(()=>{const now=performance.now();uiGaps.push(now-last);last=now;},50);
