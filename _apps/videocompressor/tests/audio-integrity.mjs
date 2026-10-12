@@ -2,18 +2,20 @@ import { chromium } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile,writeFile,copyFile } from 'node:fs/promises';
 import { resolve,extname,sep } from 'node:path';
+const multi=process.env.AUDIO_MT==='1';
+const resultPath=multi?'tests/mt-audio-results.json':'tests/audio-results.json';
 const root=resolve('.');const types={'.js':'text/javascript','.wasm':'application/wasm'};
-const server=createServer(async(req,res)=>{if(req.url==='/favicon.ico'){res.statusCode=204;res.end();return;}if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<script type="importmap">{"imports":{"@ffmpeg/ffmpeg":"/node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"}}</script>');return;}try{const pathname=new URL(req.url,'http://localhost').pathname.replace(/^\/ffmpeg\//,'/public/ffmpeg/');const p=resolve(root,'.'+pathname);if(!p.startsWith(root+sep))throw Error();res.setHeader('Content-Type',types[extname(p)]||'application/octet-stream');res.end(await readFile(p));}catch{res.statusCode=404;res.end();}}).listen(4175,'127.0.0.1');
+const server=createServer(async(req,res)=>{if(multi){res.setHeader('Cross-Origin-Opener-Policy','same-origin');res.setHeader('Cross-Origin-Embedder-Policy','require-corp');}if(req.url==='/favicon.ico'){res.statusCode=204;res.end();return;}if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<script type="importmap">{"imports":{"@ffmpeg/ffmpeg":"/node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"}}</script>');return;}try{const pathname=new URL(req.url,'http://localhost').pathname.replace(/^\/(ffmpeg(?:-mt)?)\//,'/public/$1/');const p=resolve(root,'.'+pathname);if(!p.startsWith(root+sep))throw Error();res.setHeader('Content-Type',types[extname(p)]||'application/octet-stream');res.end(await readFile(p));}catch{res.statusCode=404;res.end();}}).listen(4175,'127.0.0.1');
 const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
 try {
   const page=await browser.newPage();page.on('console',m=>console.log(m.text()));await page.goto('http://127.0.0.1:4175');
-  const results=await page.evaluate(async()=>{
+  const results=await page.evaluate(async multi=>{
     const {FFmpegEngine}=await import('/src/core/ffmpegEngine.js');const {planCompression}=await import('/src/core/compressionPlanner.js');const engine=new FFmpegEngine();await engine.load(()=>{});const f=engine.ffmpeg;const results=[];
     const require=(condition,message)=>{if(!condition)throw Error(message);};
     const hash=async data=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data))).map(n=>n.toString(16).padStart(2,'0')).join('');
     const probe=async pathname=>{await f.ffprobe(['-v','error','-show_streams','-of','json',pathname,'-o','check.json']);return JSON.parse(await f.readFile('check.json','utf8'));};
     for(const kind of ['aac-mp4','aac-mkv','pcm']) {
-      console.log('testing',kind);await engine.clean();const generator=new FFmpegEngine();await generator.load(()=>{});const g=generator.ffmpeg;
+      console.log('testing',kind);await engine.clean();if(multi)Object.defineProperty(globalThis,'crossOriginIsolated',{value:false,configurable:true});const generator=new FFmpegEngine();await generator.load(()=>{});if(multi)Object.defineProperty(globalThis,'crossOriginIsolated',{value:true,configurable:true});const g=generator.ffmpeg;
       const name=kind==='aac-mp4'?'fixture.mp4':kind==='aac-mkv'?'fixture.mkv':'pcm-fixture.mkv';
       const codec=kind==='pcm'?'pcm_s16le':'aac';const video=['-c:v','libx264','-preset','ultrafast'];
       require(await g.exec(['-f','lavfi','-i','testsrc2=size=320x240:rate=30','-f','lavfi','-i','aevalsrc=0.25*sin(2*PI*440*t)|0.25*sin(2*PI*880*t):s=48000','-t','2',...video,'-c:a',codec,'-b:a','192000',name])===0,'fixture failed');
@@ -37,8 +39,8 @@ try {
       }
     }
     engine.dispose();return results;
-  });
-  try { await copyFile('tests/audio-results.json','tests/audio-results_BU.json'); } catch(error) { if(error.code!=='ENOENT')throw error; }
-  await writeFile('tests/audio-results.json',JSON.stringify(results,null,2));
+  },multi);
+  try { await copyFile(resultPath,resultPath.replace('.json','_BU.json')); } catch(error) { if(error.code!=='ENOENT')throw error; }
+  await writeFile(resultPath,JSON.stringify(results,null,2));
   console.log(JSON.stringify(results,null,2));
 }finally{await browser.close();server.close();}

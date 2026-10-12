@@ -6,11 +6,28 @@ export class FFmpegEngine {
   async load(status) {
     if (this.ffmpeg?.loaded) return;
     if (!globalThis.WebAssembly || !globalThis.Worker) throw new Error('이 브라우저는 WebAssembly 또는 Worker를 지원하지 않습니다. 최신 브라우저로 다시 시도하세요.');
-    const ffmpeg = this.ffmpeg = new FFmpeg();
-    ffmpeg.on('log', ({ message }) => { this.logs.push(message); if (this.logs.length > 100) this.logs.shift(); });
-    status('압축 엔진 준비 중…');
-    try { await ffmpeg.load({ coreURL: new URL('ffmpeg/ffmpeg-core.js', document.baseURI).href, wasmURL: new URL('ffmpeg/ffmpeg-core.wasm', document.baseURI).href }); }
-    catch (error) { this.dispose(); throw new Error('압축 엔진을 불러오지 못했습니다. 네트워크·메모리·브라우저 저장 공간을 확인하고 다시 시도하세요.', { cause: error }); }
+    const multi = globalThis.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
+    for (const useMulti of (multi ? [true, false] : [false])) {
+      const ffmpeg = this.ffmpeg = new FFmpeg();
+      ffmpeg.on('log', ({ message }) => { this.logs.push(message); if (this.logs.length > 100) this.logs.shift(); });
+      this.threads = useMulti ? Math.min(6, Math.max(2, Math.floor((navigator.hardwareConcurrency || 4) / 2))) : 1;
+      this.backend = useMulti ? `FFmpeg 멀티스레드 (${this.threads})` : 'FFmpeg 단일 스레드';
+      status(`${this.backend} 준비 중…`);
+      let timer;
+      try {
+        const folder = useMulti ? 'ffmpeg-mt' : 'ffmpeg';
+        await Promise.race([
+          ffmpeg.load({ coreURL: new URL(`${folder}/ffmpeg-core.js`, document.baseURI).href, wasmURL: new URL(`${folder}/ffmpeg-core.wasm`, document.baseURI).href, ...(useMulti ? { workerURL: new URL('ffmpeg-mt/ffmpeg-core.worker.js', document.baseURI).href } : {}) }),
+          new Promise((_,reject) => { timer = setTimeout(() => reject(new Error('엔진 준비 시간 초과')), 60000); })
+        ]);
+        return;
+      } catch (error) {
+        this.dispose();
+        if (this.cancelled) throw error;
+        if (!useMulti) throw new Error('압축 엔진을 불러오지 못했습니다. 네트워크·메모리·브라우저 저장 공간을 확인하고 다시 시도하세요.', { cause: error });
+        status('멀티스레드 미지원 · 단일 스레드 준비 중…');
+      } finally { clearTimeout(timer); }
+    }
   }
   async prepare(file, status) {
     this.cancelled = false;
@@ -61,12 +78,13 @@ export class FFmpegEngine {
   async encode(plan, status) {
     const f = this.ffmpeg;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      for (const pass of [1,2]) {
-        status(`${attempt + 1}차 압축 · ${pass}/2 패스`);
+      for (const pass of (plan.twoPass ? [1,2] : [0])) {
+        status(`${attempt + 1}차 압축 · ${this.backend || '호환 엔진'}${pass ? ` · ${pass}/2 패스` : ' · 1패스'}`);
         let lastUpdate = 0;
-        const listener = ({ time }) => { const now = performance.now(); if (now - lastUpdate < 100 && time < this.duration * 1000000) return; lastUpdate = now; status(`${attempt + 1}차 압축 · ${pass}/2 패스`, Math.min(100, Math.max(0, time / 1000000 / this.duration * 100))); };
+        const listener = ({ time }) => { const now = performance.now(); if (now - lastUpdate < 100 && time < this.duration * 1000000) return; lastUpdate = now; status(`${attempt + 1}차 압축 · ${this.backend}${pass ? ` · ${pass}/2 패스` : ' · 1패스'}`, Math.min(100, Math.max(0, time / 1000000 / this.duration * 100))); };
         f.on('progress', listener);
-        try { if (await f.exec(['-i',this.inputPath, ...encodingArgs(plan, pass)]) !== 0) throw new Error('인코딩에 실패했습니다. 지원되지 않는 코덱 또는 메모리 부족일 수 있습니다.'); }
+        const args = encodingArgs(plan, pass);
+        try { if (await f.exec(['-filter_threads','1','-filter_complex_threads','1','-threads',String(this.threads || 1),'-i',this.inputPath, ...args.slice(0,-1),'-threads',String(this.threads || 1),args.at(-1)]) !== 0) throw new Error('인코딩에 실패했습니다. 지원되지 않는 코덱 또는 메모리 부족일 수 있습니다.'); }
         finally { f.off('progress', listener); }
       }
       status('목표 용량 검증 중…');

@@ -9,3 +9,7 @@ public/ffmpeg/
 .gitignore_BU
 
 deployment/
+
+public/ffmpeg-mt/
+
+.bench-dist/

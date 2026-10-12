@@ -1,10 +1,10 @@
 import './style.css';
 import { layout, mb } from './ui/layout.js';
-import { FFmpegEngine } from './core/ffmpegEngine.js';
+import { CompressionEngine } from './core/compressionEngine.js';
 import { planCompression } from './core/compressionPlanner.js';
 document.querySelector('#app').innerHTML = layout;
 const $ = id => document.getElementById(id);
-const engine = new FFmpegEngine();
+const engine = new CompressionEngine();
 let file, meta, inputURL, outputURL, busy = false, timer, started, outputBlob, installPrompt;
 function message(text, error = false) { $('message').textContent = text; $('message').className = error ? 'error' : ''; }
 function status(text, value) { $('stage').textContent = text; if (value === undefined) { $('progress').removeAttribute('value'); $('percent').textContent = ''; } else { $('progress').value = value; $('percent').textContent = `${value.toFixed(1)}% · 현재 패스`; } }
@@ -40,7 +40,7 @@ $('start').onclick = async () => {
     const filename = file.name.replace(/\.[^.]+$/, '') + '_compressed.mp4';
     $('download').href = outputURL; $('download').download = filename;
     const reduction = (1 - outputBlob.size / file.size) * 100;
-    $('stats').textContent = `원본 ${mb(file.size)} → 결과 ${mb(outputBlob.size)} / 절약 ${mb(Math.max(0,file.size-outputBlob.size))} (${reduction.toFixed(1)}%) / ${meta.width}×${meta.height} → ${plan.width}×${plan.height} · ${plan.fps.toFixed(2)}FPS / ${((performance.now()-started)/1000).toFixed(1)}초 / ${plan.audioMode === 'copy' ? '음성 원본 그대로' : plan.audioMode === 'encode' ? (plan.preserveAudioQuality ? '고음질 AAC' : '용량 우선 AAC') : '음성 없음'}`;
+    $('stats').textContent = `원본 ${mb(file.size)} → 결과 ${mb(outputBlob.size)} / 절약 ${mb(Math.max(0,file.size-outputBlob.size))} (${reduction.toFixed(1)}%) / ${meta.width}×${meta.height} → ${plan.width}×${plan.height} · ${plan.fps.toFixed(2)}FPS / ${((performance.now()-started)/1000).toFixed(1)}초 / ${engine.backend} / ${plan.audioMode === 'copy' ? '음성 원본 그대로' : plan.audioMode === 'encode' ? (plan.preserveAudioQuality ? '고음질 AAC' : '용량 우선 AAC') : '음성 없음'}`;
     $('result').hidden = false;
     $('share').hidden = !navigator.canShare?.({ files: [new File([outputBlob], filename, { type:'video/mp4' })] });
     message(outputBlob.size >= file.size ? '목표 용량은 달성했지만 결과가 원본보다 큽니다. 원본을 사용하는 편이 좋습니다.' : '목표 용량 미만의 MP4가 준비되었습니다.');
@@ -50,7 +50,7 @@ $('start').onclick = async () => {
 $('cancel').onclick = () => engine.cancel();
 $('reset').onclick = () => { engine.dispose(); clearResult(); meta = null; file = null; $('file').value = ''; $('preview').pause(); $('preview').removeAttribute('src'); $('preview').load(); $('preview').hidden = true; if (inputURL) URL.revokeObjectURL(inputURL); inputURL = null; $('metadata').textContent = '새 영상을 선택하세요.'; $('start').disabled = true; message(''); $('drop').focus(); };
 $('share').onclick = async () => { try { await navigator.share({ files:[new File([outputBlob], $('download').download, {type:'video/mp4'})] }); } catch (error) { if (error.name !== 'AbortError') message('공유하지 못했습니다. 다운로드를 이용하세요.',true); } };
-$('environment').textContent = `단일 스레드 엔진 · 멀티스레드 환경 ${globalThis.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined' ? '사용 가능' : '미지원'}`;
+$('environment').textContent = '브라우저 가속 자동 선택 · 미지원 형식은 호환 엔진 사용';
 addEventListener('beforeunload', event => { if (busy) { event.preventDefault(); event.returnValue = ''; } });
 addEventListener('pagehide', () => { engine.dispose(); if (inputURL) URL.revokeObjectURL(inputURL); if (outputURL) URL.revokeObjectURL(outputURL); });
 addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; $('install').hidden = false; });
@@ -58,5 +58,8 @@ $('install').onclick = async () => { await installPrompt?.prompt(); $('install')
 if ('serviceWorker' in navigator && import.meta.env.PROD) navigator.serviceWorker.register('./sw.js').then(async registration => {
   const check = async () => { const keys = await caches.keys(); $('offline').textContent = keys.some(k=>k.startsWith('framefit-' + registration.scope + '-')) ? '오프라인 자산 준비 완료 · 저장 공간 정리 시 삭제될 수 있습니다' : '앱과 엔진을 오프라인용으로 저장하는 중…'; };
   registration.addEventListener('updatefound', () => registration.installing?.addEventListener('statechange', check)); await navigator.serviceWorker.ready; await check();
+  const isolationKey = 'framefit-isolation-' + registration.scope;
+  const enableIsolation = () => { if (!globalThis.crossOriginIsolated && navigator.serviceWorker.controller && !busy && !file && !sessionStorage.getItem(isolationKey)) { sessionStorage.setItem(isolationKey,'1'); location.reload(); } };
+  navigator.serviceWorker.addEventListener('controllerchange', enableIsolation); enableIsolation();
 }).catch(() => $('offline').textContent = '오프라인 준비 실패 · 온라인으로 이용하세요.');
 else $('offline').textContent = '오프라인 기능은 배포 빌드의 HTTPS 또는 localhost에서 제공됩니다.';

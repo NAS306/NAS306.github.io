@@ -30,7 +30,7 @@ export function lowerBitrate(bitrate, actualBytes, targetBytes, audioBytes = 0) 
   return Math.floor(bitrate * Math.min(.85, (targetBytes * .94 - audioBytes) / Math.max(1, actualBytes - audioBytes)));
 }
 export function encodingArgs(plan, pass) {
-  const args = ['-t',String(plan.duration),'-map','0:v:0','-vf',`scale=${plan.width}:${plan.height},setsar=1,tpad=stop_mode=clone:stop_duration=${1 / plan.fps},fps=${plan.fps}:start_time=0:eof_action=pass`,'-vsync','0','-c:v','libx264','-preset',plan.preset || 'veryfast','-b:v',String(plan.videoBitrate),'-pix_fmt','yuv420p','-pass',String(pass),'-passlogfile','odo-pass'];
+  const args = ['-t',String(plan.duration),'-map','0:v:0','-vf',`scale=${plan.width}:${plan.height},setsar=1,tpad=stop_mode=clone:stop_duration=${1 / plan.fps},fps=${plan.fps}:start_time=0:eof_action=pass`,'-vsync','0','-c:v','libx264','-preset',plan.preset || 'veryfast','-b:v',String(plan.videoBitrate),'-pix_fmt','yuv420p',... (pass ? ['-pass',String(pass),'-passlogfile','odo-pass'] : ['-maxrate',String(plan.videoBitrate),'-bufsize',String(plan.videoBitrate)])];
   if (pass === 1) return [...args,'-an','-f','null','-'];
   const audioArgs = plan.audioMode === 'copy' ? ['-map','0:a:0','-c:a','copy'] : plan.audioMode === 'encode' ? ['-map','0:a:0','-c:a','aac','-b:a',String(plan.audioBitrate)] : ['-an'];
   return [...args, ...audioArgs,'-movflags','+faststart','output.mp4'];
