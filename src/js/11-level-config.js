@@ -1,4 +1,5 @@
-import { resolveWeaponProfile } from "./weapon-config.js";
+import { resolveWeaponProfile } from "./10-weapon-config.js";
+import levelCatalog from '../data/levels.json' with { type: 'json' };
 
 const VALID_TEAMS = new Set(["blue", "red"]);
 const VALID_MODES = new Set(["frontline", "siege", "attrition"]);
@@ -143,10 +144,8 @@ function validateSiegeScenario(scenario, map) {
   }
 }
 
-export async function loadLevelCatalog(path = "./levels/levels.json") {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error(`HTTP ${response.status} while loading ${path}`);
-  return response.json();
+export async function loadLevelCatalog() {
+  return structuredClone(levelCatalog);
 }
 
 export function chooseRandomScenarioId(catalog, currentId, random = Math.random) {

@@ -1,4 +1,4 @@
-import { clamp } from "./math.js";
+import { clamp } from "./00-math.js";
 
 export function clampFrameDelta(deltaSeconds, maxDeltaSeconds = 0.25) {
   return clamp(Number.isFinite(deltaSeconds) ? deltaSeconds : 0, 0, maxDeltaSeconds);

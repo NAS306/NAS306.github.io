@@ -1,0 +1,103 @@
+
+  <!-- Canvas for the game -->
+  <canvas id="gameCanvas" tabindex="0" aria-label="Tank battlefield"></canvas>
+  <div id="super-mode-border"></div>
+  <div id="game-overlay" class="overlay hidden">
+    <div id="overlay-content">
+      <div id="overlay-message"></div>
+      <div id="overlay-submessage"></div>
+    </div>
+  </div>
+  <button id="overlay-menu" type="button" hidden>Mode Select →</button>
+  <div id="loading-screen">
+    <div id="loading-panel">
+      <div class="selector-topline"><span class="selector-brand"><span class="brand-mark" aria-hidden="true">⌖</span>TANK BATTLE</span><span class="selector-status">SYSTEMS ONLINE</span></div>
+      <div class="selector-heading"><h1 id="loading-title">Preparing the battlefield…</h1><p class="selector-intro">Five ways to fight. One battlefield to make your own.<br>Pick a mission. Take command.</p></div>
+      <div id="loading-bar"><div id="loading-bar-fill"></div></div>
+      <div id="loading-status">0%</div>
+      <div id="loading-hint" class="hidden">
+        <div class="selector-section-label"><span>SELECT OPERATION</span><span>05 MISSION PROFILES</span></div>
+        <div id="scenario-buttons">
+          <!-- MODE CARDS -->
+        </div>
+        <div class="selector-bottomline"><span><kbd>1—5</kbd> QUICK SELECT <span aria-hidden="true">&nbsp; / &nbsp;</span> WASD + MOUSE TO PLAY</span><span>Hold a team mode card + ENTER for Super Mode.</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="base-health-ui">
+    <div class="base-health base-blue">
+      <div id="blue-status-label" class="label">Blue Base</div>
+      <div id="blue-base-value" class="value">10000</div>
+      <div class="bar-track"><div id="blue-base-fill" class="bar-fill"></div></div>
+      <p class="killcount">Blue Score: <span id="blueTeamKill" style="color: #5cb3ff;">0</span></p>
+    </div>
+    <div id="match-center">
+      <div id="scenario-status">
+        <span id="scenario-name"></span>
+        <span id="scenario-objective"></span>
+      </div>
+      <div id="match-timer"></div>
+    </div>
+    <div class="base-health base-red">
+      <div id="red-status-label" class="label">Red Base</div>
+      <div id="red-base-value" class="value">10000</div>
+      <div class="bar-track"><div id="red-base-fill" class="bar-fill"></div></div>
+      <p class="killcount">Red Score: <span id="redTeamKill" style="color: #ff6a6a;">0</span></p>
+    </div>
+  </div>
+  <div id="bottom-hud">
+    <div id="weapon-panel" data-weapon-id="standard">
+      <div id="weapon-panel-header">
+        <span id="weapon-panel-label">CURRENT WEAPON</span>
+        <span id="weapon-panel-key">[Q] SWITCH</span>
+      </div>
+      <div id="weapon-preview">
+        <div id="weapon-tank-symbol" class="shape-circle"></div>
+        <div id="weapon-fire-pattern" class="pattern-standard">
+          <img src="./assets/sprites/bullets/projectile_yellow.png" alt="">
+          <img src="./assets/sprites/bullets/projectile_yellow.png" alt="">
+          <img src="./assets/sprites/bullets/projectile_yellow.png" alt="">
+        </div>
+      </div>
+      <div>
+        <div id="weapon-name">Standard Cannon</div>
+        <div id="weapon-description">Balanced cannon for accurate sustained fire.</div>
+        <div id="weapon-stats"><span id="weapon-fire-mode">Single shot</span><span id="weapon-reload">Reload 0.5s</span></div>
+      </div>
+      <div>
+        <div id="weapon-switch-row"><span>SWITCH COOLDOWN</span><span id="weapon-switch-status-panel">READY</span></div>
+        <div id="weapon-switch-track"><div id="weapon-switch-fill"></div></div>
+      </div>
+    </div>
+    <div id="item-toolbar">
+      <div id="item-economy">
+        <span>Points <strong id="point">10</strong> <small>(+1/5s)</small></span>
+        <span>Item Cost <strong id="specialWeaponPoint">5</strong></span>
+      </div>
+      <div id="item-cards">
+        <div id="orbital-item" class="item-option selected">
+          <div class="item-header">
+            <span>[1] Orbital Strike</span>
+            <span id="orbital-status">READY</span>
+          </div>
+          <div class="item-cooldown-track"><div id="orbital-cooldown-fill" class="item-cooldown-fill"></div></div>
+        </div>
+        <div id="barrier-item" class="item-option">
+          <div class="item-header"><span>[2] Barrier</span><span id="barrier-status">READY</span></div>
+          <div class="item-cooldown-track"><div id="barrier-cooldown-fill" class="item-cooldown-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="instruction">
+      <p>WASD: Move</p>
+      <p>Mouse: Aim</p>
+      <p>Left Click: Shoot</p>
+      <p>1/2: Select Item</p>
+      <p>Right Click: Use Selected Item</p>
+      <p>Space + Scroll: FreeCamera</p>
+      <p>My kill score: <span id="myKill" style="color: #fff;">0</span></p>
+  </div>
+  <div id="fps"></div>
+  <audio id="bgm" src="./assets/BGM.mp3" preload="auto" loop></audio>
+  

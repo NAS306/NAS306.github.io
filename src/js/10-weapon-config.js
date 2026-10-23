@@ -143,6 +143,34 @@ export function validateWeaponProfile(profile) {
   return profile;
 }
 
+// Used by combat and UI previews so displayed values match the fired projectiles.
+export function getModifiedWeaponProfile(profile, modifiers = {}) {
+  const damage = modifiers.damageMultiplier ?? 1;
+  const speed = modifiers.projectileSpeedMultiplier ?? 1;
+  const lifetime = modifiers.projectileLifetimeMultiplier ?? 1;
+  const blast = modifiers.explosionRadiusMultiplier ?? 1;
+  const extra = modifiers.extraProjectiles ?? 0;
+  return {
+    ...profile,
+    damage: profile.damage * damage,
+    reloadTime: profile.reloadTime / (modifiers.attackSpeedMultiplier ?? 1),
+    projectileSpeed: profile.projectileSpeed * speed,
+    fireRange: profile.fireRange * speed * lifetime,
+    projectileLifetime: profile.projectileLifetime * lifetime,
+    pelletCount: profile.pelletCount + extra,
+    volleySpreadRadians: extra > 0 && profile.pelletCount === 1
+      ? Math.PI / 12 : profile.volleySpreadRadians,
+    penetration: profile.penetration + (profile.explosion ? 0 : (modifiers.penetrationBonus ?? 0)),
+    explosion: profile.explosion ? {
+      ...profile.explosion,
+      minDamage: profile.explosion.minDamage * damage,
+      maxDamage: profile.explosion.maxDamage * damage,
+      radius: profile.explosion.radius * blast,
+      visualRadius: profile.explosion.visualRadius * blast,
+    } : null,
+  };
+}
+
 export function getProjectileAngles(profile, baseAngle, random = Math.random) {
   validateWeaponProfile(profile);
   if (profile.pelletCount === 1) {

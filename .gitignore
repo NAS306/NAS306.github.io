@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.qa/
+.publish/
+*_BU.*
+*_BU
