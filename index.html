@@ -992,11 +992,11 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
   </svg><span class="mode-number">04</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
     <span class="mode-copy"><span class="mode-tag">ALL-OUT ATTRITION</span><span class="mode-name">Breakthrough</span><span class="mode-description">Outfight the enemy and drain their reinforcements.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button>
-<button class="scenario-button" data-scenario="roguelike" style="--mode-accent:#d4b1ff" aria-label="5. Roguelike. Survive the swarm. Build your tank. Risk everything.">
+<button class="scenario-button" data-scenario="roguelite" style="--mode-accent:#d4b1ff" aria-label="5. Roguelite. Survive the swarm. Build your tank. Risk everything.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
-    <defs><radialGradient id="glow-roguelike"><stop stop-color="#d4b1ff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><pattern id="grid-roguelike" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" stroke="#444" stroke-opacity=".45"/></pattern></defs>
-    <path fill="#03060a" d="M0 0h420v430H0z"/><path fill="url(#grid-roguelike)" d="M0 0h420v430H0z"/>
-    <ellipse cx="210" cy="205" rx="300" ry="300" fill="url(#glow-roguelike)"/>
+    <defs><radialGradient id="glow-roguelite"><stop stop-color="#d4b1ff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><pattern id="grid-roguelite" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" stroke="#444" stroke-opacity=".45"/></pattern></defs>
+    <path fill="#03060a" d="M0 0h420v430H0z"/><path fill="url(#grid-roguelite)" d="M0 0h420v430H0z"/>
+    <ellipse cx="210" cy="205" rx="300" ry="300" fill="url(#glow-roguelite)"/>
     <g class="scene-field">
     <circle class="scene-orbit" cx="210" cy="222" r="142" fill="none" stroke="#ff6a6a" stroke-opacity=".25" stroke-dasharray="5 12"/>
     <circle class="scene-pulse" cx="210" cy="222" r="63" fill="#ffe600" opacity=".08"/>
@@ -1034,7 +1034,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="m243 158 18-31m-84 160-15 28" stroke="#ffe600" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#d4b1ff" stroke-opacity=".4"/>
   </svg><span class="mode-number">05</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">ONE TANK. TEN ROUNDS.</span><span class="mode-name">Roguelike</span><span class="mode-description">Survive the swarm. Build your tank. Risk everything.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag">ONE TANK. TEN ROUNDS.</span><span class="mode-name">Roguelite</span><span class="mode-description">Survive the swarm. Build your tank. Risk everything.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button>
         </div>
         <div class="selector-bottomline"><span><kbd>1—5</kbd> QUICK SELECT <span aria-hidden="true">&nbsp; / &nbsp;</span> WASD + MOUSE TO PLAY</span><span>Hold a team mode card + ENTER for Super Mode.</span></div>
@@ -1145,7 +1145,7 @@ var TankGame = (() => {
     returnToModeSelection: () => returnToModeSelection
   });
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\00-math.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\00-math.js
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -1173,7 +1173,7 @@ var TankGame = (() => {
     return Math.atan2(finalPredictedY - shooter.y, finalPredictedX - shooter.x);
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\01-runtime.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\01-runtime.js
   function clampFrameDelta(deltaSeconds, maxDeltaSeconds = 0.25) {
     return clamp(Number.isFinite(deltaSeconds) ? deltaSeconds : 0, 0, maxDeltaSeconds);
   }
@@ -1190,7 +1190,7 @@ var TankGame = (() => {
     return dx * dx + dy * dy <= combinedRadius * combinedRadius;
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\02-mobile-support.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\02-mobile-support.js
   var MOBILE_UA_PATTERN = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS/i;
   var MOBILE_DRAG_TOLERANCE_PX = 12;
   function detectMobileDevice({
@@ -1214,7 +1214,7 @@ var TankGame = (() => {
     return visualTolerance / scale;
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\10-weapon-config.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\10-weapon-config.js
   var REQUIRED_POSITIVE_FIELDS = [
     "pelletCount",
     "damage",
@@ -1352,7 +1352,7 @@ var TankGame = (() => {
     return profile;
   }
   function getModifiedWeaponProfile(profile, modifiers = {}) {
-    const damage = modifiers.damageMultiplier ?? 1;
+    const damage = (modifiers.damageMultiplier ?? 1) * (modifiers.projectileDamageMultiplier ?? 1);
     const speed = modifiers.projectileSpeedMultiplier ?? 1;
     const lifetime = modifiers.projectileLifetimeMultiplier ?? 1;
     const blast = modifiers.explosionRadiusMultiplier ?? 1;
@@ -1362,6 +1362,8 @@ var TankGame = (() => {
       damage: profile.damage * damage,
       reloadTime: profile.reloadTime / (modifiers.attackSpeedMultiplier ?? 1),
       projectileSpeed: profile.projectileSpeed * speed,
+      projectileRadius: profile.projectileRadius * (modifiers.projectileSizeMultiplier ?? 1),
+      wallBounces: modifiers.wallBounces ?? 0,
       fireRange: profile.fireRange * speed * lifetime,
       projectileLifetime: profile.projectileLifetime * lifetime,
       pelletCount: profile.pelletCount + extra,
@@ -1390,7 +1392,7 @@ var TankGame = (() => {
     );
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\data\levels.json
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\data\levels.json
   var levels_default = {
     maps: {
       frontline: {
@@ -1471,7 +1473,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\11-level-config.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\11-level-config.js
   var VALID_TEAMS = /* @__PURE__ */ new Set(["blue", "red"]);
   var VALID_MODES = /* @__PURE__ */ new Set(["frontline", "siege", "attrition"]);
   var VALID_OBJECTIVE_TYPES = /* @__PURE__ */ new Set(["stronghold", "base"]);
@@ -1608,7 +1610,7 @@ var TankGame = (() => {
     return structuredClone(levels_default);
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\12-game-flow.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\12-game-flow.js
   var modeSelectionHandler = null;
   function setModeSelectionHandler(handler) {
     modeSelectionHandler = handler;
@@ -1617,7 +1619,7 @@ var TankGame = (() => {
     modeSelectionHandler?.();
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\20-rogue-ammo.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\20-rogue-ammo.js
   var STARTING_AMMO = 300;
   var ROUND_AMMO_SUPPLY = 150;
   var AMMO_PER_POINT = 10;
@@ -1641,7 +1643,7 @@ var TankGame = (() => {
     };
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\21-rogue-dice.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\21-rogue-dice.js
   var ENEMY_DICE_MIN_BONUS = 20;
   var ENEMY_DICE_MAX_BONUS = 60;
   var ENEMY_DICE_FACES = Object.freeze([
@@ -1698,7 +1700,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\22-rogue-stats.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\22-rogue-stats.js
   function createRogueRunStats() {
     return { damageTaken: 0, damageDealt: 0, healing: 0, ammoSpent: 0 };
   }
@@ -1735,7 +1737,7 @@ var TankGame = (() => {
     return ROGUE_RUN_METRICS.map((metric) => ({ ...metric, value: formatRogueMetric(values[metric.key], metric.decimals) }));
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\30-entities.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\30-entities.js
   function getEquilateralTriangleVertices(radius) {
     const halfHeight = Math.sqrt(3) * radius / 2;
     return [
@@ -1805,7 +1807,8 @@ var TankGame = (() => {
       lifetime,
       penRate,
       isTurretSpecial,
-      explosion
+      explosion,
+      wallBounces
     }) {
       this.active = true;
       this.x = x;
@@ -1823,6 +1826,9 @@ var TankGame = (() => {
       this.penRate = penRate;
       this.isTurretSpecial = isTurretSpecial ?? false;
       this.explosion = explosion ?? null;
+      this.wallBounceLimit = this.wallBouncesRemaining = wallBounces ?? 0;
+      this.rogueSegments = null;
+      this.rogueWallStop = false;
       this.hitTargets.clear();
       const spriteKey = this.isPlayerBullet ? "player" : this.team;
       if (_Bullet.spriteCache[spriteKey]) {
@@ -2129,7 +2135,8 @@ var TankGame = (() => {
           radius: weapon.projectileRadius,
           lifetime: weapon.projectileLifetime,
           penRate: weapon.penetration,
-          explosion: weapon.explosion
+          explosion: weapon.explosion,
+          wallBounces: weapon.wallBounces
         });
       }
     }
@@ -2267,7 +2274,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\31-systems.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\31-systems.js
   var AI_CONSTANTS = {
     STRAFE_MIN_TIME: 0.5,
     STRAFE_MAX_TIME: 2,
@@ -3980,7 +3987,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\40-rogue-balance.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\40-rogue-balance.js
   var ROGUE_PLAYER_BASE = Object.freeze({ maxHP: 125, speed: 200 });
   var ROGUE_EXPLOSION_RULES = Object.freeze({
     payloadRadius: 90,
@@ -4068,7 +4075,7 @@ var TankGame = (() => {
     return radii.join(" / ") || "None";
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\41-rogue-abilities.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\41-rogue-abilities.js
   var ABILITIES = Object.freeze({
     hull: {
       name: "Reinforced Hull",
@@ -4197,6 +4204,18 @@ var TankGame = (() => {
       description: "+1 enemy-only explosive shell per volley (10 ammo), but −40% base fire rate. Base blast 15–80 damage, 90px.",
       effects: { extraExplosiveProjectiles: 1, attackSpeed: -0.4 },
       icon: "M8 20V9l4-6 4 6v11Z M8 14h8 M3 5l3 3 M21 5l-3 3 M2 13h3 M19 13h3"
+    },
+    ricochet: {
+      name: "Ricochet Rounds",
+      description: "+1 wall bounce per shell. Repeat picks add bounces; flight time stays the same.",
+      effects: { wallBounces: 1 },
+      icon: "M3 3v18 M7 5l10 7L7 19 M14 19H7v-7"
+    },
+    oversized: {
+      name: "Oversized Rounds",
+      description: "Shell size and hit radius ×1.5, but shell damage ×0.5 per pick. Also affects explosive payloads, not blast radius.",
+      effects: { projectileSize: 0.5, projectileDamage: -0.5 },
+      icon: "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10 M2 8V2h6 M16 2h6v6 M22 16v6h-6 M8 22H2v-6"
     }
   });
   function rollAbilityChoices(random = Math.random, owned = []) {
@@ -4210,8 +4229,13 @@ var TankGame = (() => {
   }
   function calculateRogueStats(levels, owned) {
     const totals = {};
+    let projectileSizeMultiplier = 1, projectileDamageMultiplier = 1;
     for (const id of owned) {
-      for (const [key, value] of Object.entries(ABILITIES[id].effects)) totals[key] = (totals[key] ?? 0) + value;
+      for (const [key, value] of Object.entries(ABILITIES[id].effects)) {
+        if (key === "projectileSize") projectileSizeMultiplier *= 1 + value;
+        else if (key === "projectileDamage") projectileDamageMultiplier *= 1 + value;
+        else totals[key] = (totals[key] ?? 0) + value;
+      }
     }
     return {
       maxHP: Math.max(25, ROGUE_PLAYER_BASE.maxHP + (totals.maxHP ?? 0)),
@@ -4221,6 +4245,9 @@ var TankGame = (() => {
       armor: levels.armor * 2 + (totals.armor ?? 0),
       projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)),
       projectileLifetimeMultiplier: 1 + (totals.projectileLifetime ?? 0),
+      projectileSizeMultiplier,
+      projectileDamageMultiplier,
+      wallBounces: totals.wallBounces ?? 0,
       explosionRadiusMultiplier: 1 + (totals.explosionRadius ?? 0),
       extraProjectiles: totals.extraProjectiles ?? 0,
       extraExplosiveProjectiles: totals.extraExplosiveProjectiles ?? 0,
@@ -4246,11 +4273,13 @@ var TankGame = (() => {
     return [
       { key: "hp", label: "Max HP", value: stats.maxHP, text: `${stats.maxHP}` },
       { key: "speed", label: "Move speed", value: rounded(stats.speed), text: `${rounded(stats.speed)}` },
-      { key: "damage", label: "Shell damage", value: `${hitDamage}/${rounded(stats.damageMultiplier)}`, text: `${hitDamage} (${percent(stats.damageMultiplier)})` },
+      { key: "damage", label: "Shell damage", value: `${hitDamage}/${rounded(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))}`, text: `${hitDamage} (${percent(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))})` },
       { key: "attackSpeed", label: "Fire rate / reload", value: `${rounded(stats.attackSpeedMultiplier)}/${rounded(weapon.reloadTime)}`, text: `${percent(stats.attackSpeedMultiplier)} / ${rounded(weapon.reloadTime)}s` },
       { key: "armor", label: "Armor", value: stats.armor, text: stats.armor < 0 ? `${stats.armor} (+${-stats.armor} damage taken)` : `${stats.armor}` },
       { key: "projectileSpeed", label: "Shell speed", value: rounded(weapon.projectileSpeed), text: `${rounded(weapon.projectileSpeed)}` },
       { key: "flightTime", label: "Shell flight time", value: rounded(weapon.projectileLifetime), text: `${rounded(weapon.projectileLifetime)}s` },
+      { key: "shellSize", label: "Shell size", value: stats.projectileSizeMultiplier ?? 1, text: percent(stats.projectileSizeMultiplier ?? 1) },
+      { key: "wallBounces", label: "Wall bounces", value: stats.wallBounces ?? 0, text: `${stats.wallBounces ?? 0}` },
       { key: "penetration", label: "Standard pierce", value: weapon.penetration, text: `${weapon.penetration}` },
       { key: "pellets", label: "Shells / ammo per volley", value: volley, text: volley },
       { key: "blast", label: "Explosion radius", value: blastRadius, text: blastRadius },
@@ -4269,7 +4298,7 @@ var TankGame = (() => {
     }]);
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\42-rogue-state.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\42-rogue-state.js
   var ROUND_SECONDS = 40;
   var ROUND_COUNT = 10;
   var KILL_POINTS = 4;
@@ -4386,7 +4415,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\43-rogue-effects.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\43-rogue-effects.js
   var ROGUE_WARNING_SECONDS = 5;
   function getRogueCountdown(remaining, inCombat) {
     if (!inCombat || remaining <= 0 || remaining > ROGUE_WARNING_SECONDS) {
@@ -4442,7 +4471,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\44-rogue-transition.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\44-rogue-transition.js
   var ROUND_END_SECONDS = 1.5;
   var PANEL_START_SECONDS = 0.95;
   function getRoundTransitionFrame(elapsed) {
@@ -4475,7 +4504,52 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\50-rogue-world.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\45-rogue-projectiles.js
+  function traceRogueRicochet(bullet, bounds) {
+    const left = bounds.minX + bullet.radius, right = bounds.maxX - bullet.radius;
+    const top = bounds.minY + bullet.radius, bottom = bounds.maxY - bullet.radius;
+    bullet.rogueSegments = null;
+    bullet.rogueWallStop = false;
+    if (left >= right || top >= bottom) {
+      bullet.x = (bounds.minX + bounds.maxX) / 2;
+      bullet.y = (bounds.minY + bounds.maxY) / 2;
+      bullet.rogueWallStop = true;
+      bullet.rogueSegments = [];
+      return;
+    }
+    const previousX = bullet.previousX ?? bullet.x, previousY = bullet.previousY ?? bullet.y;
+    if (previousX >= left && previousX <= right && previousY >= top && previousY <= bottom && bullet.x > left && bullet.x < right && bullet.y > top && bullet.y < bottom) return;
+    bullet.rogueSegments = [];
+    let x = clamp(previousX, left, right);
+    let y = clamp(previousY, top, bottom);
+    let dx = bullet.x - previousX;
+    let dy = bullet.y - previousY;
+    for (; ; ) {
+      const tx = dx > 0 ? (right - x) / dx : dx < 0 ? (left - x) / dx : Infinity;
+      const ty = dy > 0 ? (bottom - y) / dy : dy < 0 ? (top - y) / dy : Infinity;
+      const t = Math.min(1, tx, ty);
+      const endX = x + dx * t, endY = y + dy * t;
+      bullet.rogueSegments.push({ previousX: x, previousY: y, x: endX, y: endY });
+      x = endX;
+      y = endY;
+      if (tx > 1 && ty > 1) break;
+      if (bullet.wallBouncesRemaining <= 0) {
+        bullet.rogueWallStop = true;
+        break;
+      }
+      bullet.wallBouncesRemaining--;
+      const hitX = Math.abs(tx - t) < 1e-9, hitY = Math.abs(ty - t) < 1e-9;
+      if (hitX) bullet.vx = -bullet.vx;
+      if (hitY) bullet.vy = -bullet.vy;
+      dx *= (1 - t) * (hitX ? -1 : 1);
+      dy *= (1 - t) * (hitY ? -1 : 1);
+      if (dx === 0 && dy === 0) break;
+    }
+    bullet.x = x;
+    bullet.y = y;
+  }
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\50-rogue-world.js
   var RoguePlayerTank = class extends Tank {
     constructor(x, y) {
       super(x, y, "blue", true, false, "standard");
@@ -4524,8 +4598,8 @@ var TankGame = (() => {
   var RogueWorld = class extends World {
     constructor(canvas, resources) {
       super(canvas, false, false, resources, {
-        id: "roguelike",
-        mode: "roguelike",
+        id: "roguelite",
+        mode: "roguelite",
         playerTeam: "blue",
         mapDefinition: { worldHeight: canvas.width }
       });
@@ -4629,9 +4703,32 @@ var TankGame = (() => {
     triggerShake(damage) {
       this.combatEffects.damage(damage);
     }
+    handleBulletWallCollision(bullet) {
+      if (bullet.isPlayerBullet && bullet.wallBounceLimit > 0) traceRogueRicochet(bullet, this.bounds);
+      return false;
+    }
+    bulletSegmentIntersectsCircle(bullet, target) {
+      if (!bullet.rogueSegments) return super.bulletSegmentIntersectsCircle(bullet, target);
+      return bullet.rogueSegments.some((segment) => super.bulletSegmentIntersectsCircle({ radius: bullet.radius, ...segment }, target));
+    }
+    settleRicochet(bullet, allowDamage) {
+      if (bullet.active && bullet.rogueWallStop) {
+        if (allowDamage && bullet.explosion) {
+          this.causeWeaponExplosion(bullet.x, bullet.y, bullet.team, bullet.explosion, true);
+        }
+        bullet.active = false;
+      }
+      if (bullet.rogueSegments) {
+        bullet.previousX = bullet.x;
+        bullet.previousY = bullet.y;
+        bullet.rogueSegments = null;
+      }
+      bullet.rogueWallStop = false;
+    }
     handleCollisions() {
       const before = this.killcount.player;
       super.handleCollisions();
+      for (const bullet of this.bulletPool.pool) this.settleRicochet(bullet, true);
       const nova = getRogueDeathBlast(this.player);
       for (let index = 0; index < this.pendingDeathBlasts.length; index++) {
         const { x, y } = this.pendingDeathBlasts[index];
@@ -4679,6 +4776,11 @@ var TankGame = (() => {
         tank.hitFlashRemaining = Math.max(0, tank.hitFlashRemaining - dt);
       }
       this.bulletPool.updateAll(dt);
+      for (const bullet of this.bulletPool.pool) {
+        if (!bullet.active) continue;
+        this.handleBulletWallCollision(bullet);
+        this.settleRicochet(bullet, false);
+      }
       this.explosionPool.updateAll(dt);
       this.combatEffects.update(dt);
     }
@@ -4711,7 +4813,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\51-rogue-history.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\51-rogue-history.js
   var tankLabels = {
     hp: "Remaining HP",
     maxHP: "Maximum HP",
@@ -4799,7 +4901,7 @@ var TankGame = (() => {
     return { points, ticks };
   }
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\79-rogue-charts.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\79-rogue-charts.js
   var RogueHistoryView = class {
     constructor(section, signal) {
       this.section = section;
@@ -4854,16 +4956,16 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\80-mode-cards.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\80-mode-cards.js
   var MODE_CARDS = Object.freeze([
     { id: "frontline", title: "Frontline", tag: "TERRITORY WAR", accent: "#83baff", description: "Capture strongholds. Push the front. Break their base." },
     { id: "siege", title: "Siege Attack", tag: "BREAK THE LINE", accent: "#edac74", description: "Lead the assault through three fortified defense lines." },
     { id: "defense", title: "Siege Defense", tag: "HOLD YOUR GROUND", accent: "#87d9cf", description: "Protect your strongholds. Stop the advancing army." },
     { id: "breakthrough", title: "Breakthrough", tag: "ALL-OUT ATTRITION", accent: "#b5d787", description: "Outfight the enemy and drain their reinforcements." },
-    { id: "roguelike", title: "Roguelike", tag: "ONE TANK. TEN ROUNDS.", accent: "#d4b1ff", description: "Survive the swarm. Build your tank. Risk everything." }
+    { id: "roguelite", title: "Roguelite", tag: "ONE TANK. TEN ROUNDS.", accent: "#d4b1ff", description: "Survive the swarm. Build your tank. Risk everything." }
   ].map(Object.freeze));
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\81-rogue-game.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\81-rogue-game.js
   var HEALTH_DISPLAY_MARKUP = '<div class="rogue-health-label"><span>HP</span><strong class="rogue-health-value"></strong></div><progress max="125" value="125" aria-label="Player health"></progress>';
   function updateRogueHealthDisplay(display, hp, maxHP) {
     const current = Math.max(0, Math.min(hp, maxHP));
@@ -4983,6 +5085,7 @@ var TankGame = (() => {
         ammoCost: "Ammo / volley",
         reload: "Reload",
         projectileSpeed: "Shell speed / life",
+        shellSize: "Shell size / bounces",
         pellets: "Standard shells",
         penetration: "Standard pierce",
         blast: "Explosion radius",
@@ -5119,18 +5222,19 @@ var TankGame = (() => {
       const payload = getRogueExplosivePayload(player);
       const nova = getRogueDeathBlast(player);
       this.el("shade").hidden = false;
-      this.el("title").textContent = state.phase === "won" ? "All 10 Rounds Survived!" : state.phase === "lost" ? "Run Over" : "Roguelike Upgrades";
+      this.el("title").textContent = state.phase === "won" ? "All 10 Rounds Survived!" : state.phase === "lost" ? "Run Over" : "Roguelite Upgrades";
       this.el("summary").textContent = ended ? `${state.kills} kills · ${state.points} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}` : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Up to ${config.maxEnemies} enemies · Spawn every ${config.replacementInterval.toFixed(2)}s · Enemy HP ${config.enemyMaxHP} / Damage +${Math.round((config.enemyDamageMultiplier / ROGUE_ENEMY_RULES.damageMultiplier - 1) * 100)}% · Standard ${config.weights.standard}% / Scatter ${config.weights.scatter}% / Heavy ${config.weights.heavy}%`;
       const stats = {
         points: `${state.points}`,
         speed: `${player.speed.toFixed(2)} (${(player.speed / ROGUE_PLAYER_BASE.speed * 100).toFixed(0)}%)`,
-        damage: `${weapon.damage.toFixed(2)} (${(player.damageMultiplier * 100).toFixed(0)}%)`,
+        damage: `${weapon.damage.toFixed(2)} (${(player.damageMultiplier * player.projectileDamageMultiplier * 100).toFixed(1)}%)`,
         attackSpeed: `${(player.attackSpeedMultiplier * 100).toFixed(0)}%`,
         armor: player.armor < 0 ? `${player.armor} (+${-player.armor} taken)` : `${player.armor}`,
         ammoCost: `${weapon.pelletCount + player.extraExplosiveProjectiles * EXPLOSIVE_AMMO_COST}`,
         reload: `${(player.reloadTime / player.attackSpeedMultiplier).toFixed(3)}s`,
         projectileSpeed: `${weapon.projectileSpeed.toFixed(0)} / ${weapon.projectileLifetime.toFixed(2)}s`,
         pellets: `${weapon.pelletCount}`,
+        shellSize: `${(player.projectileSizeMultiplier * 100).toFixed(1)}% / ${player.wallBounces}`,
         penetration: `${weapon.penetration}`,
         blast: getRogueExplosionRadiusText(player),
         killHeal: `${player.killHeal}`,
@@ -5410,7 +5514,7 @@ var TankGame = (() => {
     }
   };
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\90-game.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\90-game.js
   var isMobileDevice = detectMobileDevice({
     userAgent: navigator.userAgent,
     platform: navigator.platform,
@@ -6342,7 +6446,7 @@ var TankGame = (() => {
       gameStarted = true;
       const bottomHudEl = document.getElementById("bottom-hud");
       if (bottomHudEl) bottomHudEl.style.display = "grid";
-      if (scenarioId === "roguelike") {
+      if (scenarioId === "roguelite") {
         game = new RogueGame(canvas, gameResources, InputManager);
         loadingScreenEl?.classList.add("hidden");
         const bgm2 = document.getElementById("bgm");
@@ -6451,7 +6555,7 @@ var TankGame = (() => {
       if (e.code === "Digit2") startGame("siege");
       if (e.code === "Digit3") startGame("defense");
       if (e.code === "Digit4") startGame("breakthrough");
-      if (e.code === "Digit5") startGame("roguelike");
+      if (e.code === "Digit5") startGame("roguelite");
       if (e.code === "Enter") startGame(heldScenario ?? "frontline", true);
     });
     for (const button of document.querySelectorAll("[data-scenario]")) {
@@ -6478,7 +6582,7 @@ var TankGame = (() => {
     }
   });
 
-  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\src\js\95-fps.js
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\95-fps.js
   var frameCount = 0;
   var lastTime = performance.now();
   var fpsDisplay = document.getElementById("fps");

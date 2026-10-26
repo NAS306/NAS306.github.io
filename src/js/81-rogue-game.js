@@ -129,7 +129,7 @@ export class RogueGame {
     for (const [key, label] of Object.entries({
       points: 'Points', speed: 'Move speed', damage: 'Damage',
       attackSpeed: 'Fire rate', armor: 'Armor', ammoCost: 'Ammo / volley', reload: 'Reload',
-      projectileSpeed: 'Shell speed / life', pellets: 'Standard shells', penetration: 'Standard pierce', blast: 'Explosion radius', killHeal: 'HP / kill', deathNova: 'Death nova', payload: 'Explosive payload',
+      projectileSpeed: 'Shell speed / life', shellSize: 'Shell size / bounces', pellets: 'Standard shells', penetration: 'Standard pierce', blast: 'Explosion radius', killHeal: 'HP / kill', deathNova: 'Death nova', payload: 'Explosive payload',
     })) {
       const row = document.createElement('div');
       const term = document.createElement('dt');
@@ -248,19 +248,20 @@ export class RogueGame {
     const payload = getRogueExplosivePayload(player);
     const nova = getRogueDeathBlast(player);
     this.el('shade').hidden = false;
-    this.el('title').textContent = state.phase === 'won' ? 'All 10 Rounds Survived!' : state.phase === 'lost' ? 'Run Over' : 'Roguelike Upgrades';
+    this.el('title').textContent = state.phase === 'won' ? 'All 10 Rounds Survived!' : state.phase === 'lost' ? 'Run Over' : 'Roguelite Upgrades';
     this.el('summary').textContent = ended
       ? `${state.kills} kills · ${state.points} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}`
       : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Up to ${config.maxEnemies} enemies · Spawn every ${config.replacementInterval.toFixed(2)}s · Enemy HP ${config.enemyMaxHP} / Damage +${Math.round((config.enemyDamageMultiplier / ROGUE_ENEMY_RULES.damageMultiplier - 1) * 100)}% · Standard ${config.weights.standard}% / Scatter ${config.weights.scatter}% / Heavy ${config.weights.heavy}%`;
     const stats = {
       points: `${state.points}`,
       speed: `${player.speed.toFixed(2)} (${(player.speed / ROGUE_PLAYER_BASE.speed * 100).toFixed(0)}%)`,
-      damage: `${weapon.damage.toFixed(2)} (${(player.damageMultiplier * 100).toFixed(0)}%)`,
+      damage: `${weapon.damage.toFixed(2)} (${(player.damageMultiplier * player.projectileDamageMultiplier * 100).toFixed(1)}%)`,
       attackSpeed: `${(player.attackSpeedMultiplier * 100).toFixed(0)}%`,
       armor: player.armor < 0 ? `${player.armor} (+${-player.armor} taken)` : `${player.armor}`,
       ammoCost: `${weapon.pelletCount + player.extraExplosiveProjectiles * EXPLOSIVE_AMMO_COST}`,
       reload: `${(player.reloadTime / player.attackSpeedMultiplier).toFixed(3)}s`,
       projectileSpeed: `${weapon.projectileSpeed.toFixed(0)} / ${weapon.projectileLifetime.toFixed(2)}s`, pellets: `${weapon.pelletCount}`,
+      shellSize: `${(player.projectileSizeMultiplier * 100).toFixed(1)}% / ${player.wallBounces}`,
       penetration: `${weapon.penetration}`, blast: getRogueExplosionRadiusText(player),
       killHeal: `${player.killHeal}`,
       deathNova: nova ? `${nova.minDamage.toFixed(0)}–${nova.maxDamage.toFixed(0)} / ${nova.radius.toFixed(0)}px` : 'None',

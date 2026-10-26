@@ -7,7 +7,7 @@ export const MODE_CARDS = Object.freeze([
   { id: 'siege', title: 'Siege Attack', tag: 'BREAK THE LINE', accent: '#edac74', description: 'Lead the assault through three fortified defense lines.' },
   { id: 'defense', title: 'Siege Defense', tag: 'HOLD YOUR GROUND', accent: '#87d9cf', description: 'Protect your strongholds. Stop the advancing army.' },
   { id: 'breakthrough', title: 'Breakthrough', tag: 'ALL-OUT ATTRITION', accent: '#b5d787', description: 'Outfight the enemy and drain their reinforcements.' },
-  { id: 'roguelike', title: 'Roguelike', tag: 'ONE TANK. TEN ROUNDS.', accent: '#d4b1ff', description: 'Survive the swarm. Build your tank. Risk everything.' },
+  { id: 'roguelite', title: 'Roguelite', tag: 'ONE TANK. TEN ROUNDS.', accent: '#d4b1ff', description: 'Survive the swarm. Build your tank. Risk everything.' },
 ].map(Object.freeze));
 
 function tank(x, y, angle, team, weapon = 'standard', scale = 1) {

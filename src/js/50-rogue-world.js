@@ -6,6 +6,7 @@ import { RogueCombatEffects } from './43-rogue-effects.js';
 import { ROGUE_PLAYER_BASE, ROGUE_ENEMY_RULES as ENEMY_DIFFICULTY, resolveRoguePlayerWeapon, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast } from './40-rogue-balance.js';
 import { STARTING_AMMO, planAmmoVolley, supplyRoundAmmo } from './20-rogue-ammo.js';
 import { createRogueRunStats, healRoguePlayer } from './22-rogue-stats.js';
+import { traceRogueRicochet } from './45-rogue-projectiles.js';
 
 export class RoguePlayerTank extends Tank {
   constructor(x, y) {
@@ -61,7 +62,7 @@ export function getRogueCameraY(playerY, mapSize, viewportHeight, topReserve = 9
 export class RogueWorld extends World {
   constructor(canvas, resources) {
     super(canvas, false, false, resources, {
-      id: 'roguelike', mode: 'roguelike', playerTeam: 'blue',
+      id: 'roguelite', mode: 'roguelite', playerTeam: 'blue',
       mapDefinition: { worldHeight: canvas.width },
     });
     this.strongholds = [];
@@ -160,9 +161,31 @@ export class RogueWorld extends World {
     if (this.player.deathBlastDamage > 0) this.pendingDeathBlasts.push({ x: tank.x, y: tank.y });
   }
   triggerShake(damage) { this.combatEffects.damage(damage); }
+  handleBulletWallCollision(bullet) {
+    if (bullet.isPlayerBullet && bullet.wallBounceLimit > 0) traceRogueRicochet(bullet, this.bounds);
+    return false;
+  }
+  bulletSegmentIntersectsCircle(bullet, target) {
+    if (!bullet.rogueSegments) return super.bulletSegmentIntersectsCircle(bullet, target);
+    return bullet.rogueSegments.some(segment => super.bulletSegmentIntersectsCircle({ radius: bullet.radius, ...segment }, target));
+  }
+  settleRicochet(bullet, allowDamage) {
+    if (bullet.active && bullet.rogueWallStop) {
+      if (allowDamage && bullet.explosion) {
+        this.causeWeaponExplosion(bullet.x, bullet.y, bullet.team, bullet.explosion, true);
+      }
+      bullet.active = false;
+    }
+    if (bullet.rogueSegments) {
+      bullet.previousX = bullet.x; bullet.previousY = bullet.y;
+      bullet.rogueSegments = null;
+    }
+    bullet.rogueWallStop = false;
+  }
   handleCollisions() {
     const before = this.killcount.player;
     super.handleCollisions();
+    for (const bullet of this.bulletPool.pool) this.settleRicochet(bullet, true);
     const nova = getRogueDeathBlast(this.player);
     // Iteration rather than recursion: each newly killed tank queues one blast.
     // Dead tanks are skipped by the shared damage resolver, bounding a chain
@@ -214,6 +237,11 @@ export class RogueWorld extends World {
       tank.hitFlashRemaining = Math.max(0, tank.hitFlashRemaining - dt);
     }
     this.bulletPool.updateAll(dt);
+    for (const bullet of this.bulletPool.pool) {
+      if (!bullet.active) continue;
+      this.handleBulletWallCollision(bullet);
+      this.settleRicochet(bullet, false);
+    }
     this.explosionPool.updateAll(dt);
     this.combatEffects.update(dt);
   }

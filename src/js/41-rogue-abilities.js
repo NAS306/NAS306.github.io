@@ -1,7 +1,7 @@
 import { ROGUE_PLAYER_BASE, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast, getRogueExplosionRadiusText } from './40-rogue-balance.js';
 import { EXPLOSIVE_AMMO_COST } from './20-rogue-ammo.js';
 
-// All percentages add to base values, including repeat picks and point upgrades.
+// Base percentages add; oversized-shell size/damage factors multiply per pick.
 // Icons are local SVG paths, avoiding font and image dependencies.
 export const ABILITIES = Object.freeze({
   hull: {
@@ -90,6 +90,14 @@ export const ABILITIES = Object.freeze({
     name: 'Explosive Payload', description: '+1 enemy-only explosive shell per volley (10 ammo), but −40% base fire rate. Base blast 15–80 damage, 90px.',
     effects: { extraExplosiveProjectiles: 1, attackSpeed: -0.40 }, icon: 'M8 20V9l4-6 4 6v11Z M8 14h8 M3 5l3 3 M21 5l-3 3 M2 13h3 M19 13h3',
   },
+  ricochet: {
+    name: 'Ricochet Rounds', description: '+1 wall bounce per shell. Repeat picks add bounces; flight time stays the same.',
+    effects: { wallBounces: 1 }, icon: 'M3 3v18 M7 5l10 7L7 19 M14 19H7v-7',
+  },
+  oversized: {
+    name: 'Oversized Rounds', description: 'Shell size and hit radius ×1.5, but shell damage ×0.5 per pick. Also affects explosive payloads, not blast radius.',
+    effects: { projectileSize: 0.5, projectileDamage: -0.5 }, icon: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10 M2 8V2h6 M16 2h6v6 M22 16v6h-6 M8 22H2v-6',
+  },
 });
 
 export function rollAbilityChoices(random = Math.random, owned = []) {
@@ -105,8 +113,13 @@ export function rollAbilityChoices(random = Math.random, owned = []) {
 
 export function calculateRogueStats(levels, owned) {
   const totals = {};
+  let projectileSizeMultiplier = 1, projectileDamageMultiplier = 1;
   for (const id of owned) {
-    for (const [key, value] of Object.entries(ABILITIES[id].effects)) totals[key] = (totals[key] ?? 0) + value;
+    for (const [key, value] of Object.entries(ABILITIES[id].effects)) {
+      if (key === 'projectileSize') projectileSizeMultiplier *= 1 + value;
+      else if (key === 'projectileDamage') projectileDamageMultiplier *= 1 + value;
+      else totals[key] = (totals[key] ?? 0) + value;
+    }
   }
   return {
     maxHP: Math.max(25, ROGUE_PLAYER_BASE.maxHP + (totals.maxHP ?? 0)),
@@ -116,6 +129,9 @@ export function calculateRogueStats(levels, owned) {
     armor: levels.armor * 2 + (totals.armor ?? 0),
     projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)),
     projectileLifetimeMultiplier: 1 + (totals.projectileLifetime ?? 0),
+    projectileSizeMultiplier,
+    projectileDamageMultiplier,
+    wallBounces: totals.wallBounces ?? 0,
     explosionRadiusMultiplier: 1 + (totals.explosionRadius ?? 0),
     extraProjectiles: totals.extraProjectiles ?? 0,
     extraExplosiveProjectiles: totals.extraExplosiveProjectiles ?? 0,
@@ -143,11 +159,13 @@ export function getStatSnapshot(stats) {
   return [
     { key: 'hp', label: 'Max HP', value: stats.maxHP, text: `${stats.maxHP}` },
     { key: 'speed', label: 'Move speed', value: rounded(stats.speed), text: `${rounded(stats.speed)}` },
-    { key: 'damage', label: 'Shell damage', value: `${hitDamage}/${rounded(stats.damageMultiplier)}`, text: `${hitDamage} (${percent(stats.damageMultiplier)})` },
+    { key: 'damage', label: 'Shell damage', value: `${hitDamage}/${rounded(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))}`, text: `${hitDamage} (${percent(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))})` },
     { key: 'attackSpeed', label: 'Fire rate / reload', value: `${rounded(stats.attackSpeedMultiplier)}/${rounded(weapon.reloadTime)}`, text: `${percent(stats.attackSpeedMultiplier)} / ${rounded(weapon.reloadTime)}s` },
     { key: 'armor', label: 'Armor', value: stats.armor, text: stats.armor < 0 ? `${stats.armor} (+${-stats.armor} damage taken)` : `${stats.armor}` },
     { key: 'projectileSpeed', label: 'Shell speed', value: rounded(weapon.projectileSpeed), text: `${rounded(weapon.projectileSpeed)}` },
     { key: 'flightTime', label: 'Shell flight time', value: rounded(weapon.projectileLifetime), text: `${rounded(weapon.projectileLifetime)}s` },
+    { key: 'shellSize', label: 'Shell size', value: stats.projectileSizeMultiplier ?? 1, text: percent(stats.projectileSizeMultiplier ?? 1) },
+    { key: 'wallBounces', label: 'Wall bounces', value: stats.wallBounces ?? 0, text: `${stats.wallBounces ?? 0}` },
     { key: 'penetration', label: 'Standard pierce', value: weapon.penetration, text: `${weapon.penetration}` },
     { key: 'pellets', label: 'Shells / ammo per volley', value: volley, text: volley },
     { key: 'blast', label: 'Explosion radius', value: blastRadius, text: blastRadius },

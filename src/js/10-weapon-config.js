@@ -145,7 +145,7 @@ export function validateWeaponProfile(profile) {
 
 // Used by combat and UI previews so displayed values match the fired projectiles.
 export function getModifiedWeaponProfile(profile, modifiers = {}) {
-  const damage = modifiers.damageMultiplier ?? 1;
+  const damage = (modifiers.damageMultiplier ?? 1) * (modifiers.projectileDamageMultiplier ?? 1);
   const speed = modifiers.projectileSpeedMultiplier ?? 1;
   const lifetime = modifiers.projectileLifetimeMultiplier ?? 1;
   const blast = modifiers.explosionRadiusMultiplier ?? 1;
@@ -155,6 +155,8 @@ export function getModifiedWeaponProfile(profile, modifiers = {}) {
     damage: profile.damage * damage,
     reloadTime: profile.reloadTime / (modifiers.attackSpeedMultiplier ?? 1),
     projectileSpeed: profile.projectileSpeed * speed,
+    projectileRadius: profile.projectileRadius * (modifiers.projectileSizeMultiplier ?? 1),
+    wallBounces: modifiers.wallBounces ?? 0,
     fireRange: profile.fireRange * speed * lifetime,
     projectileLifetime: profile.projectileLifetime * lifetime,
     pelletCount: profile.pelletCount + extra,

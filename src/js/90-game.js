@@ -1014,7 +1014,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     gameStarted = true;
     const bottomHudEl = document.getElementById("bottom-hud");
     if (bottomHudEl) bottomHudEl.style.display = "grid";
-    if (scenarioId === "roguelike") {
+    if (scenarioId === "roguelite") {
       game = new RogueGame(canvas, gameResources, InputManager);
       loadingScreenEl?.classList.add("hidden");
       const bgm = document.getElementById("bgm");
@@ -1121,7 +1121,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (e.code === "Digit2") startGame("siege");
     if (e.code === "Digit3") startGame("defense");
     if (e.code === "Digit4") startGame("breakthrough");
-    if (e.code === "Digit5") startGame("roguelike");
+    if (e.code === "Digit5") startGame("roguelite");
     if (e.code === "Enter") startGame(heldScenario ?? "frontline", true);
   });
 

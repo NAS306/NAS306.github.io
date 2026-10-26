@@ -79,6 +79,7 @@ export class Bullet {
     penRate,
     isTurretSpecial,
     explosion,
+    wallBounces,
   }) {
     this.active = true;
     this.x = x;
@@ -96,6 +97,9 @@ export class Bullet {
     this.penRate = penRate;
     this.isTurretSpecial = isTurretSpecial ?? false;
     this.explosion = explosion ?? null;
+    this.wallBounceLimit = this.wallBouncesRemaining = wallBounces ?? 0;
+    this.rogueSegments = null;
+    this.rogueWallStop = false;
     this.hitTargets.clear();
     const spriteKey = this.isPlayerBullet ? "player" : this.team;
     if (Bullet.spriteCache[spriteKey]) {
@@ -426,6 +430,7 @@ export class Tank {
         lifetime: weapon.projectileLifetime,
         penRate: weapon.penetration,
         explosion: weapon.explosion,
+        wallBounces: weapon.wallBounces,
       });
     }
   }

@@ -17,8 +17,8 @@ function worldWith(abilities = []) {
 }
 const input = { keys: {}, mouse: { canvasX: 600, canvasY: 325, down: false } };
 
-test('twenty-one named abilities have descriptions, local icons and distinct three-card offers', () => {
-  assert.equal(Object.keys(ABILITIES).length, 21);
+test('twenty-three named abilities have descriptions, local icons and distinct three-card offers', () => {
+  assert.equal(Object.keys(ABILITIES).length, 23);
   for (const id of Object.keys(ABILITIES)) {
     assert.ok(ABILITIES[id].description.length > 10);
     assert.match(abilityIcon(id), /<svg/);

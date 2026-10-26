@@ -21,14 +21,15 @@ function projectile(world, target, extra = {}) {
   world.bulletPool.spawn({ x: target.x, y: target.y, vx: 0, vy: 0, team: 'blue', isPlayerBullet: true, damage: 40, radius: 3, lifetime: 1, penRate: 1, ...extra });
 }
 
-test('all twenty-one cards have both a benefit and a drawback and can appear with an explosion source', () => {
+test('all cards have benefits, tradeoffs where specified, and can appear with an explosion source', () => {
   for (const id of Object.keys(ABILITIES)) {
     const effects = Object.values(ABILITIES[id].effects);
     assert.ok(effects.some(value => value > 0), `${id} benefit`);
-    assert.ok(effects.some(value => value < 0), `${id} drawback`);
+    if (id !== 'ricochet') assert.ok(effects.some(value => value < 0), `${id} drawback`);
   }
   const offered = new Set();
-  for (let i = 0; i < 21; i++) offered.add(rollAbilityChoices(() => i / 21, ['explosive'])[0]);
+  const count = Object.keys(ABILITIES).length;
+  for (let i = 0; i < count; i++) offered.add(rollAbilityChoices(() => (i + 0.5) / count, ['explosive'])[0]);
   assert.deepEqual(offered, new Set(Object.keys(ABILITIES)));
 });
 

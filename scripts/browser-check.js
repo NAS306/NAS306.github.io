@@ -17,6 +17,7 @@ try {
   await page.goto(pathToFileURL(resolve('dist/app.html')).href);
   await page.locator('#loading-screen.is-ready').waitFor();
   assert.equal(await page.locator('[data-scenario]').count(), 5);
+  assert.equal(await page.locator('[data-scenario="roguelite"] .mode-name').innerText(), 'Roguelite');
   await page.screenshot({ path: '.qa/mode-select-desktop.png', fullPage: true });
   for (const mode of ['frontline', 'siege', 'defense', 'breakthrough']) {
     await page.locator(`[data-scenario="${mode}"]`).click();
@@ -24,7 +25,7 @@ try {
     await page.evaluate(() => window.TankGame.returnToModeSelection());
     await page.locator('#loading-screen.is-ready:not(.hidden)').waitFor();
   }
-  await page.locator('[data-scenario="roguelike"]').click();
+  await page.locator('[data-scenario="roguelite"]').click();
   await page.locator('#rogue-ui').waitFor();
   assert.equal(await page.locator('#rogue-shade').evaluate(element => element.hidden), true);
   assert.equal(await page.locator('#rogue-dice-overlay').evaluate(element => element.hidden), true);
@@ -58,7 +59,7 @@ try {
   await page.evaluate(() => window.TankGame.returnToModeSelection());
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: '.qa/mode-select-mobile.png', fullPage: true });
-  await page.locator('[data-scenario="roguelike"]').scrollIntoViewIfNeeded();
+  await page.locator('[data-scenario="roguelite"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: '.qa/mode-select-mobile-bottom.png' });
   const horizontalOverflow = await page.evaluate(() => document.querySelector('#loading-screen').scrollWidth > innerWidth);
   assert.equal(horizontalOverflow, false);
@@ -71,7 +72,41 @@ try {
   await runPage.setViewportSize({ width: 1440, height: 900 });
   await runPage.setContent(html.replace(hook, `${hook}\nwindow.__qaRogue = this;`));
   await runPage.locator('#loading-screen.is-ready').waitFor();
-  await runPage.locator('[data-scenario="roguelike"]').click();
+  await runPage.locator('[data-scenario="roguelite"]').click();
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue;
+    cancelAnimationFrame(game.animationFrameId);
+    game.state.tick(40, game.world.player.hp);
+    game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+    game.state.abilityChoices = ['ricochet', 'oversized', 'hull']; game.renderPanel();
+  });
+  assert.equal(await runPage.locator('#rogue-title').innerText(), 'Roguelite Upgrades');
+  assert.match(await runPage.locator('[data-ability="ricochet"]').innerText(), /Wall bounces.*0.*1/s);
+  assert.match(await runPage.locator('[data-ability="oversized"]').innerText(), /100%.*150%/s);
+  await runPage.screenshot({ path: '.qa/roguelite-new-abilities.png' });
+  await runPage.locator('[data-ability="oversized"]').click();
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.projectileSizeMultiplier), 1.5);
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue;
+    game.state.rollDice(() => 5.5 / 7); game.state.startRound(); game.world.startRound(2);
+    game.state.tick(40, game.world.player.hp);
+    game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+    game.state.abilityChoices = ['ricochet', 'oversized', 'explosive']; game.renderPanel();
+  });
+  await runPage.locator('[data-ability="ricochet"]').click();
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.statValues.shellSize.textContent), '150.0% / 1');
+  await runPage.screenshot({ path: '.qa/roguelite-stacked-abilities.png' });
+  const bounced = await runPage.evaluate(() => {
+    const game = window.__qaRogue, player = game.world.player;
+    game.world.tanks = [player]; game.world.bulletPool.reset();
+    player.x = game.world.bounds.maxX - 25; player.y = 400;
+    player.turretAngle = 0; player.fireCooldown = 0; player.tryShoot(game.world);
+    const bullet = game.world.bulletPool.pool.find(item => item.active);
+    game.world.bulletPool.updateAll(.05); game.world.handleCollisions();
+    return { active: bullet.active, reflected: bullet.vx < 0, bounces: bullet.wallBouncesRemaining, radius: bullet.radius, damage: bullet.damage };
+  });
+  assert.deepEqual(bounced, { active: true, reflected: true, bounces: 0, radius: 4.5, damage: 20 });
+  await runPage.evaluate(() => window.__qaRogue.resetRun());
   const fullRun = await runPage.evaluate(() => {
     const game = window.__qaRogue;
     cancelAnimationFrame(game.animationFrameId);
@@ -116,5 +151,5 @@ try {
   assert.deepEqual(fresh, { rounds: 0, metric: 'kills', totals: true });
   await runPage.close();
   assert.deepEqual(errors, []); assert.deepEqual(externalRequests, []);
-  console.log('Offline Edge check passed: all five modes, immediate first combat, persistent totals, every round-chart metric, keyboard navigation, manual return, narrow layout, ten-round victory charts, centered starts and fresh-run reset.');
+  console.log('Offline Edge check passed: all five modes, Roguelite naming, new ability cards and selection, oversized-shell ricochet, immediate first combat, persistent totals, every round-chart metric, keyboard navigation, manual return, narrow layout, ten-round victory charts, centered starts and fresh-run reset.');
 } finally { await browser.close(); }

@@ -21,7 +21,7 @@ class Element extends EventTarget {
 }
 
 test('all modes return to a ready selector without reloading assets or leaving music timers', async () => {
-  const modes = ['frontline', 'siege', 'defense', 'breakthrough', 'roguelike'];
+  const modes = ['frontline', 'siege', 'defense', 'breakthrough', 'roguelite'];
   const buttons = modes.map(mode => { const button = new Element(); button.dataset.scenario = mode; return button; });
   const elements = new Map();
   const element = id => {
