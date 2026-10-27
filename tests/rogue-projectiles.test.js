@@ -53,14 +53,14 @@ test('reflected hit tests follow outbound and returning legs without a false dia
   assert.equal(world.bulletSegmentIntersectsCircle(bullet, { x: 78, y: 40, radius: 0 }), false);
 });
 
-test('both shell types receive repeated size, damage and bounce effects without changing blast size or nova damage', () => {
+test('both shell types receive repeated size, speed and bounce effects without changing blast size or nova damage', () => {
   const { world, state, player } = fixture(['oversized', 'oversized', 'ricochet', 'ricochet', 'explosive', 'splitter', 'glass', 'volatile']);
   state.levels.damage = 3; state.applyStats(player);
   const regular = getRoguePlayerWeapon(player), payload = getRogueExplosivePayload(player);
-  assert.equal(player.projectileSizeMultiplier, 2.25); assert.equal(player.projectileDamageMultiplier, .25);
-  assert.equal(regular.damage, 40 * player.damageMultiplier * .25);
-  assert.equal(payload.explosion.maxDamage, 80 * player.damageMultiplier * .25);
-  assert.equal(payload.explosion.radius, 90); assert.equal(payload.projectileRadius, 6 * 2.25);
+  assert.equal(player.projectileSizeMultiplier, 4); assert.ok(Math.abs(player.projectileSpeedMultiplier - .49) < 1e-10);
+  assert.equal(regular.damage, 40 * player.damageMultiplier);
+  assert.equal(payload.explosion.maxDamage, 80 * player.damageMultiplier);
+  assert.equal(payload.explosion.radius, 90); assert.equal(payload.projectileRadius, 6 * 4);
   assert.equal(getRogueDeathBlast(player).maxDamage, 40 * player.damageMultiplier);
   player.tryShoot(world);
   const shells = world.bulletPool.pool.filter(bullet => bullet.active);
@@ -87,11 +87,11 @@ test('larger shells really hit a wider target and render at the same increased s
   const baseRadius = getRoguePlayerWeapon({}).projectileRadius;
   const target = new Tank(bullet.x + 10, bullet.y + 11 + baseRadius * 1.25, 'red');
   world.tanks.push(target); world.bulletPool.updateAll(1 / 30); world.handleCollisions();
-  assert.equal(target.hp, 105);
+  assert.equal(target.hp, 85);
   bullet.active = true; bullet.sprite = {};
   let drawnSize;
   bullet.draw({ save() {}, restore() {}, translate() {}, rotate() {}, drawImage(...args) { drawnSize = args[3]; } }, { x: 0, y: 0 });
-  assert.equal(drawnSize, baseRadius * 1.5 * 16);
+  assert.equal(drawnSize, baseRadius * 2 * 16);
 });
 
 test('wall contacts keep hit processing active, explode only when spent, and freeze damage after a round', () => {

@@ -1,7 +1,7 @@
 import { createShopState } from './helpers/rogue-shop.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ABILITIES, calculateRogueStats, previewAbility, rollAbilityChoices } from '../src/js/41-rogue-abilities.js';
+import { ABILITIES, calculateRogueStats, previewAbility, rollAbilityChoices, abilityRarity } from '../src/js/41-rogue-abilities.js';
 import { getRogueDeathBlast } from '../src/js/40-rogue-balance.js';
 import { RogueState } from '../src/js/42-rogue-state.js';
 import { RogueWorld } from '../src/js/50-rogue-world.js';
@@ -23,13 +23,18 @@ function projectile(world, target, extra = {}) {
 
 test('all cards have benefits, tradeoffs where specified, and can appear with an explosion source', () => {
   for (const id of Object.keys(ABILITIES)) {
+    if (ABILITIES[id].action) continue;
     const effects = Object.values(ABILITIES[id].effects);
     assert.ok(effects.some(value => value > 0), `${id} benefit`);
-    if (id !== 'ricochet') assert.ok(effects.some(value => value < 0), `${id} drawback`);
+    if (!['ricochet', 'shield', 'bargain'].includes(id)) assert.ok(effects.some(value => value < 0), `${id} drawback`);
   }
   const offered = new Set();
-  const count = Object.keys(ABILITIES).length;
-  for (let i = 0; i < count; i++) offered.add(rollAbilityChoices(() => (i + 0.5) / count, ['explosive'])[0]);
+  for (const [rarity, sample] of [['common', .3], ['rare', .75], ['legendary', .95]]) {
+    const count = Object.keys(ABILITIES).filter(id => abilityRarity(id) === rarity).length;
+    for (let i = 0; i < count; i++) {
+      let calls = 0; offered.add(rollAbilityChoices(() => calls++ % 2 === 0 ? sample : (i + .5) / count, ['explosive'])[0]);
+    }
+  }
   assert.deepEqual(offered, new Set(Object.keys(ABILITIES)));
 });
 
@@ -154,7 +159,7 @@ test('extreme tradeoff stacks stay finite with safe HP and shell-speed floors an
   const stats = calculateRogueStats(new RogueState().levels, [...Array(30).fill('slowOrb'), ...Array(30).fill('glass'), ...Array(30).fill('siege')]);
   assert.equal(stats.maxHP, 25); assert.equal(stats.projectileSpeedMultiplier, .2);
   assert.ok(stats.attackSpeedMultiplier >= .25);
-  assert.ok(Object.values(stats).every(Number.isFinite));
+  assert.ok(Object.entries(stats).every(([key, value]) => key === 'pointsCap' ? value === Infinity : typeof value === 'boolean' || Number.isFinite(value)));
   const team = new Tank(0, 0, 'blue', true);
   assert.equal(getModifiedWeaponProfile(team.weapon, team).projectileLifetime, 1.5);
   assert.equal(getRogueDeathBlast(team), null);

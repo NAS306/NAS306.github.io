@@ -632,7 +632,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 .rogue-stats dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; }
 .rogue-stats-panel h3 { font-size: 16px; line-height: 1.2; margin: 6px 0 4px; }
 .rogue-panel .rogue-stat-note { font-size: 13px; line-height: 1.3; margin: 7px 0 0; }
-.rogue-owned { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: 26px; align-content: start; gap: 4px; min-width: 0; border: 1px dashed #304359; border-radius: 4px; padding: 5px; }
+.rogue-owned { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: 26px; align-content: start; gap: 4px; min-width: 0; overflow-y: auto; border: 1px dashed #304359; border-radius: 4px; padding: 5px; }
 .rogue-owned:empty { min-height: 20px; }
 .rogue-owned-ability { display: flex; gap: 3px; align-items: center; justify-content: center; min-width: 0; font-size: 13px; }
 .rogue-owned-ability svg { flex-shrink: 0; width: 22px; height: 22px; color: #87dbef; }
@@ -646,7 +646,14 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 #rogue-upgrades button { display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; gap: 4px; min-width: 0; min-height: 0; padding: 7px 4px; text-align: center; font-size: 18px; }
 #rogue-upgrades small { display: block; color: #b1c5d9; font-size: 14px; line-height: 1.25; margin-top: 4px; }
 .rogue-price { font-size: 15px; color: #ffdc94; }
-.rogue-ability-grid { grid-area: abilities; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; min-height: 0; }
+.rogue-ability-grid { grid-area: abilities; position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; min-height: 0; }
+.rogue-ability[data-rarity="common"] .rogue-ability-status { color: #c4d0dc; }
+.rogue-ability[data-rarity="rare"] .rogue-ability-status, .rogue-owned-ability[data-rarity="rare"] svg { color: #85cdff; }
+.rogue-ability[data-rarity="legendary"] .rogue-ability-status, .rogue-owned-ability[data-rarity="legendary"] svg { color: #ffcf70; }
+#rogue-ui .rogue-ability[data-rarity="legendary"] { border-color: #b58b43; }
+.rogue-recalibration { position: absolute; inset: 0; z-index: 2; background: #0c1725; border: 1px solid #85cdff; border-radius: 4px; padding: 14px; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; }
+.rogue-removal-targets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; align-content: start; overflow-y: auto; }
+#rogue-ui .rogue-removal-targets button { text-align: left; font-size: 15px; }
 #rogue-ui .rogue-ability { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; text-align: left; padding: 12px; border: 1px solid #7292ac; border-radius: 4px; background: #0c1725; }
 .rogue-ability h2 { margin: 7px 0 5px; font-size: 21px; }
 .rogue-ability-icon { align-self: center; color: #87dbef; }
@@ -711,7 +718,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 .chart-line { fill: none; stroke: #87dbef; stroke-width: 3; stroke-linejoin: round; }
 .chart-point { fill: #c8ffe7; stroke: #0c1725; stroke-width: 2; }
 .chart-lost { fill: #ff8383; stroke: #0c1725; stroke-width: 2; }
-.rogue-chart-values { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.rogue-chart-values { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; max-height: 150px; overflow-y: auto; }
 .rogue-chart-values > div { padding: 6px 2px; border: 1px solid #294158; border-radius: 4px; text-align: center; }
 .rogue-chart-values dt { font-size: 13px; color: #a8bdd0; }
 .rogue-chart-values dd { margin: 3px 0 0; font-size: 17px; color: #a3e8f7; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -992,7 +999,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
   </svg><span class="mode-number">04</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
     <span class="mode-copy"><span class="mode-tag">ALL-OUT ATTRITION</span><span class="mode-name">Breakthrough</span><span class="mode-description">Outfight the enemy and drain their reinforcements.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button>
-<button class="scenario-button" data-scenario="roguelite" style="--mode-accent:#d4b1ff" aria-label="5. Roguelite. Survive the swarm. Build your tank. Risk everything.">
+<button class="scenario-button" data-scenario="roguelite" style="--mode-accent:#d4b1ff" aria-label="5. Roguelite. Survive 30 rounds. Choose your powers. Balance the risk.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
     <defs><radialGradient id="glow-roguelite"><stop stop-color="#d4b1ff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><pattern id="grid-roguelite" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" stroke="#444" stroke-opacity=".45"/></pattern></defs>
     <path fill="#03060a" d="M0 0h420v430H0z"/><path fill="url(#grid-roguelite)" d="M0 0h420v430H0z"/>
@@ -1034,7 +1041,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="m243 158 18-31m-84 160-15 28" stroke="#ffe600" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#d4b1ff" stroke-opacity=".4"/>
   </svg><span class="mode-number">05</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">ONE TANK. TEN ROUNDS.</span><span class="mode-name">Roguelite</span><span class="mode-description">Survive the swarm. Build your tank. Risk everything.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag">ONE TANK. THIRTY ROUNDS.</span><span class="mode-name">Roguelite</span><span class="mode-description">Survive 30 rounds. Choose your powers. Balance the risk.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button>
         </div>
         <div class="selector-bottomline"><span><kbd>1—5</kbd> QUICK SELECT <span aria-hidden="true">&nbsp; / &nbsp;</span> WASD + MOUSE TO PLAY</span><span>Hold a team mode card + ENTER for Super Mode.</span></div>
@@ -1352,7 +1359,7 @@ var TankGame = (() => {
     return profile;
   }
   function getModifiedWeaponProfile(profile, modifiers = {}) {
-    const damage = (modifiers.damageMultiplier ?? 1) * (modifiers.projectileDamageMultiplier ?? 1);
+    const damage = modifiers.damageMultiplier ?? 1;
     const speed = modifiers.projectileSpeedMultiplier ?? 1;
     const lifetime = modifiers.projectileLifetimeMultiplier ?? 1;
     const blast = modifiers.explosionRadiusMultiplier ?? 1;
@@ -1712,21 +1719,13 @@ var TankGame = (() => {
     return restored;
   }
   var ROGUE_RUN_METRICS = Object.freeze([
-    { key: "kills", label: "Enemy tanks destroyed" },
+    { key: "kills", label: "Kills" },
     { key: "damageTaken", label: "Damage taken" },
     { key: "damageDealt", label: "Damage dealt" },
-    { key: "healing", label: "HP restored" },
-    { key: "ammoSpent", label: "Ammo spent" },
-    { key: "pointsEarned", label: "Total points earned" },
-    { key: "ammoPerKill", label: "Ammo per kill", decimals: 2 }
+    { key: "pointsEarned", label: "Points earned" }
   ]);
   function getRogueRunMetricValues(state, stats) {
-    return {
-      ...stats,
-      kills: state.kills,
-      pointsEarned: state.pointsEarned,
-      ammoPerKill: state.kills > 0 ? stats.ammoSpent / state.kills : null
-    };
+    return { kills: state.kills, damageTaken: stats.damageTaken, damageDealt: stats.damageDealt, pointsEarned: state.pointsEarned };
   }
   function formatRogueMetric(value, decimals = 1) {
     if (value === null) return "—";
@@ -4213,27 +4212,97 @@ var TankGame = (() => {
     },
     oversized: {
       name: "Oversized Rounds",
-      description: "Shell size and hit radius ×1.5, but shell damage ×0.5 per pick. Also affects explosive payloads, not blast radius.",
-      effects: { projectileSize: 0.5, projectileDamage: -0.5 },
+      description: "Shell size ×2 and shell speed ×0.7 per level. Damage unchanged. Maximum level 3.",
+      maxLevel: 3,
+      effects: { projectileSize: 1, shellSpeedFactor: -0.3 },
       icon: "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10 M2 8V2h6 M16 2h6v6 M22 16v6h-6 M8 22H2v-6"
+    },
+    recalibrate: {
+      name: "Recalibration",
+      description: "Choose an owned ability to lose one level. Its benefits and penalties are recalculated. Used immediately.",
+      action: "remove",
+      effects: {},
+      icon: "M4 7h12l-4-4 M20 17H8l4 4 M4 7v5 M20 17v-5"
+    },
+    bargain: {
+      name: "Devil’s Bargain",
+      description: "Points earned ×2, but damage taken ×2 per level. Maximum level 3.",
+      maxLevel: 3,
+      effects: { pointFactor: 1, incomingDamageFactor: 1 },
+      icon: "M4 3l4 5h8l4-5v12l-8 7-8-7Z M8 12h1 M15 12h1"
+    },
+    dividends: {
+      name: "Round Dividend",
+      description: "Each cleared round grants round ×200 points per level. Your points are capped at 10,000.",
+      effects: { roundIncome: 200, pointsCap: -1 },
+      icon: "M3 8h18 M6 8v12 M12 8v12 M18 8v12 M3 21h18 M12 2 2 7h20Z"
+    },
+    shield: {
+      name: "Pulse Shield",
+      description: "Block all damage for 1 second every 3 combat seconds. First shield at 3 seconds. Maximum level 1.",
+      maxLevel: 1,
+      effects: { pulseShield: 1 },
+      icon: "M4 5l8-3 8 3v7c0 5-8 10-8 10S4 17 4 12Z M12 6v12 M8 12h8"
+    },
+    lightHull: {
+      name: "Light Chassis",
+      description: "+25% base move speed, but −25 max HP. No instant healing.",
+      effects: { speed: 0.25, maxHP: -25 },
+      icon: "M4 17l4-10h8l4 10Z M2 12h5 M17 12h5 M9 20h6"
+    },
+    heavyAmmo: {
+      name: "Dense Ammunition",
+      description: "+80% base damage, but −25% base shell speed.",
+      effects: { damage: 0.8, projectileSpeed: -0.25 },
+      icon: "M7 21V9l5-7 5 7v12Z M7 12h10 M7 17h10"
+    },
+    overdrive: {
+      name: "Overdrive Matrix",
+      description: "+150% base fire rate and +75% base damage, but −35% base move speed.",
+      effects: { attackSpeed: 1.5, damage: 0.75, speed: -0.35 },
+      icon: "M12 2 4 13h6l-1 9 11-13h-7Z M3 3l3 3 M18 18l3 3"
     }
   });
+  var RARITIES = Object.freeze({
+    common: { name: "Common", chance: 0.6 },
+    rare: { name: "Rare", chance: 0.3 },
+    legendary: { name: "Legendary", chance: 0.1 }
+  });
+  var RARE = /* @__PURE__ */ new Set(["overcharge", "piercing", "splitter", "ballistics", "blast", "recycler", "blood", "rail", "slowOrb", "warhead", "siege", "oversized", "bargain", "heavyAmmo"]);
+  var LEGENDARY = /* @__PURE__ */ new Set(["glass", "storm", "reactor", "juggernaut", "volatile", "explosive", "dividends", "shield", "overdrive"]);
+  function abilityRarity(id) {
+    return LEGENDARY.has(id) ? "legendary" : RARE.has(id) ? "rare" : "common";
+  }
+  function canOfferAbility(id, owned) {
+    const ability = ABILITIES[id];
+    if (!ability) return false;
+    if (ability.action) return owned.length > 0;
+    if (owned.filter((item) => item === id).length >= (ability.maxLevel ?? Infinity)) return false;
+    return !ability.requiresExplosion || owned.includes("explosive") || owned.includes("volatile");
+  }
+  function rollAbilityRarity(sample) {
+    return sample < RARITIES.common.chance ? "common" : sample < RARITIES.common.chance + RARITIES.rare.chance ? "rare" : "legendary";
+  }
   function rollAbilityChoices(random = Math.random, owned = []) {
-    const hasExplosion = owned.includes("explosive") || owned.includes("volatile");
-    const ids = Object.keys(ABILITIES).filter((id) => !ABILITIES[id].requiresExplosion || hasExplosion);
+    const ids = Object.keys(ABILITIES).filter((id) => canOfferAbility(id, owned));
+    const choices = [];
     for (let i = 0; i < 3; i++) {
-      const j = i + Math.min(ids.length - i - 1, Math.floor(random() * (ids.length - i)));
-      [ids[i], ids[j]] = [ids[j], ids[i]];
+      const rarity = rollAbilityRarity(random());
+      const pool = ids.filter((id) => abilityRarity(id) === rarity && !choices.includes(id));
+      const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
+      choices.push(pool[index]);
     }
-    return ids.slice(0, 3);
+    return choices;
   }
   function calculateRogueStats(levels, owned) {
     const totals = {};
-    let projectileSizeMultiplier = 1, projectileDamageMultiplier = 1;
+    let projectileSizeMultiplier = 1, shellSpeedMultiplier = 1, pointMultiplier = 1, incomingDamageMultiplier = 1;
     for (const id of owned) {
       for (const [key, value] of Object.entries(ABILITIES[id].effects)) {
         if (key === "projectileSize") projectileSizeMultiplier *= 1 + value;
-        else if (key === "projectileDamage") projectileDamageMultiplier *= 1 + value;
+        else if (key === "shellSpeedFactor") shellSpeedMultiplier *= 1 + value;
+        else if (key === "pointFactor") pointMultiplier *= 1 + value;
+        else if (key === "incomingDamageFactor") incomingDamageMultiplier *= 1 + value;
         else totals[key] = (totals[key] ?? 0) + value;
       }
     }
@@ -4243,10 +4312,14 @@ var TankGame = (() => {
       damageMultiplier: Math.max(0.2, 1 + levels.damage * 0.03 + (totals.damage ?? 0)),
       attackSpeedMultiplier: Math.max(0.25, 1 + levels.attackSpeed * 0.03 + (totals.attackSpeed ?? 0)),
       armor: levels.armor * 2 + (totals.armor ?? 0),
-      projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)),
+      projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)) * shellSpeedMultiplier,
       projectileLifetimeMultiplier: 1 + (totals.projectileLifetime ?? 0),
       projectileSizeMultiplier,
-      projectileDamageMultiplier,
+      pointMultiplier,
+      incomingDamageMultiplier,
+      roundIncome: totals.roundIncome ?? 0,
+      pointsCap: totals.pointsCap ? 1e4 : Infinity,
+      pulseShield: (totals.pulseShield ?? 0) > 0,
       wallBounces: totals.wallBounces ?? 0,
       explosionRadiusMultiplier: 1 + (totals.explosionRadius ?? 0),
       extraProjectiles: totals.extraProjectiles ?? 0,
@@ -4273,7 +4346,7 @@ var TankGame = (() => {
     return [
       { key: "hp", label: "Max HP", value: stats.maxHP, text: `${stats.maxHP}` },
       { key: "speed", label: "Move speed", value: rounded(stats.speed), text: `${rounded(stats.speed)}` },
-      { key: "damage", label: "Shell damage", value: `${hitDamage}/${rounded(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))}`, text: `${hitDamage} (${percent(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))})` },
+      { key: "damage", label: "Shell damage", value: `${hitDamage}/${rounded(stats.damageMultiplier)}`, text: `${hitDamage}` },
       { key: "attackSpeed", label: "Fire rate / reload", value: `${rounded(stats.attackSpeedMultiplier)}/${rounded(weapon.reloadTime)}`, text: `${percent(stats.attackSpeedMultiplier)} / ${rounded(weapon.reloadTime)}s` },
       { key: "armor", label: "Armor", value: stats.armor, text: stats.armor < 0 ? `${stats.armor} (+${-stats.armor} damage taken)` : `${stats.armor}` },
       { key: "projectileSpeed", label: "Shell speed", value: rounded(weapon.projectileSpeed), text: `${rounded(weapon.projectileSpeed)}` },
@@ -4284,7 +4357,12 @@ var TankGame = (() => {
       { key: "pellets", label: "Shells / ammo per volley", value: volley, text: volley },
       { key: "blast", label: "Explosion radius", value: blastRadius, text: blastRadius },
       { key: "heal", label: "HP per kill", value: stats.killHeal, text: `${stats.killHeal}` },
-      { key: "deathNova", label: "Death nova damage / radius", value: nova ? `${rounded(nova.minDamage)}–${rounded(nova.maxDamage)} / ${rounded(nova.radius)}px` : "None", text: nova ? `${rounded(nova.minDamage)}–${rounded(nova.maxDamage)} / ${rounded(nova.radius)}px` : "None" }
+      { key: "deathNova", label: "Death nova damage / radius", value: nova ? `${rounded(nova.minDamage)}–${rounded(nova.maxDamage)} / ${rounded(nova.radius)}px` : "None", text: nova ? `${rounded(nova.minDamage)}–${rounded(nova.maxDamage)} / ${rounded(nova.radius)}px` : "None" },
+      { key: "points", label: "Points earned", value: stats.pointMultiplier ?? 1, text: `×${stats.pointMultiplier ?? 1}` },
+      { key: "incomingDamage", label: "Damage taken", value: stats.incomingDamageMultiplier ?? 1, text: `×${stats.incomingDamageMultiplier ?? 1}` },
+      { key: "roundIncome", label: "Round income", value: stats.roundIncome ?? 0, text: `Round ×${stats.roundIncome ?? 0}` },
+      { key: "pointsCap", label: "Point limit", value: stats.pointsCap ?? Infinity, text: Number.isFinite(stats.pointsCap) ? `${stats.pointsCap}` : "Unlimited" },
+      { key: "shield", label: "Pulse shield", value: !!stats.pulseShield, text: stats.pulseShield ? "1s every 3s" : "None" }
     ];
   }
   function previewAbility(levels, owned, id) {
@@ -4300,7 +4378,7 @@ var TankGame = (() => {
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\42-rogue-state.js
   var ROUND_SECONDS = 40;
-  var ROUND_COUNT = 10;
+  var ROUND_COUNT = 30;
   var KILL_POINTS = 4;
   var UPGRADES = Object.freeze({
     heal: { name: "Repair", description: "Restore all HP" },
@@ -4323,9 +4401,10 @@ var TankGame = (() => {
   ];
   function getRoundConfig(round, enemyDiceBonuses = {}) {
     if (!Number.isInteger(round) || round < 1 || round > ROUND_COUNT) {
-      throw new RangeError("Round must be between 1 and 10");
+      throw new RangeError(`Round must be between 1 and ${ROUND_COUNT}`);
     }
-    const [standard, scatter, heavy] = MIXES[round - 1];
+    const mixIndex = round <= 10 ? round - 1 : 7 + (round - 11) % 3;
+    const [standard, scatter, heavy] = MIXES[mixIndex];
     return { ...getRogueEnemyScaling(round, ROUND_COUNT, enemyDiceBonuses), weights: { standard, scatter, heavy } };
   }
   var RogueState = class {
@@ -4339,6 +4418,9 @@ var TankGame = (() => {
       this.abilities = [];
       this.abilityChoices = [];
       this.selectedAbility = null;
+      this.pendingRemoval = false;
+      this.removedAbility = null;
+      this.abilitiesBeforeChoice = null;
       this.enemyDiceBonuses = createEnemyDiceBonuses();
       this.diceResult = null;
       this.diceRolled = false;
@@ -4348,13 +4430,30 @@ var TankGame = (() => {
       return Object.hasOwn(UPGRADES, key) ? 5 + this.levels[key] * 2 : Infinity;
     }
     applyStats(player) {
-      Object.assign(player, calculateRogueStats(this.levels, this.abilities));
+      const stats = calculateRogueStats(this.levels, this.abilities);
+      Object.assign(player, stats);
       player.hp = Math.min(player.hp, player.maxHP);
+      this.points = Math.min(this.points, stats.pointsCap);
     }
     chooseAbility(id, player) {
-      if (this.phase !== "shop" || this.selectedAbility !== null || !Object.hasOwn(ABILITIES, id) || !this.abilityChoices.includes(id)) return false;
-      this.abilities.push(id);
+      if (this.phase !== "shop" || this.diceRolled || this.selectedAbility !== null || !this.abilityChoices.includes(id) || !canOfferAbility(id, this.abilities)) return false;
+      this.abilitiesBeforeChoice = [...this.abilities];
       this.selectedAbility = id;
+      if (ABILITIES[id].action === "remove") {
+        this.pendingRemoval = true;
+        return true;
+      }
+      this.abilities.push(id);
+      this.applyStats(player);
+      return true;
+    }
+    removeAbility(id, player) {
+      if (this.phase !== "shop" || this.diceRolled || !this.pendingRemoval) return false;
+      const index = this.abilities.lastIndexOf(id);
+      if (index < 0) return false;
+      this.abilities.splice(index, 1);
+      this.pendingRemoval = false;
+      this.removedAbility = id;
       this.applyStats(player);
       return true;
     }
@@ -4368,7 +4467,8 @@ var TankGame = (() => {
       return true;
     }
     rollDice(random = Math.random) {
-      if (this.phase !== "shop" || this.selectedAbility === null || this.diceRolled) return null;
+      if (this.phase !== "shop" || this.diceRolled) return null;
+      this.pendingRemoval = false;
       this.diceResult = rollEnemyDice(random);
       this.diceRolled = true;
       if (this.diceResult.bomb) {
@@ -4383,7 +4483,7 @@ var TankGame = (() => {
       return true;
     }
     startRound() {
-      if (this.phase !== "shop" || this.selectedAbility === null || !this.diceRolled) return false;
+      if (this.phase !== "shop" || !this.diceRolled) return false;
       this.remaining = ROUND_SECONDS;
       this.phase = "combat";
       return true;
@@ -4397,21 +4497,31 @@ var TankGame = (() => {
       this.remaining = Math.max(0, this.remaining - dt);
       if (this.remaining > 1e-8) return;
       this.remaining = 0;
+      const income = calculateRogueStats(this.levels, this.abilities).roundIncome;
+      if (income > 0) this.awardPoints(this.round * income);
       if (this.round === ROUND_COUNT) this.phase = "won";
       else {
         this.round++;
         this.phase = "shop";
         this.selectedAbility = null;
+        this.pendingRemoval = false;
+        this.removedAbility = null;
+        this.abilitiesBeforeChoice = null;
         this.diceRolled = false;
         this.diceResult = null;
         this.abilityChoices = rollAbilityChoices(Math.random, this.abilities);
       }
     }
     awardKills(count) {
-      if (this.phase !== "combat") return;
+      if (this.phase !== "combat" || !Number.isSafeInteger(count) || count <= 0) return;
       this.kills += count;
-      this.points += count * KILL_POINTS;
-      this.pointsEarned += count * KILL_POINTS;
+      this.awardPoints(count * KILL_POINTS);
+    }
+    awardPoints(amount) {
+      const stats = calculateRogueStats(this.levels, this.abilities);
+      const gained = Math.max(0, Math.min(stats.pointsCap - this.points, amount * stats.pointMultiplier, Number.MAX_SAFE_INTEGER - this.pointsEarned));
+      this.points += gained;
+      this.pointsEarned += gained;
     }
   };
 
@@ -4558,6 +4668,7 @@ var TankGame = (() => {
       this.ammo = STARTING_AMMO;
       this.ammoSuppliedThroughRound = 1;
       this.runStats = createRogueRunStats();
+      this.combatElapsed = 0;
       this.setWeapon();
     }
     setWeapon() {
@@ -4580,10 +4691,34 @@ var TankGame = (() => {
       return true;
     }
     takeDamage(damage) {
-      if (!Number.isFinite(damage) || damage <= 0) return;
+      if (!Number.isFinite(damage) || damage <= 0 || this.isShieldActive()) return;
       const before = Math.max(0, this.hp);
-      super.takeDamage(damage + Math.max(0, -this.armor));
+      const incoming = damage + Math.max(0, -this.armor);
+      const armored = this.armor > 0 ? Math.max(1, incoming - this.armor) : incoming;
+      const scaled = armored * (this.incomingDamageMultiplier ?? 1);
+      super.takeDamage(scaled + Math.max(0, this.armor));
       this.runStats.damageTaken += before - Math.max(0, this.hp);
+    }
+    isShieldActive() {
+      return !!this.pulseShield && this.combatElapsed >= 3 - 1e-9 && (this.combatElapsed + 1e-9) % 3 < 1;
+    }
+    update(dt, world, input) {
+      if (this.hp <= 0) return;
+      this.combatElapsed += dt;
+      super.update(dt, world, input);
+    }
+    draw(ctx, camera) {
+      super.draw(ctx, camera);
+      if (this.hp <= 0 || !this.isShieldActive()) return;
+      ctx.save();
+      ctx.strokeStyle = "#81e8ff";
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = "#81e8ff";
+      ctx.beginPath();
+      ctx.arc(this.x - camera.x, this.y - camera.y, this.radius + 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
   };
   function trackAngle(current, target, dt) {
@@ -4644,6 +4779,7 @@ var TankGame = (() => {
       this.player.x = (this.bounds.minX + this.bounds.maxX) / 2;
       this.player.y = (this.bounds.minY + this.bounds.maxY) / 2;
       this.player.rogueMotionVX = this.player.rogueMotionVY = 0;
+      this.player.combatElapsed = 0;
       supplyRoundAmmo(this.player, round);
       this.roundConfig = getRoundConfig(round, enemyDiceBonuses);
       this.spawnedByWeapon = { standard: 0, scatter: 0, heavy: 0 };
@@ -4814,32 +4950,9 @@ var TankGame = (() => {
   };
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\51-rogue-history.js
-  var tankLabels = {
-    hp: "Remaining HP",
-    maxHP: "Maximum HP",
-    points: "Points left",
-    ammo: "Ammo left",
-    speed: "Move speed",
-    damage: "Standard shell damage",
-    fireRate: "Fire rate (%)",
-    armor: "Armor",
-    ammoCost: "Ammo / full volley",
-    reload: "Reload (s)",
-    projectileSpeed: "Shell speed",
-    projectileLifetime: "Shell life (s)",
-    pellets: "Standard shells",
-    penetration: "Standard pierce",
-    killHeal: "HP / kill",
-    payloadCount: "Explosive shells",
-    payloadMin: "Explosion minimum damage",
-    payloadMax: "Explosion maximum damage",
-    payloadRadius: "Explosion radius",
-    novaDamage: "Death nova damage",
-    novaRadius: "Death nova radius"
-  };
   var ROGUE_HISTORY_METRICS = Object.freeze([
     ...ROGUE_RUN_METRICS.map((metric) => ({ ...metric, group: "Round totals", section: "combat" })),
-    ...Object.entries(tankLabels).map(([key, label]) => ({ key: `tank-${key}`, field: key, label, group: "Tank at round end", section: "tank" }))
+    { key: "tank-hp", field: "hp", label: "Remaining HP", group: "Tank at round end", section: "tank" }
   ]);
   var RogueRunHistory = class {
     constructor() {
@@ -4851,9 +4964,8 @@ var TankGame = (() => {
       const totals = getRogueRunMetricValues(state, player.runStats);
       const combat = {};
       for (const { key } of ROGUE_RUN_METRICS) {
-        if (key !== "ammoPerKill") combat[key] = totals[key] - (this.previous[key] ?? 0);
+        combat[key] = totals[key] - (this.previous[key] ?? 0);
       }
-      combat.ammoPerKill = combat.kills > 0 ? combat.ammoSpent / combat.kills : null;
       const weapon = getRoguePlayerWeapon(player), payload = getRogueExplosivePayload(player);
       const nova = getRogueDeathBlast(player), payloadCount = player.extraExplosiveProjectiles;
       const tank = {
@@ -4901,6 +5013,79 @@ var TankGame = (() => {
     return { points, ticks };
   }
 
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\78-rogue-ability-ui.js
+  function renderRogueAbilityChoices(game, ended) {
+    const { state } = game;
+    const before = state.abilitiesBeforeChoice ?? state.abilities;
+    for (const [index, card] of game.abilityCards.entries()) {
+      const id = state.abilityChoices[index], ability = ABILITIES[id];
+      card.hidden = ended || !ability;
+      if (card.hidden) continue;
+      const selected = state.selectedAbility === id;
+      const level = state.abilities.filter((item) => item === id).length;
+      const rarity = abilityRarity(id);
+      card.dataset.ability = id;
+      card.dataset.rarity = rarity;
+      card.disabled = state.diceRolled || state.selectedAbility !== null || !canOfferAbility(id, before);
+      card.classList.toggle("selected", selected);
+      card.setAttribute("aria-pressed", String(selected));
+      card.querySelector(".rogue-ability-icon").innerHTML = abilityIcon(id);
+      card.querySelector("h2").textContent = ability.name;
+      card.querySelector("p").textContent = ability.description;
+      card.querySelector(".rogue-ability-status").textContent = `${RARITIES[rarity].name} · ${selected ? "Selected" : level ? `Lv.${level} → ${level + 1}` : "Free ability"}`;
+      const changes = ability.action ? [] : previewAbility(state.levels, before, id);
+      card.title = changes.map((change) => `${change.label}: ${change.before} → ${change.after}`).join("\n");
+      const list = card.querySelector(".rogue-ability-changes");
+      list.replaceChildren();
+      for (const change of changes.slice(0, 3)) {
+        const row = document.createElement("li"), label = document.createElement("span"), value = document.createElement("strong");
+        label.textContent = change.label;
+        value.textContent = `${change.before} → ${change.after}`;
+        row.append(label, value);
+        list.append(row);
+      }
+      if (!list.children.length) {
+        const row = document.createElement("li");
+        row.textContent = ability.action ? state.removedAbility ? `Removed one level: ${ABILITIES[state.removedAbility].name}` : "Choose an owned ability after selecting this card." : "Stat limit reached.";
+        list.append(row);
+      }
+    }
+    const owned = game.root.querySelector(".rogue-owned");
+    owned.replaceChildren();
+    owned.setAttribute("aria-label", state.abilities.length ? "Acquired abilities" : "No acquired abilities");
+    const counts = /* @__PURE__ */ new Map();
+    for (const id of state.abilities) counts.set(id, (counts.get(id) ?? 0) + 1);
+    for (const [id, count] of counts) {
+      const badge = document.createElement("span");
+      badge.className = "rogue-owned-ability";
+      badge.dataset.rarity = abilityRarity(id);
+      badge.innerHTML = abilityIcon(id);
+      const label = document.createElement("span");
+      label.className = "rogue-owned-label";
+      label.textContent = `Lv.${count}`;
+      badge.append(label);
+      badge.title = `${ABILITIES[id].name} Lv.${count}: ${ABILITIES[id].description}`;
+      badge.setAttribute("aria-label", badge.title);
+      owned.append(badge);
+    }
+    const panel = game.el?.("recalibration");
+    if (!panel) return;
+    panel.hidden = ended || !state.pendingRemoval;
+    if (panel.hidden) return;
+    const targets = panel.querySelector(".rogue-removal-targets");
+    targets.replaceChildren();
+    for (const [id, level] of counts) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.removeAbility = id;
+      button.textContent = `${ABILITIES[id].name} · ${level === 1 ? "Remove" : `Lv.${level} → ${level - 1}`}`;
+      button.addEventListener("click", () => {
+        if (state.removeAbility(id, game.world.player)) game.renderPanel();
+      });
+      targets.append(button);
+    }
+  }
+
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\79-rogue-charts.js
   var RogueHistoryView = class {
     constructor(section, signal) {
@@ -4937,7 +5122,7 @@ var TankGame = (() => {
     render() {
       const metric = ROGUE_HISTORY_METRICS.find((item) => item.key === this.select.value);
       const model = getRogueChartModel(this.history.rows, metric);
-      const decimals = metric.decimals ?? ({ "tank-reload": 3, "tank-projectileLifetime": 2 }[metric.key] ?? 1);
+      const decimals = metric.decimals ?? 1;
       const fmt = (value) => formatRogueMetric(value, decimals);
       const svg = this.chart.querySelector("svg");
       let path = "", connected = false;
@@ -4950,9 +5135,9 @@ var TankGame = (() => {
         connected = true;
       }
       svg.setAttribute("aria-label", `${metric.label} by round. Exact values are listed below.`);
-      svg.innerHTML = model.ticks.map((tick) => `<line x1="82" x2="628" y1="${tick.y}" y2="${tick.y}" class="chart-grid"/><text x="72" y="${tick.y + 6}" text-anchor="end">${fmt(tick.value)}</text>`).join("") + `<path d="${path}" class="chart-line"/>` + model.points.map((point) => `<text x="${point.x}" y="292" text-anchor="middle">${point.round}</text>` + (point.y === null ? "" : `<circle cx="${point.x}" cy="${point.y}" r="6" class="${point.outcome === "lost" ? "chart-lost" : "chart-point"}"><title>Round ${point.round}: ${fmt(point.value)}${point.outcome === "lost" ? " (lost)" : ""}</title></circle>`)).join("") + '<text x="355" y="322" text-anchor="middle">Round</text>';
+      svg.innerHTML = model.ticks.map((tick) => `<line x1="82" x2="628" y1="${tick.y}" y2="${tick.y}" class="chart-grid"/><text x="72" y="${tick.y + 6}" text-anchor="end">${fmt(tick.value)}</text>`).join("") + `<path d="${path}" class="chart-line"/>` + model.points.map((point) => `${model.points.length <= 10 || point.round === 1 || point.round % 5 === 0 ? `<text x="${point.x}" y="292" text-anchor="middle">${point.round}</text>` : ""}` + (point.y === null ? "" : `<circle cx="${point.x}" cy="${point.y}" r="6" class="${point.outcome === "lost" ? "chart-lost" : "chart-point"}"><title>Round ${point.round}: ${fmt(point.value)}${point.outcome === "lost" ? " (lost)" : ""}</title></circle>`)).join("") + '<text x="355" y="322" text-anchor="middle">Round</text>';
       this.chart.querySelector(".rogue-chart-values").innerHTML = model.points.map((point) => `<div><dt>R${point.round}${point.outcome === "lost" ? " · Lost" : ""}</dt><dd>${fmt(point.value)}</dd></div>`).join("");
-      this.chart.querySelector(".rogue-chart-note").textContent = metric.section === "combat" ? "Values for each round, including a failed round. Repairs count toward the following round. — = no kills." : "Snapshot at each round end, before the next upgrades or ammo supply. — = ability inactive.";
+      this.chart.querySelector(".rogue-chart-note").textContent = metric.section === "combat" ? "Each round, including a failed round. Point totals reflect the amount actually received." : "Remaining HP at each round end, before the next upgrades.";
     }
   };
 
@@ -4962,7 +5147,7 @@ var TankGame = (() => {
     { id: "siege", title: "Siege Attack", tag: "BREAK THE LINE", accent: "#edac74", description: "Lead the assault through three fortified defense lines." },
     { id: "defense", title: "Siege Defense", tag: "HOLD YOUR GROUND", accent: "#87d9cf", description: "Protect your strongholds. Stop the advancing army." },
     { id: "breakthrough", title: "Breakthrough", tag: "ALL-OUT ATTRITION", accent: "#b5d787", description: "Outfight the enemy and drain their reinforcements." },
-    { id: "roguelite", title: "Roguelite", tag: "ONE TANK. TEN ROUNDS.", accent: "#d4b1ff", description: "Survive the swarm. Build your tank. Risk everything." }
+    { id: "roguelite", title: "Roguelite", tag: "ONE TANK. THIRTY ROUNDS.", accent: "#d4b1ff", description: "Survive 30 rounds. Choose your powers. Balance the risk." }
   ].map(Object.freeze));
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\81-rogue-game.js
@@ -4990,6 +5175,7 @@ var TankGame = (() => {
       this.ctx = canvas.getContext("2d");
       this.input = new InputManager2(canvas);
       this.resources = resources;
+      this.bgm = document.getElementById("bgm");
       this.accumulator = 0;
       this.lastTime = performance.now();
       this.motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -5009,7 +5195,7 @@ var TankGame = (() => {
         <article class="rogue-panel" role="dialog" aria-modal="true" aria-labelledby="rogue-title" tabindex="-1">
           <div class="rogue-panel-content">
           <div class="rogue-panel-heading">
-            <span class="rogue-eyebrow">SOLO SURVIVAL · 10 ROUNDS</span>
+            <span class="rogue-eyebrow">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
             <h1 id="rogue-title"></h1><p id="rogue-summary"></p>
           </div>
           <div id="rogue-layout" class="rogue-layout">
@@ -5017,13 +5203,13 @@ var TankGame = (() => {
               <h2 id="rogue-stats-title">Stats</h2>
               <div id="rogue-panel-hp" class="rogue-health">${HEALTH_DISPLAY_MARKUP}</div>
               <dl id="rogue-stats" class="rogue-stats"></dl>
-              <p class="rogue-stat-note">${KILL_POINTS} points per kill · No passive healing</p>
+              <p class="rogue-stat-note" id="rogue-economy-note"></p>
               <h3>Acquired abilities</h3><div class="rogue-owned" aria-label="No acquired abilities"></div>
             </section>
             <section id="rogue-run-summary" class="rogue-run-summary" aria-labelledby="rogue-run-summary-title" hidden>
               <div class="rogue-result-heading"><h2 id="rogue-run-summary-title">Run Summary</h2><div class="rogue-result-switch" role="group" aria-label="Result view"><button type="button" data-result-view="totals" aria-controls="rogue-result-totals">Totals</button><button type="button" data-result-view="rounds" aria-controls="rogue-result-rounds">By Round</button></div></div>
               <div id="rogue-result-totals" class="rogue-totals"><dl id="rogue-run-stats"></dl>
-                <p>Actual HP lost / restored. Ammo per kill = total ammo spent ÷ enemy tanks destroyed.</p>
+                <p>Combat totals for this run. Compare individual rounds in By Round.</p>
               </div>
               <div id="rogue-result-rounds" class="rogue-round-charts" hidden>
                 <label for="rogue-chart-metric">Metric <select id="rogue-chart-metric"></select></label>
@@ -5032,7 +5218,9 @@ var TankGame = (() => {
                 <p class="rogue-chart-note"></p>
               </div>
             </section>
-            <section id="rogue-abilities" class="rogue-ability-grid" aria-label="Choose one of three free abilities"></section>
+            <section id="rogue-abilities" class="rogue-ability-grid" aria-label="Optional free ability: choose one or continue without choosing">
+              <div id="rogue-recalibration" class="rogue-recalibration" role="group" aria-label="Choose an ability to reduce" hidden><h2>Recalibration</h2><p>Lose one level. Both its benefit and penalty are removed.</p><div class="rogue-removal-targets"></div><button id="rogue-cancel-removal" type="button">Back to choices</button></div>
+            </section>
             <section id="rogue-shop" aria-labelledby="rogue-shop-title">
               <h2 id="rogue-shop-title">Upgrades <small>Each item: 5 → 7 → 9… points</small></h2><div id="rogue-upgrades"></div>
             </section>
@@ -5080,18 +5268,11 @@ var TankGame = (() => {
         points: "Points",
         speed: "Move speed",
         damage: "Damage",
-        attackSpeed: "Fire rate",
+        attackSpeed: "Shots / second",
         armor: "Armor",
         ammoCost: "Ammo / volley",
-        reload: "Reload",
-        projectileSpeed: "Shell speed / life",
-        shellSize: "Shell size / bounces",
-        pellets: "Standard shells",
-        penetration: "Standard pierce",
-        blast: "Explosion radius",
-        killHeal: "HP / kill",
-        deathNova: "Death nova",
-        payload: "Explosive payload"
+        projectileSpeed: "Shell speed",
+        shellSize: "Shell size / bounces"
       })) {
         const row = document.createElement("div");
         const term = document.createElement("dt");
@@ -5137,6 +5318,13 @@ var TankGame = (() => {
         this.dismissDiceOverlay();
       });
       this.el("ammo-spend").addEventListener("input", () => this.renderAmmoShop());
+      this.el("cancel-removal").addEventListener("click", () => {
+        if (this.state.diceRolled || !this.state.pendingRemoval) return;
+        this.state.pendingRemoval = false;
+        this.state.selectedAbility = null;
+        this.state.abilitiesBeforeChoice = null;
+        this.renderPanel();
+      });
       this.el("buy-ammo").addEventListener("click", () => {
         if (this.roundTransition || this.diceReveal) return;
         if (this.state.buyAmmo(this.world.player, Number(this.el("ammo-spend").value))) this.renderPanel();
@@ -5217,34 +5405,22 @@ var TankGame = (() => {
       const player = world.player;
       const ended = state.phase === "won" || state.phase === "lost";
       if (state.phase === "shop") supplyRoundAmmo(player, state.round);
-      const config = getRoundConfig(state.round, state.enemyDiceBonuses);
       const weapon = getRoguePlayerWeapon(player);
-      const payload = getRogueExplosivePayload(player);
-      const nova = getRogueDeathBlast(player);
       this.el("shade").hidden = false;
-      this.el("title").textContent = state.phase === "won" ? "All 10 Rounds Survived!" : state.phase === "lost" ? "Run Over" : "Roguelite Upgrades";
-      this.el("summary").textContent = ended ? `${state.kills} kills · ${state.points} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}` : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Up to ${config.maxEnemies} enemies · Spawn every ${config.replacementInterval.toFixed(2)}s · Enemy HP ${config.enemyMaxHP} / Damage +${Math.round((config.enemyDamageMultiplier / ROGUE_ENEMY_RULES.damageMultiplier - 1) * 100)}% · Standard ${config.weights.standard}% / Scatter ${config.weights.scatter}% / Heavy ${config.weights.heavy}%`;
+      this.el("title").textContent = state.phase === "won" ? `All ${ROUND_COUNT} Rounds Survived!` : state.phase === "lost" ? "Run Over" : "Roguelite Upgrades";
+      this.el("summary").textContent = ended ? `${state.kills} kills · ${state.points} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}` : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Pick one free ability or continue without choosing · Common 60% / Rare 30% / Legendary 10%`;
       const stats = {
         points: `${state.points}`,
-        speed: `${player.speed.toFixed(2)} (${(player.speed / ROGUE_PLAYER_BASE.speed * 100).toFixed(0)}%)`,
-        damage: `${weapon.damage.toFixed(2)} (${(player.damageMultiplier * player.projectileDamageMultiplier * 100).toFixed(1)}%)`,
-        attackSpeed: `${(player.attackSpeedMultiplier * 100).toFixed(0)}%`,
+        speed: `${Math.round(player.speed)}`,
+        damage: `${Number(weapon.damage.toFixed(1))}`,
+        attackSpeed: `${Number((1 / weapon.reloadTime).toFixed(1))}`,
         armor: player.armor < 0 ? `${player.armor} (+${-player.armor} taken)` : `${player.armor}`,
         ammoCost: `${weapon.pelletCount + player.extraExplosiveProjectiles * EXPLOSIVE_AMMO_COST}`,
-        reload: `${(player.reloadTime / player.attackSpeedMultiplier).toFixed(3)}s`,
-        projectileSpeed: `${weapon.projectileSpeed.toFixed(0)} / ${weapon.projectileLifetime.toFixed(2)}s`,
-        pellets: `${weapon.pelletCount}`,
-        shellSize: `${(player.projectileSizeMultiplier * 100).toFixed(1)}% / ${player.wallBounces}`,
-        penetration: `${weapon.penetration}`,
-        blast: getRogueExplosionRadiusText(player),
-        killHeal: `${player.killHeal}`,
-        deathNova: nova ? `${nova.minDamage.toFixed(0)}–${nova.maxDamage.toFixed(0)} / ${nova.radius.toFixed(0)}px` : "None",
-        payload: `${player.extraExplosiveProjectiles} × ${payload.explosion.minDamage.toFixed(0)}–${payload.explosion.maxDamage.toFixed(0)}`
+        projectileSpeed: `${Math.round(weapon.projectileSpeed)}`,
+        shellSize: `×${player.projectileSizeMultiplier} / ${player.wallBounces}`
       };
       for (const [key, value] of Object.entries(stats)) this.statValues[key].textContent = value;
-      this.statValues.deathNova.parentElement.hidden = !nova;
-      this.statValues.payload.parentElement.hidden = !(player.extraExplosiveProjectiles > 0);
-      this.statValues.blast.parentElement.hidden = !(player.extraExplosiveProjectiles > 0 || nova);
+      this.el("economy-note").textContent = `${KILL_POINTS * player.pointMultiplier} pts / kill · Damage taken ×${player.incomingDamageMultiplier}${Number.isFinite(player.pointsCap) ? " · Max 10,000 pts" : ""}${player.pulseShield ? " · Shield 1s / 3s" : ""}`;
       this.renderAmmoShop();
       this.renderRunSummary();
       if (ended) this.historyView.render();
@@ -5258,12 +5434,13 @@ var TankGame = (() => {
       }
       const nextLabel = ended ? "Mode Select" : `Start Round ${state.round}`;
       this.el("next-label").textContent = nextLabel;
-      this.el("next").disabled = !ended && state.selectedAbility === null;
+      this.el("next").disabled = false;
       this.el("next").setAttribute("aria-label", nextLabel);
-      this.el("next").title = !ended && state.selectedAbility === null ? "Choose an ability first" : ended ? nextLabel : "Finish upgrades, then reveal the enemy dice";
+      this.el("next").title = ended ? nextLabel : "Continue with or without a free ability";
       this.el("menu").hidden = ended;
       if (focus) {
-        if (!ended && state.selectedAbility === null) this.abilityCards[0].focus();
+        if (state.pendingRemoval) this.el("recalibration").querySelector("button")?.focus();
+        else if (!ended && state.selectedAbility === null) this.abilityCards[0].focus();
         else this.el("next").focus();
       }
       this.renderHUD();
@@ -5290,7 +5467,6 @@ var TankGame = (() => {
     }
     requestRoundStart() {
       if (this.disposed || this.roundTransition || this.diceReveal || this.state.phase !== "shop") return false;
-      if (this.state.selectedAbility === null) return false;
       if (!this.state.rollDice()) return false;
       this.diceReveal = new RogueDiceReveal();
       this.input.reset();
@@ -5350,6 +5526,7 @@ var TankGame = (() => {
       this.canvas.focus();
     }
     beginRoundTransition() {
+      if (this.state.phase === "won" || this.state.phase === "lost") this.bgm?.pause();
       const round = this.state.phase === "shop" ? this.state.round - 1 : this.state.round;
       this.history.record(round, this.state.phase === "lost" ? "lost" : "cleared", this.state, this.world.player);
       this.roundTransition = new RogueRoundTransition(this.state.phase, round);
@@ -5389,57 +5566,7 @@ var TankGame = (() => {
       this.panelContent.style.transform = `scale(${layout.scale})`;
     }
     renderAbilities(ended) {
-      const { state } = this;
-      const ownedBeforePick = state.selectedAbility === null ? state.abilities : state.abilities.slice(0, -1);
-      for (const [index, card] of this.abilityCards.entries()) {
-        card.hidden = ended;
-        if (ended) continue;
-        const id = state.abilityChoices[index];
-        const ability = ABILITIES[id];
-        const selected = state.selectedAbility === id;
-        const level = state.abilities.filter((owned2) => owned2 === id).length;
-        card.dataset.ability = id;
-        card.disabled = ended || state.selectedAbility !== null;
-        card.classList.toggle("selected", selected);
-        card.setAttribute("aria-pressed", String(selected));
-        card.querySelector(".rogue-ability-icon").innerHTML = abilityIcon(id);
-        card.querySelector("h2").textContent = ability.name;
-        card.querySelector("p").textContent = ability.description;
-        card.querySelector(".rogue-ability-status").textContent = selected ? `Selected · Lv.${level}` : level > 0 ? `Lv.${level} → Lv.${level + 1}` : "Free ability";
-        const list = card.querySelector(".rogue-ability-changes");
-        list.replaceChildren();
-        for (const change of previewAbility(state.levels, ownedBeforePick, id)) {
-          const row = document.createElement("li");
-          const label = document.createElement("span");
-          const value = document.createElement("strong");
-          label.textContent = change.label;
-          value.textContent = `${change.before} → ${change.after}`;
-          row.append(label, value);
-          list.append(row);
-        }
-        if (!list.children.length) {
-          const row = document.createElement("li");
-          row.textContent = "Stat minimum reached.";
-          list.append(row);
-        }
-      }
-      const owned = this.root.querySelector(".rogue-owned");
-      owned.replaceChildren();
-      owned.setAttribute("aria-label", state.abilities.length ? "Acquired abilities" : "No acquired abilities");
-      const counts = /* @__PURE__ */ new Map();
-      for (const id of state.abilities) counts.set(id, (counts.get(id) ?? 0) + 1);
-      for (const [id, count] of counts) {
-        const badge = document.createElement("span");
-        badge.className = "rogue-owned-ability";
-        badge.innerHTML = abilityIcon(id);
-        const label = document.createElement("span");
-        label.className = "rogue-owned-label";
-        label.textContent = `Lv.${count}`;
-        badge.append(label);
-        badge.title = `${ABILITIES[id].name} Lv.${count}: ${ABILITIES[id].description}`;
-        badge.setAttribute("aria-label", badge.title);
-        owned.append(badge);
-      }
+      renderRogueAbilityChoices(this, ended);
     }
     damageText() {
       const p = this.world.player;

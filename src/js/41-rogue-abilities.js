@@ -1,7 +1,7 @@
 import { ROGUE_PLAYER_BASE, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast, getRogueExplosionRadiusText } from './40-rogue-balance.js';
 import { EXPLOSIVE_AMMO_COST } from './20-rogue-ammo.js';
 
-// Base percentages add; oversized-shell size/damage factors multiply per pick.
+// Base percentages add; oversized-shell size/speed factors multiply per pick.
 // Icons are local SVG paths, avoiding font and image dependencies.
 export const ABILITIES = Object.freeze({
   hull: {
@@ -95,29 +95,79 @@ export const ABILITIES = Object.freeze({
     effects: { wallBounces: 1 }, icon: 'M3 3v18 M7 5l10 7L7 19 M14 19H7v-7',
   },
   oversized: {
-    name: 'Oversized Rounds', description: 'Shell size and hit radius ×1.5, but shell damage ×0.5 per pick. Also affects explosive payloads, not blast radius.',
-    effects: { projectileSize: 0.5, projectileDamage: -0.5 }, icon: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10 M2 8V2h6 M16 2h6v6 M22 16v6h-6 M8 22H2v-6',
+    name: 'Oversized Rounds', description: 'Shell size ×2 and shell speed ×0.7 per level. Damage unchanged. Maximum level 3.', maxLevel: 3,
+    effects: { projectileSize: 1, shellSpeedFactor: -0.3 }, icon: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10 M2 8V2h6 M16 2h6v6 M22 16v6h-6 M8 22H2v-6',
+  },
+  recalibrate: {
+    name: 'Recalibration', description: 'Choose an owned ability to lose one level. Its benefits and penalties are recalculated. Used immediately.', action: 'remove',
+    effects: {}, icon: 'M4 7h12l-4-4 M20 17H8l4 4 M4 7v5 M20 17v-5',
+  },
+  bargain: {
+    name: 'Devil’s Bargain', description: 'Points earned ×2, but damage taken ×2 per level. Maximum level 3.', maxLevel: 3,
+    effects: { pointFactor: 1, incomingDamageFactor: 1 }, icon: 'M4 3l4 5h8l4-5v12l-8 7-8-7Z M8 12h1 M15 12h1',
+  },
+  dividends: {
+    name: 'Round Dividend', description: 'Each cleared round grants round ×200 points per level. Your points are capped at 10,000.',
+    effects: { roundIncome: 200, pointsCap: -1 }, icon: 'M3 8h18 M6 8v12 M12 8v12 M18 8v12 M3 21h18 M12 2 2 7h20Z',
+  },
+  shield: {
+    name: 'Pulse Shield', description: 'Block all damage for 1 second every 3 combat seconds. First shield at 3 seconds. Maximum level 1.', maxLevel: 1,
+    effects: { pulseShield: 1 }, icon: 'M4 5l8-3 8 3v7c0 5-8 10-8 10S4 17 4 12Z M12 6v12 M8 12h8',
+  },
+  lightHull: {
+    name: 'Light Chassis', description: '+25% base move speed, but −25 max HP. No instant healing.',
+    effects: { speed: 0.25, maxHP: -25 }, icon: 'M4 17l4-10h8l4 10Z M2 12h5 M17 12h5 M9 20h6',
+  },
+  heavyAmmo: {
+    name: 'Dense Ammunition', description: '+80% base damage, but −25% base shell speed.',
+    effects: { damage: 0.8, projectileSpeed: -0.25 }, icon: 'M7 21V9l5-7 5 7v12Z M7 12h10 M7 17h10',
+  },
+  overdrive: {
+    name: 'Overdrive Matrix', description: '+150% base fire rate and +75% base damage, but −35% base move speed.',
+    effects: { attackSpeed: 1.5, damage: 0.75, speed: -0.35 }, icon: 'M12 2 4 13h6l-1 9 11-13h-7Z M3 3l3 3 M18 18l3 3',
   },
 });
 
+export const RARITIES = Object.freeze({
+  common: { name: 'Common', chance: 0.6 }, rare: { name: 'Rare', chance: 0.3 }, legendary: { name: 'Legendary', chance: 0.1 },
+});
+const RARE = new Set(['overcharge', 'piercing', 'splitter', 'ballistics', 'blast', 'recycler', 'blood', 'rail', 'slowOrb', 'warhead', 'siege', 'oversized', 'bargain', 'heavyAmmo']);
+const LEGENDARY = new Set(['glass', 'storm', 'reactor', 'juggernaut', 'volatile', 'explosive', 'dividends', 'shield', 'overdrive']);
+export function abilityRarity(id) { return LEGENDARY.has(id) ? 'legendary' : RARE.has(id) ? 'rare' : 'common'; }
+export function canOfferAbility(id, owned) {
+  const ability = ABILITIES[id];
+  if (!ability) return false;
+  if (ability.action) return owned.length > 0;
+  if (owned.filter(item => item === id).length >= (ability.maxLevel ?? Infinity)) return false;
+  return !ability.requiresExplosion || owned.includes('explosive') || owned.includes('volatile');
+}
+
+export function rollAbilityRarity(sample) {
+  return sample < RARITIES.common.chance ? 'common' : sample < RARITIES.common.chance + RARITIES.rare.chance ? 'rare' : 'legendary';
+}
+
 export function rollAbilityChoices(random = Math.random, owned = []) {
-  const hasExplosion = owned.includes('explosive') || owned.includes('volatile');
-  const ids = Object.keys(ABILITIES).filter(id => !ABILITIES[id].requiresExplosion || hasExplosion);
-  // Partial Fisher–Yates: three distinct choices, repeat picks allowed across rounds.
+  const ids = Object.keys(ABILITIES).filter(id => canOfferAbility(id, owned));
+  const choices = [];
   for (let i = 0; i < 3; i++) {
-    const j = i + Math.min(ids.length - i - 1, Math.floor(random() * (ids.length - i)));
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+    const rarity = rollAbilityRarity(random());
+    const pool = ids.filter(id => abilityRarity(id) === rarity && !choices.includes(id));
+    // Each tier has enough eligible cards for all three slots, including max-level exclusions.
+    const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
+    choices.push(pool[index]);
   }
-  return ids.slice(0, 3);
+  return choices;
 }
 
 export function calculateRogueStats(levels, owned) {
   const totals = {};
-  let projectileSizeMultiplier = 1, projectileDamageMultiplier = 1;
+  let projectileSizeMultiplier = 1, shellSpeedMultiplier = 1, pointMultiplier = 1, incomingDamageMultiplier = 1;
   for (const id of owned) {
     for (const [key, value] of Object.entries(ABILITIES[id].effects)) {
       if (key === 'projectileSize') projectileSizeMultiplier *= 1 + value;
-      else if (key === 'projectileDamage') projectileDamageMultiplier *= 1 + value;
+      else if (key === 'shellSpeedFactor') shellSpeedMultiplier *= 1 + value;
+      else if (key === 'pointFactor') pointMultiplier *= 1 + value;
+      else if (key === 'incomingDamageFactor') incomingDamageMultiplier *= 1 + value;
       else totals[key] = (totals[key] ?? 0) + value;
     }
   }
@@ -127,10 +177,14 @@ export function calculateRogueStats(levels, owned) {
     damageMultiplier: Math.max(0.2, 1 + levels.damage * 0.03 + (totals.damage ?? 0)),
     attackSpeedMultiplier: Math.max(0.25, 1 + levels.attackSpeed * 0.03 + (totals.attackSpeed ?? 0)),
     armor: levels.armor * 2 + (totals.armor ?? 0),
-    projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)),
+    projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)) * shellSpeedMultiplier,
     projectileLifetimeMultiplier: 1 + (totals.projectileLifetime ?? 0),
     projectileSizeMultiplier,
-    projectileDamageMultiplier,
+    pointMultiplier,
+    incomingDamageMultiplier,
+    roundIncome: totals.roundIncome ?? 0,
+    pointsCap: totals.pointsCap ? 10000 : Infinity,
+    pulseShield: (totals.pulseShield ?? 0) > 0,
     wallBounces: totals.wallBounces ?? 0,
     explosionRadiusMultiplier: 1 + (totals.explosionRadius ?? 0),
     extraProjectiles: totals.extraProjectiles ?? 0,
@@ -159,7 +213,7 @@ export function getStatSnapshot(stats) {
   return [
     { key: 'hp', label: 'Max HP', value: stats.maxHP, text: `${stats.maxHP}` },
     { key: 'speed', label: 'Move speed', value: rounded(stats.speed), text: `${rounded(stats.speed)}` },
-    { key: 'damage', label: 'Shell damage', value: `${hitDamage}/${rounded(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))}`, text: `${hitDamage} (${percent(stats.damageMultiplier * (stats.projectileDamageMultiplier ?? 1))})` },
+    { key: 'damage', label: 'Shell damage', value: `${hitDamage}/${rounded(stats.damageMultiplier)}`, text: `${hitDamage}` },
     { key: 'attackSpeed', label: 'Fire rate / reload', value: `${rounded(stats.attackSpeedMultiplier)}/${rounded(weapon.reloadTime)}`, text: `${percent(stats.attackSpeedMultiplier)} / ${rounded(weapon.reloadTime)}s` },
     { key: 'armor', label: 'Armor', value: stats.armor, text: stats.armor < 0 ? `${stats.armor} (+${-stats.armor} damage taken)` : `${stats.armor}` },
     { key: 'projectileSpeed', label: 'Shell speed', value: rounded(weapon.projectileSpeed), text: `${rounded(weapon.projectileSpeed)}` },
@@ -171,6 +225,11 @@ export function getStatSnapshot(stats) {
     { key: 'blast', label: 'Explosion radius', value: blastRadius, text: blastRadius },
     { key: 'heal', label: 'HP per kill', value: stats.killHeal, text: `${stats.killHeal}` },
     { key: 'deathNova', label: 'Death nova damage / radius', value: nova ? `${rounded(nova.minDamage)}–${rounded(nova.maxDamage)} / ${rounded(nova.radius)}px` : 'None', text: nova ? `${rounded(nova.minDamage)}–${rounded(nova.maxDamage)} / ${rounded(nova.radius)}px` : 'None' },
+    { key: 'points', label: 'Points earned', value: stats.pointMultiplier ?? 1, text: `×${stats.pointMultiplier ?? 1}` },
+    { key: 'incomingDamage', label: 'Damage taken', value: stats.incomingDamageMultiplier ?? 1, text: `×${stats.incomingDamageMultiplier ?? 1}` },
+    { key: 'roundIncome', label: 'Round income', value: stats.roundIncome ?? 0, text: `Round ×${stats.roundIncome ?? 0}` },
+    { key: 'pointsCap', label: 'Point limit', value: stats.pointsCap ?? Infinity, text: Number.isFinite(stats.pointsCap) ? `${stats.pointsCap}` : 'Unlimited' },
+    { key: 'shield', label: 'Pulse shield', value: !!stats.pulseShield, text: stats.pulseShield ? '1s every 3s' : 'None' },
   ];
 }
 

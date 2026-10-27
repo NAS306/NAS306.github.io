@@ -1,8 +1,8 @@
 import { RogueState, UPGRADES, ROUND_COUNT, ROUND_SECONDS, KILL_POINTS, getRoundConfig } from './42-rogue-state.js';
 import { RogueWorld } from './50-rogue-world.js';
-import { ROGUE_PLAYER_BASE, ROGUE_ENEMY_RULES, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast, getRogueExplosionRadiusText } from './40-rogue-balance.js';
+import { ROGUE_ENEMY_RULES, getRoguePlayerWeapon } from './40-rogue-balance.js';
 import { AMMO_PER_POINT, EXPLOSIVE_AMMO_COST, supplyRoundAmmo, planAmmoVolley } from './20-rogue-ammo.js';
-import { ABILITIES, abilityIcon, previewAbility } from './41-rogue-abilities.js';
+import { renderRogueAbilityChoices } from './78-rogue-ability-ui.js';
 import { clampFrameDelta } from './01-runtime.js';
 import { returnToModeSelection } from './12-game-flow.js';
 import { getRogueCountdown } from './43-rogue-effects.js';
@@ -40,6 +40,7 @@ export class RogueGame {
     this.ctx = canvas.getContext('2d');
     this.input = new InputManager(canvas);
     this.resources = resources;
+    this.bgm = document.getElementById('bgm');
     this.accumulator = 0;
     this.lastTime = performance.now();
     this.motionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -59,7 +60,7 @@ export class RogueGame {
         <article class="rogue-panel" role="dialog" aria-modal="true" aria-labelledby="rogue-title" tabindex="-1">
           <div class="rogue-panel-content">
           <div class="rogue-panel-heading">
-            <span class="rogue-eyebrow">SOLO SURVIVAL · 10 ROUNDS</span>
+            <span class="rogue-eyebrow">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
             <h1 id="rogue-title"></h1><p id="rogue-summary"></p>
           </div>
           <div id="rogue-layout" class="rogue-layout">
@@ -67,13 +68,13 @@ export class RogueGame {
               <h2 id="rogue-stats-title">Stats</h2>
               <div id="rogue-panel-hp" class="rogue-health">${HEALTH_DISPLAY_MARKUP}</div>
               <dl id="rogue-stats" class="rogue-stats"></dl>
-              <p class="rogue-stat-note">${KILL_POINTS} points per kill · No passive healing</p>
+              <p class="rogue-stat-note" id="rogue-economy-note"></p>
               <h3>Acquired abilities</h3><div class="rogue-owned" aria-label="No acquired abilities"></div>
             </section>
             <section id="rogue-run-summary" class="rogue-run-summary" aria-labelledby="rogue-run-summary-title" hidden>
               <div class="rogue-result-heading"><h2 id="rogue-run-summary-title">Run Summary</h2><div class="rogue-result-switch" role="group" aria-label="Result view"><button type="button" data-result-view="totals" aria-controls="rogue-result-totals">Totals</button><button type="button" data-result-view="rounds" aria-controls="rogue-result-rounds">By Round</button></div></div>
               <div id="rogue-result-totals" class="rogue-totals"><dl id="rogue-run-stats"></dl>
-                <p>Actual HP lost / restored. Ammo per kill = total ammo spent ÷ enemy tanks destroyed.</p>
+                <p>Combat totals for this run. Compare individual rounds in By Round.</p>
               </div>
               <div id="rogue-result-rounds" class="rogue-round-charts" hidden>
                 <label for="rogue-chart-metric">Metric <select id="rogue-chart-metric"></select></label>
@@ -82,7 +83,9 @@ export class RogueGame {
                 <p class="rogue-chart-note"></p>
               </div>
             </section>
-            <section id="rogue-abilities" class="rogue-ability-grid" aria-label="Choose one of three free abilities"></section>
+            <section id="rogue-abilities" class="rogue-ability-grid" aria-label="Optional free ability: choose one or continue without choosing">
+              <div id="rogue-recalibration" class="rogue-recalibration" role="group" aria-label="Choose an ability to reduce" hidden><h2>Recalibration</h2><p>Lose one level. Both its benefit and penalty are removed.</p><div class="rogue-removal-targets"></div><button id="rogue-cancel-removal" type="button">Back to choices</button></div>
+            </section>
             <section id="rogue-shop" aria-labelledby="rogue-shop-title">
               <h2 id="rogue-shop-title">Upgrades <small>Each item: 5 → 7 → 9… points</small></h2><div id="rogue-upgrades"></div>
             </section>
@@ -128,8 +131,8 @@ export class RogueGame {
     this.statValues = {};
     for (const [key, label] of Object.entries({
       points: 'Points', speed: 'Move speed', damage: 'Damage',
-      attackSpeed: 'Fire rate', armor: 'Armor', ammoCost: 'Ammo / volley', reload: 'Reload',
-      projectileSpeed: 'Shell speed / life', shellSize: 'Shell size / bounces', pellets: 'Standard shells', penetration: 'Standard pierce', blast: 'Explosion radius', killHeal: 'HP / kill', deathNova: 'Death nova', payload: 'Explosive payload',
+      attackSpeed: 'Shots / second', armor: 'Armor', ammoCost: 'Ammo / volley',
+      projectileSpeed: 'Shell speed', shellSize: 'Shell size / bounces',
     })) {
       const row = document.createElement('div');
       const term = document.createElement('dt');
@@ -172,6 +175,11 @@ export class RogueGame {
       this.dismissDiceOverlay();
     });
     this.el('ammo-spend').addEventListener('input', () => this.renderAmmoShop());
+    this.el('cancel-removal').addEventListener('click', () => {
+      if (this.state.diceRolled || !this.state.pendingRemoval) return;
+      this.state.pendingRemoval = false; this.state.selectedAbility = null; this.state.abilitiesBeforeChoice = null;
+      this.renderPanel();
+    });
     this.el('buy-ammo').addEventListener('click', () => {
       if (this.roundTransition || this.diceReveal) return;
       if (this.state.buyAmmo(this.world.player, Number(this.el('ammo-spend').value))) this.renderPanel();
@@ -243,34 +251,24 @@ export class RogueGame {
     const player = world.player;
     const ended = state.phase === 'won' || state.phase === 'lost';
     if (state.phase === 'shop') supplyRoundAmmo(player, state.round);
-    const config = getRoundConfig(state.round, state.enemyDiceBonuses);
     const weapon = getRoguePlayerWeapon(player);
-    const payload = getRogueExplosivePayload(player);
-    const nova = getRogueDeathBlast(player);
     this.el('shade').hidden = false;
-    this.el('title').textContent = state.phase === 'won' ? 'All 10 Rounds Survived!' : state.phase === 'lost' ? 'Run Over' : 'Roguelite Upgrades';
+    this.el('title').textContent = state.phase === 'won' ? `All ${ROUND_COUNT} Rounds Survived!` : state.phase === 'lost' ? 'Run Over' : 'Roguelite Upgrades';
     this.el('summary').textContent = ended
       ? `${state.kills} kills · ${state.points} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}`
-      : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Up to ${config.maxEnemies} enemies · Spawn every ${config.replacementInterval.toFixed(2)}s · Enemy HP ${config.enemyMaxHP} / Damage +${Math.round((config.enemyDamageMultiplier / ROGUE_ENEMY_RULES.damageMultiplier - 1) * 100)}% · Standard ${config.weights.standard}% / Scatter ${config.weights.scatter}% / Heavy ${config.weights.heavy}%`;
+      : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Pick one free ability or continue without choosing · Common 60% / Rare 30% / Legendary 10%`;
     const stats = {
       points: `${state.points}`,
-      speed: `${player.speed.toFixed(2)} (${(player.speed / ROGUE_PLAYER_BASE.speed * 100).toFixed(0)}%)`,
-      damage: `${weapon.damage.toFixed(2)} (${(player.damageMultiplier * player.projectileDamageMultiplier * 100).toFixed(1)}%)`,
-      attackSpeed: `${(player.attackSpeedMultiplier * 100).toFixed(0)}%`,
+      speed: `${Math.round(player.speed)}`,
+      damage: `${Number(weapon.damage.toFixed(1))}`,
+      attackSpeed: `${Number((1 / weapon.reloadTime).toFixed(1))}`,
       armor: player.armor < 0 ? `${player.armor} (+${-player.armor} taken)` : `${player.armor}`,
       ammoCost: `${weapon.pelletCount + player.extraExplosiveProjectiles * EXPLOSIVE_AMMO_COST}`,
-      reload: `${(player.reloadTime / player.attackSpeedMultiplier).toFixed(3)}s`,
-      projectileSpeed: `${weapon.projectileSpeed.toFixed(0)} / ${weapon.projectileLifetime.toFixed(2)}s`, pellets: `${weapon.pelletCount}`,
-      shellSize: `${(player.projectileSizeMultiplier * 100).toFixed(1)}% / ${player.wallBounces}`,
-      penetration: `${weapon.penetration}`, blast: getRogueExplosionRadiusText(player),
-      killHeal: `${player.killHeal}`,
-      deathNova: nova ? `${nova.minDamage.toFixed(0)}–${nova.maxDamage.toFixed(0)} / ${nova.radius.toFixed(0)}px` : 'None',
-      payload: `${player.extraExplosiveProjectiles} × ${payload.explosion.minDamage.toFixed(0)}–${payload.explosion.maxDamage.toFixed(0)}`,
+      projectileSpeed: `${Math.round(weapon.projectileSpeed)}`,
+      shellSize: `×${player.projectileSizeMultiplier} / ${player.wallBounces}`,
     };
     for (const [key, value] of Object.entries(stats)) this.statValues[key].textContent = value;
-    this.statValues.deathNova.parentElement.hidden = !nova;
-    this.statValues.payload.parentElement.hidden = !(player.extraExplosiveProjectiles > 0);
-    this.statValues.blast.parentElement.hidden = !(player.extraExplosiveProjectiles > 0 || nova);
+    this.el('economy-note').textContent = `${KILL_POINTS * player.pointMultiplier} pts / kill · Damage taken ×${player.incomingDamageMultiplier}${Number.isFinite(player.pointsCap) ? ' · Max 10,000 pts' : ''}${player.pulseShield ? ' · Shield 1s / 3s' : ''}`;
     this.renderAmmoShop();
     this.renderRunSummary();
     if (ended) this.historyView.render();
@@ -284,12 +282,13 @@ export class RogueGame {
     }
     const nextLabel = ended ? 'Mode Select' : `Start Round ${state.round}`;
     this.el('next-label').textContent = nextLabel;
-    this.el('next').disabled = !ended && state.selectedAbility === null;
+    this.el('next').disabled = false;
     this.el('next').setAttribute('aria-label', nextLabel);
-    this.el('next').title = !ended && state.selectedAbility === null ? 'Choose an ability first' : ended ? nextLabel : 'Finish upgrades, then reveal the enemy dice';
+    this.el('next').title = ended ? nextLabel : 'Continue with or without a free ability';
     this.el('menu').hidden = ended;
     if (focus) {
-      if (!ended && state.selectedAbility === null) this.abilityCards[0].focus();
+      if (state.pendingRemoval) this.el('recalibration').querySelector('button')?.focus();
+      else if (!ended && state.selectedAbility === null) this.abilityCards[0].focus();
       else this.el('next').focus();
     }
     this.renderHUD();
@@ -316,7 +315,6 @@ export class RogueGame {
   }
   requestRoundStart() {
     if (this.disposed || this.roundTransition || this.diceReveal || this.state.phase !== 'shop') return false;
-    if (this.state.selectedAbility === null) return false;
     if (!this.state.rollDice()) return false;
     this.diceReveal = new RogueDiceReveal();
     this.input.reset();
@@ -376,6 +374,7 @@ export class RogueGame {
     this.canvas.focus();
   }
   beginRoundTransition() {
+    if (this.state.phase === 'won' || this.state.phase === 'lost') this.bgm?.pause();
     const round = this.state.phase === 'shop' ? this.state.round - 1 : this.state.round;
     this.history.record(round, this.state.phase === 'lost' ? 'lost' : 'cleared', this.state, this.world.player);
     this.roundTransition = new RogueRoundTransition(this.state.phase, round);
@@ -414,59 +413,7 @@ export class RogueGame {
     this.panelContent.style.height = `${layout.height}px`;
     this.panelContent.style.transform = `scale(${layout.scale})`;
   }
-  renderAbilities(ended) {
-    const { state } = this;
-    const ownedBeforePick = state.selectedAbility === null ? state.abilities : state.abilities.slice(0, -1);
-    for (const [index, card] of this.abilityCards.entries()) {
-      card.hidden = ended;
-      if (ended) continue;
-      const id = state.abilityChoices[index];
-      const ability = ABILITIES[id];
-      const selected = state.selectedAbility === id;
-      const level = state.abilities.filter(owned => owned === id).length;
-      card.dataset.ability = id;
-      card.disabled = ended || state.selectedAbility !== null;
-      card.classList.toggle('selected', selected);
-      card.setAttribute('aria-pressed', String(selected));
-      card.querySelector('.rogue-ability-icon').innerHTML = abilityIcon(id);
-      card.querySelector('h2').textContent = ability.name;
-      card.querySelector('p').textContent = ability.description;
-      card.querySelector('.rogue-ability-status').textContent = selected ? `Selected · Lv.${level}` : level > 0 ? `Lv.${level} → Lv.${level + 1}` : 'Free ability';
-      const list = card.querySelector('.rogue-ability-changes');
-      list.replaceChildren();
-      for (const change of previewAbility(state.levels, ownedBeforePick, id)) {
-        const row = document.createElement('li');
-        const label = document.createElement('span');
-        const value = document.createElement('strong');
-        label.textContent = change.label;
-        value.textContent = `${change.before} → ${change.after}`;
-        row.append(label, value);
-        list.append(row);
-      }
-      if (!list.children.length) {
-        const row = document.createElement('li');
-        row.textContent = 'Stat minimum reached.';
-        list.append(row);
-      }
-    }
-    const owned = this.root.querySelector('.rogue-owned');
-    owned.replaceChildren();
-    owned.setAttribute('aria-label', state.abilities.length ? 'Acquired abilities' : 'No acquired abilities');
-    const counts = new Map();
-    for (const id of state.abilities) counts.set(id, (counts.get(id) ?? 0) + 1);
-    for (const [id, count] of counts) {
-      const badge = document.createElement('span');
-      badge.className = 'rogue-owned-ability';
-      badge.innerHTML = abilityIcon(id);
-      const label = document.createElement('span');
-      label.className = 'rogue-owned-label';
-      label.textContent = `Lv.${count}`;
-      badge.append(label);
-      badge.title = `${ABILITIES[id].name} Lv.${count}: ${ABILITIES[id].description}`;
-      badge.setAttribute('aria-label', badge.title);
-      owned.append(badge);
-    }
-  }
+  renderAbilities(ended) { renderRogueAbilityChoices(this, ended); }
   damageText() {
     const p = this.world.player;
     const weapon = getRoguePlayerWeapon(p);

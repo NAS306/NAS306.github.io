@@ -119,7 +119,10 @@ test('survival weapon changes stay standard, while enemies and team players keep
 test('blast-only cards require an explosion source and Death Cascade effects never consume extra ammo', () => {
   const eligible = owned => {
     const offered = new Set();
-    for (let i = 0; i < 100; i++) rollAbilityChoices(() => i / 100, owned).forEach(id => offered.add(id));
+    for (const tier of [.3, .75, .95]) for (let i = 0; i < 100; i++) {
+      let calls = 0;
+      rollAbilityChoices(() => calls++ % 2 === 0 ? tier : i / 100, owned).forEach(id => offered.add(id));
+    }
     return offered;
   };
   const fresh = eligible([]);

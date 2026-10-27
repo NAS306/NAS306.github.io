@@ -2,21 +2,12 @@ import { ROGUE_RUN_METRICS, getRogueRunMetricValues } from './22-rogue-stats.js'
 import { getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast } from './40-rogue-balance.js';
 import { EXPLOSIVE_AMMO_COST } from './20-rogue-ammo.js';
 
-const tankLabels = {
-  hp: 'Remaining HP', maxHP: 'Maximum HP', points: 'Points left', ammo: 'Ammo left',
-  speed: 'Move speed', damage: 'Standard shell damage', fireRate: 'Fire rate (%)', armor: 'Armor',
-  ammoCost: 'Ammo / full volley', reload: 'Reload (s)', projectileSpeed: 'Shell speed',
-  projectileLifetime: 'Shell life (s)', pellets: 'Standard shells', penetration: 'Standard pierce',
-  killHeal: 'HP / kill', payloadCount: 'Explosive shells', payloadMin: 'Explosion minimum damage',
-  payloadMax: 'Explosion maximum damage', payloadRadius: 'Explosion radius',
-  novaDamage: 'Death nova damage', novaRadius: 'Death nova radius',
-};
 export const ROGUE_HISTORY_METRICS = Object.freeze([
   ...ROGUE_RUN_METRICS.map(metric => ({ ...metric, group: 'Round totals', section: 'combat' })),
-  ...Object.entries(tankLabels).map(([key, label]) => ({ key: `tank-${key}`, field: key, label, group: 'Tank at round end', section: 'tank' })),
+  { key: 'tank-hp', field: 'hp', label: 'Remaining HP', group: 'Tank at round end', section: 'tank' },
 ]);
 
-// Ten small snapshots, kept only for this run. Never retain mutable player references.
+// At most thirty small snapshots, kept only for this run.
 export class RogueRunHistory {
   constructor() { this.rows = []; this.previous = {}; }
   record(round, outcome, state, player) {
@@ -24,9 +15,8 @@ export class RogueRunHistory {
     const totals = getRogueRunMetricValues(state, player.runStats);
     const combat = {};
     for (const { key } of ROGUE_RUN_METRICS) {
-      if (key !== 'ammoPerKill') combat[key] = totals[key] - (this.previous[key] ?? 0);
+      combat[key] = totals[key] - (this.previous[key] ?? 0);
     }
-    combat.ammoPerKill = combat.kills > 0 ? combat.ammoSpent / combat.kills : null;
     const weapon = getRoguePlayerWeapon(player), payload = getRogueExplosivePayload(player);
     const nova = getRogueDeathBlast(player), payloadCount = player.extraExplosiveProjectiles;
     const tank = {

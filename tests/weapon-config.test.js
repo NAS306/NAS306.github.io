@@ -61,16 +61,16 @@ test("multi-pellet profiles produce uniformly spaced projectile angles", () => {
   assert.ok(Math.abs(angles.at(-1) - Math.PI / 6) < 1e-12);
 });
 
-test("heavy cannon trades a three-times-longer reload for splash damage", () => {
+test("heavy cannon trades a six-times-longer reload for splash damage", () => {
   const standard = resolveWeaponProfile("standard");
   const heavy = resolveWeaponProfile("heavy");
   assert.equal(heavy.tankShape, "square");
-  assert.equal(heavy.reloadTime, standard.reloadTime * 3);
+  assert.equal(heavy.reloadTime, standard.reloadTime * 6);
   assert.ok(heavy.projectileSpeed > 0);
   assert.equal(heavy.explosion.radius, 90);
   assert.equal(heavy.damage, 25);
-  assert.equal(heavy.explosion.maxDamage, 30);
-  assert.ok(heavy.explosion.maxDamage < 50);
+  assert.equal(heavy.explosion.minDamage, 25);
+  assert.equal(heavy.explosion.maxDamage, 75);
 });
 
 test("scatter cannon fires three standard shells at 15-degree intervals", () => {
@@ -78,7 +78,7 @@ test("scatter cannon fires three standard shells at 15-degree intervals", () => 
   const scatter = resolveWeaponProfile("scatter");
   const angles = getProjectileAngles(scatter, 0);
   assert.equal(scatter.tankShape, "triangle");
-  assert.equal(scatter.reloadTime, standard.reloadTime * 4);
+  assert.equal(scatter.reloadTime, standard.reloadTime * 3);
   assert.equal(scatter.damage, standard.damage);
   assert.equal(angles.length, 3);
   assert.ok(Math.abs(angles[0] + Math.PI / 12) < 1e-12);

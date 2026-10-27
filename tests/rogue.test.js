@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RogueState, getRoundConfig, UPGRADES, ROUND_SECONDS } from '../src/js/42-rogue-state.js';
+import { RogueState, getRoundConfig, UPGRADES, ROUND_SECONDS, ROUND_COUNT } from '../src/js/42-rogue-state.js';
 import { RogueWorld, RoguePlayerTank } from '../src/js/50-rogue-world.js';
 import { ROGUE_PLAYER_BASE } from '../src/js/40-rogue-balance.js';
 import { Bullet, Explosion, Tank } from '../src/js/30-entities.js';
@@ -21,11 +21,11 @@ function startRoundWithAbility(state, player = new Tank(0, 0, 'blue', true)) {
   assert.equal(state.startRound(), true);
 }
 
-test('40 second rounds carry HP; only completion of round 10 wins', () => {
+test('40 second rounds carry HP; only completion of round 30 wins', () => {
   assert.equal(ROUND_SECONDS, 40);
   const state = new RogueState(), player = new Tank(0, 0, 'blue', true);
   player.takeDamage(25);
-  for (let round = 1; round <= 10; round++) {
+  for (let round = 1; round <= ROUND_COUNT; round++) {
     assert.equal(state.round, round);
     if (round === 1) {
       assert.equal(state.phase, 'combat'); assert.deepEqual(state.abilities, []);
@@ -105,7 +105,7 @@ test('round mixtures change, max enemies grows by six, and no allies or bases ar
   assert.deepEqual([world.bounds.maxX, world.bounds.maxY], [800, 800]);
   assert.equal(world.strongholds.length, 0); assert.equal(world.turrets.length, 0);
   let prior;
-  for (let round = 1; round <= 10; round++) {
+  for (let round = 1; round <= ROUND_COUNT; round++) {
     const config = getRoundConfig(round);
     assert.equal(config.maxEnemies, round * 6);
     assert.equal(Object.values(config.weights).reduce((a, b) => a + b), 100);
@@ -161,28 +161,28 @@ test('one credited kill funds forty ammo while two kills fund a basic upgrade af
   assert.equal(player.speed, ROGUE_PLAYER_BASE.speed * 1.03);
 });
 
-test('a full ten-round run has exactly nine ability choices, nine upgrade phases and nine mandatory dice rolls', () => {
+test('a full thirty-round run has 29 optional ability choices and 29 dice rolls', () => {
   const state = new RogueState(), player = new RoguePlayerTank(0, 0);
   let shops = 0, dice = 0;
-  state.points = 1000;
+  state.points = 10000;
   assert.equal(state.rollDice(), null);
   assert.equal(state.chooseAbility('turbo', player), false);
   assert.equal(state.buy('speed', player), false);
   assert.equal(state.buyAmmo(player), false);
-  for (let round = 1; round <= 10; round++) {
+  for (let round = 1; round <= ROUND_COUNT; round++) {
     assert.equal(state.round, round);
     if (round > 1) {
       shops++;
       assert.equal(state.abilityChoices.length, 3);
-      assert.equal(state.chooseAbility(state.abilityChoices[0], player), true);
+      state.abilityChoices = ['hull']; assert.equal(state.chooseAbility('hull', player), true);
       assert.equal(state.buy('speed', player), true);
       assert.ok(state.rollDice(() => 5.5 / 7)); dice++;
       assert.equal(state.rollDice(), null); assert.equal(state.startRound(), true);
     }
     state.tick(ROUND_SECONDS, player.hp);
   }
-  assert.equal(state.phase, 'won'); assert.equal(shops, 9); assert.equal(dice, 9);
-  assert.equal(state.abilities.length, 9); assert.equal(state.levels.speed, 9);
+  assert.equal(state.phase, 'won'); assert.equal(shops, 29); assert.equal(dice, 29);
+  assert.equal(state.abilities.length, 29); assert.equal(state.levels.speed, 29);
 });
 
 test('all survival enemy weapons apply gentle round damage growth to the half-damage base, including heavy splash', () => {

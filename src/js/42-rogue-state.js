@@ -1,4 +1,4 @@
-import { ABILITIES, calculateRogueStats, rollAbilityChoices } from './41-rogue-abilities.js';
+import { ABILITIES, calculateRogueStats, rollAbilityChoices, canOfferAbility } from './41-rogue-abilities.js';
 import { getRogueEnemyScaling } from './40-rogue-balance.js';
 import { ENEMY_DICE_FACES, createEnemyDiceBonuses, rollEnemyDice } from './21-rogue-dice.js';
 import { AMMO_PER_POINT } from './20-rogue-ammo.js';
@@ -6,7 +6,7 @@ import { healRoguePlayer } from './22-rogue-stats.js';
 
 // Survival rules are independent of DOM and the existing team scenarios.
 export const ROUND_SECONDS = 40;
-export const ROUND_COUNT = 10;
+export const ROUND_COUNT = 30;
 export const KILL_POINTS = 4;
 export const UPGRADES = Object.freeze({
   heal: { name: 'Repair', description: 'Restore all HP' },
@@ -23,9 +23,11 @@ const MIXES = [
 ];
 export function getRoundConfig(round, enemyDiceBonuses = {}) {
   if (!Number.isInteger(round) || round < 1 || round > ROUND_COUNT) {
-    throw new RangeError('Round must be between 1 and 10');
+    throw new RangeError(`Round must be between 1 and ${ROUND_COUNT}`);
   }
-  const [standard, scatter, heavy] = MIXES[round - 1];
+  // Keep the first ten mixes, then alternate the late-game mix without new tables.
+  const mixIndex = round <= 10 ? round - 1 : 7 + (round - 11) % 3;
+  const [standard, scatter, heavy] = MIXES[mixIndex];
   return { ...getRogueEnemyScaling(round, ROUND_COUNT, enemyDiceBonuses), weights: { standard, scatter, heavy } };
 }
 
@@ -40,6 +42,9 @@ export class RogueState {
     this.abilities = [];
     this.abilityChoices = [];
     this.selectedAbility = null;
+    this.pendingRemoval = false;
+    this.removedAbility = null;
+    this.abilitiesBeforeChoice = null;
     this.enemyDiceBonuses = createEnemyDiceBonuses();
     this.diceResult = null;
     this.diceRolled = false;
@@ -47,13 +52,27 @@ export class RogueState {
   }
   cost(key) { return Object.hasOwn(UPGRADES, key) ? 5 + this.levels[key] * 2 : Infinity; }
   applyStats(player) {
-    Object.assign(player, calculateRogueStats(this.levels, this.abilities));
+    const stats = calculateRogueStats(this.levels, this.abilities);
+    Object.assign(player, stats);
     player.hp = Math.min(player.hp, player.maxHP);
+    this.points = Math.min(this.points, stats.pointsCap);
   }
   chooseAbility(id, player) {
-    if (this.phase !== 'shop' || this.selectedAbility !== null || !Object.hasOwn(ABILITIES, id) || !this.abilityChoices.includes(id)) return false;
-    this.abilities.push(id);
+    if (this.phase !== 'shop' || this.diceRolled || this.selectedAbility !== null || !this.abilityChoices.includes(id) || !canOfferAbility(id, this.abilities)) return false;
+    this.abilitiesBeforeChoice = [...this.abilities];
     this.selectedAbility = id;
+    if (ABILITIES[id].action === 'remove') { this.pendingRemoval = true; return true; }
+    this.abilities.push(id);
+    this.applyStats(player);
+    return true;
+  }
+  removeAbility(id, player) {
+    if (this.phase !== 'shop' || this.diceRolled || !this.pendingRemoval) return false;
+    const index = this.abilities.lastIndexOf(id);
+    if (index < 0) return false;
+    this.abilities.splice(index, 1);
+    this.pendingRemoval = false;
+    this.removedAbility = id;
     this.applyStats(player);
     return true;
   }
@@ -67,7 +86,9 @@ export class RogueState {
     return true;
   }
   rollDice(random = Math.random) {
-    if (this.phase !== 'shop' || this.selectedAbility === null || this.diceRolled) return null;
+    if (this.phase !== 'shop' || this.diceRolled) return null;
+    // Starting without resolving Recalibration simply forfeits that free action.
+    this.pendingRemoval = false;
     this.diceResult = rollEnemyDice(random);
     this.diceRolled = true;
     if (this.diceResult.bomb) {
@@ -82,7 +103,7 @@ export class RogueState {
     return true;
   }
   startRound() {
-    if (this.phase !== 'shop' || this.selectedAbility === null || !this.diceRolled) return false;
+    if (this.phase !== 'shop' || !this.diceRolled) return false;
     this.remaining = ROUND_SECONDS;
     this.phase = 'combat';
     return true;
@@ -93,20 +114,30 @@ export class RogueState {
     this.remaining = Math.max(0, this.remaining - dt);
     if (this.remaining > 1e-8) return;
     this.remaining = 0;
+    const income = calculateRogueStats(this.levels, this.abilities).roundIncome;
+    if (income > 0) this.awardPoints(this.round * income);
     if (this.round === ROUND_COUNT) this.phase = 'won';
     else {
       this.round++;
       this.phase = 'shop';
       this.selectedAbility = null;
+      this.pendingRemoval = false;
+      this.removedAbility = null;
+      this.abilitiesBeforeChoice = null;
       this.diceRolled = false;
       this.diceResult = null;
       this.abilityChoices = rollAbilityChoices(Math.random, this.abilities);
     }
   }
   awardKills(count) {
-    if (this.phase !== 'combat') return;
+    if (this.phase !== 'combat' || !Number.isSafeInteger(count) || count <= 0) return;
     this.kills += count;
-    this.points += count * KILL_POINTS;
-    this.pointsEarned += count * KILL_POINTS;
+    this.awardPoints(count * KILL_POINTS);
+  }
+  awardPoints(amount) {
+    const stats = calculateRogueStats(this.levels, this.abilities);
+    const gained = Math.max(0, Math.min(stats.pointsCap - this.points, amount * stats.pointMultiplier, Number.MAX_SAFE_INTEGER - this.pointsEarned));
+    this.points += gained;
+    this.pointsEarned += gained;
   }
 }

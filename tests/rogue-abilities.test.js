@@ -17,12 +17,12 @@ function worldWith(abilities = []) {
 }
 const input = { keys: {}, mouse: { canvasX: 600, canvasY: 325, down: false } };
 
-test('twenty-three named abilities have descriptions, local icons and distinct three-card offers', () => {
-  assert.equal(Object.keys(ABILITIES).length, 23);
+test('thirty named abilities have descriptions, local icons and distinct three-card offers', () => {
+  assert.equal(Object.keys(ABILITIES).length, 30);
   for (const id of Object.keys(ABILITIES)) {
     assert.ok(ABILITIES[id].description.length > 10);
     assert.match(abilityIcon(id), /<svg/);
-    assert.ok(Object.keys(ABILITIES[id].effects).length > 0);
+    assert.ok(ABILITIES[id].action || Object.keys(ABILITIES[id].effects).length > 0);
   }
   for (const random of [() => 0, () => 0.5, () => 0.999999, Math.random]) {
     const offer = rollAbilityChoices(random);
@@ -31,7 +31,7 @@ test('twenty-three named abilities have descriptions, local icons and distinct t
   }
 });
 
-test('exactly one free ability is required per round; repeated picks stack without spending points', () => {
+test('at most one free ability can be selected per round; repeated picks stack without spending points', () => {
   const state = createShopState(), player = new Tank(0, 0, 'blue', true);
   state.abilityChoices = ['turbo', 'hull', 'piercing'];
   assert.equal(state.startRound(), false);
@@ -60,6 +60,7 @@ test('every preview shows only changed fields and exactly matches applied stats 
   for (const payload of [[], ['explosive']]) {
     state.abilities = ['turbo', 'hull', 'loader', 'plating', ...payload];
     for (const id of Object.keys(ABILITIES)) {
+      if (ABILITIES[id].action) continue;
       if (ABILITIES[id].requiresExplosion && payload.length === 0) continue;
       const player = new RoguePlayerTank(0, 0);
       state.selectedAbility = null; state.abilityChoices = [id];

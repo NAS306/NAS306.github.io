@@ -123,17 +123,17 @@ test('each round increases enemy density strongly but HP and damage gently, and 
     }
     previous = config;
   }
-  const first = getRoundConfig(1), last = getRoundConfig(10);
-  assert.equal(last.maxEnemies / first.maxEnemies, 10);
+  const first = getRoundConfig(1), last = getRoundConfig(ROUND_COUNT);
+  assert.equal(last.maxEnemies / first.maxEnemies, 30);
   assert.ok(Math.abs(first.replacementInterval / last.replacementInterval - 5) < 1e-10);
-  assert.ok(last.enemyMaxHP / first.enemyMaxHP <= 1.3);
-  assert.ok(last.enemyDamageMultiplier / first.enemyDamageMultiplier <= 1.2);
+  assert.ok(last.enemyMaxHP / first.enemyMaxHP <= 2);
+  assert.ok(last.enemyDamageMultiplier / first.enemyDamageMultiplier <= 1.6);
   world.player.hp = 80; world.startRound(1);
   assert.equal(world.player.hp, 80);
   assert.equal(world.tanks[1].hp, 90);
   assert.equal(world.tanks[1].damageMultiplier, .5);
   assert.throws(() => getRoundConfig(0), RangeError);
-  assert.throws(() => getRoundConfig(11), RangeError);
+  assert.throws(() => getRoundConfig(31), RangeError);
 });
 
 test('under continuous kills the final round actually spawns over four times as many enemies as round one', () => {
@@ -149,5 +149,5 @@ test('under continuous kills the final round actually spawns over four times as 
     }
     return spawned;
   };
-  assert.ok(simulate(10) > simulate(1) * 4);
+  assert.ok(simulate(ROUND_COUNT) > simulate(1) * 4);
 });

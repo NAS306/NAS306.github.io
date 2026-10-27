@@ -33,6 +33,8 @@ try {
   await page.screenshot({ path: '.qa/rogue-first-round.png' });
   await page.clock.runFor(45000);
   await page.locator('#rogue-run-summary').waitFor();
+  assert.equal(await page.locator('#rogue-run-stats > div').count(), 4);
+  assert.equal(await page.evaluate(() => document.getElementById('bgm').paused), true);
   const summary = await page.locator('#rogue-run-stats').innerText();
   await page.screenshot({ path: '.qa/rogue-result.png' });
   await page.getByRole('button', { name: 'By Round', exact: true }).click();
@@ -82,10 +84,10 @@ try {
   });
   assert.equal(await runPage.locator('#rogue-title').innerText(), 'Roguelite Upgrades');
   assert.match(await runPage.locator('[data-ability="ricochet"]').innerText(), /Wall bounces.*0.*1/s);
-  assert.match(await runPage.locator('[data-ability="oversized"]').innerText(), /100%.*150%/s);
+  assert.match(await runPage.locator('[data-ability="oversized"]').innerText(), /100%.*200%/s);
   await runPage.screenshot({ path: '.qa/roguelite-new-abilities.png' });
   await runPage.locator('[data-ability="oversized"]').click();
-  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.projectileSizeMultiplier), 1.5);
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.projectileSizeMultiplier), 2);
   await runPage.evaluate(() => {
     const game = window.__qaRogue;
     game.state.rollDice(() => 5.5 / 7); game.state.startRound(); game.world.startRound(2);
@@ -94,7 +96,7 @@ try {
     game.state.abilityChoices = ['ricochet', 'oversized', 'explosive']; game.renderPanel();
   });
   await runPage.locator('[data-ability="ricochet"]').click();
-  assert.equal(await runPage.evaluate(() => window.__qaRogue.statValues.shellSize.textContent), '150.0% / 1');
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.statValues.shellSize.textContent), '×2 / 1');
   await runPage.screenshot({ path: '.qa/roguelite-stacked-abilities.png' });
   const bounced = await runPage.evaluate(() => {
     const game = window.__qaRogue, player = game.world.player;
@@ -105,13 +107,38 @@ try {
     game.world.bulletPool.updateAll(.05); game.world.handleCollisions();
     return { active: bullet.active, reflected: bullet.vx < 0, bounces: bullet.wallBouncesRemaining, radius: bullet.radius, damage: bullet.damage };
   });
-  assert.deepEqual(bounced, { active: true, reflected: true, bounces: 0, radius: 4.5, damage: 20 });
+  assert.deepEqual(bounced, { active: true, reflected: true, bounces: 0, radius: 6, damage: 40 });
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue;
+    game.state.rollDice(() => 5.5 / 7); game.state.startRound(); game.world.startRound(3);
+    game.state.tick(40, game.world.player.hp); game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+    game.state.abilityChoices = ['recalibrate', 'bargain', 'shield']; game.renderPanel();
+  });
+  assert.match(await runPage.locator('[data-ability="recalibrate"]').innerText(), /Common/);
+  assert.match(await runPage.locator('[data-ability="bargain"]').innerText(), /Rare/);
+  assert.match(await runPage.locator('[data-ability="shield"]').innerText(), /Legendary/);
+  await runPage.locator('[data-ability="recalibrate"]').click();
+  await runPage.screenshot({ path: '.qa/roguelite-recalibration.png' });
+  await runPage.locator('[data-remove-ability="oversized"]').click();
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.projectileSizeMultiplier), 1);
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.projectileSpeedMultiplier), 1);
+  // Exercise the actual next-round button with no ability picked.
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue; game.resetRun();
+    game.state.tick(40, game.world.player.hp); game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+  });
+  assert.equal(await runPage.locator('#rogue-next').isEnabled(), true);
+  await runPage.locator('#rogue-next').click();
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue; game.advanceDiceReveal(.6); game.dismissDiceOverlay(); game.advanceDiceReveal(.4);
+  });
+  assert.deepEqual(await runPage.evaluate(() => ({ phase: window.__qaRogue.state.phase, abilities: window.__qaRogue.state.abilities })), { phase: 'combat', abilities: [] });
   await runPage.evaluate(() => window.__qaRogue.resetRun());
   const fullRun = await runPage.evaluate(() => {
     const game = window.__qaRogue;
     cancelAnimationFrame(game.animationFrameId);
     const starts = [];
-    for (let round = 1; round <= 10; round++) {
+    for (let round = 1; round <= 30; round++) {
       const player = game.world.player;
       if (round > 1) starts.push([player.x, player.y, game.world.bounds.maxX / 2]);
       player.x = 30; player.y = 80;
@@ -121,7 +148,7 @@ try {
       game.state.awardKills(round);
       game.state.tick(40, player.hp);
       game.beginRoundTransition(); game.advanceRoundTransition(1.5);
-      if (round < 10) {
+      if (round < 30) {
         game.state.abilityChoices = ['hull', 'hull', 'hull'];
         game.state.chooseAbility('hull', player);
         game.state.buy('heal', player);
@@ -132,12 +159,14 @@ try {
     }
     return { starts, phase: game.state.phase, rounds: game.history.rows.length, kills: game.state.kills };
   });
-  assert.equal(fullRun.phase, 'won'); assert.equal(fullRun.rounds, 10); assert.equal(fullRun.kills, 55);
+  assert.equal(fullRun.phase, 'won'); assert.equal(fullRun.rounds, 30); assert.equal(fullRun.kills, 465);
+  assert.equal(await runPage.evaluate(() => document.getElementById('bgm').paused), true);
   assert.ok(fullRun.starts.every(([x, y, center]) => x === center && y === center));
   await runPage.getByRole('button', { name: 'By Round', exact: true }).click();
-  assert.equal(await runPage.locator('.rogue-chart-values > div').count(), 10);
-  assert.equal(await runPage.locator('#rogue-result-rounds circle').count(), 10);
-  await runPage.screenshot({ path: '.qa/rogue-ten-round-chart.png' });
+  assert.equal(await runPage.locator('.rogue-chart-values > div').count(), 30);
+  assert.equal(await runPage.locator('#rogue-result-rounds circle').count(), 30);
+  assert.equal(await runPage.locator('#rogue-chart-metric option').count(), 5);
+  await runPage.screenshot({ path: '.qa/rogue-thirty-round-chart.png' });
   const fits = await runPage.locator('.rogue-chart-note').evaluate(element => {
     const panel = element.closest('.rogue-run-summary').getBoundingClientRect();
     return element.getBoundingClientRect().bottom <= panel.bottom;
@@ -149,7 +178,31 @@ try {
     return { rounds: game.history.rows.length, metric: game.el('chart-metric').value, totals: !game.el('result-totals').hidden };
   });
   assert.deepEqual(fresh, { rounds: 0, metric: 'kills', totals: true });
+  // A late run must remain readable at the minimum panel size.
+  await runPage.setViewportSize({ width: 1280, height: 800 });
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue; cancelAnimationFrame(game.animationFrameId);
+    game.state.phase = 'shop'; game.state.round = 30;
+    game.state.abilities = ['explosive', 'volatile', 'storm', 'rail', 'blood', 'oversized', 'bargain', 'dividends', 'shield', 'hull', 'plating', 'turbo', 'loader', 'splitter', 'recycler', 'ballistics', 'slowOrb', 'lightHull', 'heavyAmmo', ...Array(8).fill('glass')];
+    game.state.abilityChoices = ['warhead', 'siege', 'overdrive'];
+    game.state.applyStats(game.world.player); game.renderPanel();
+  });
+  const previewBounds = await runPage.locator('.rogue-ability').evaluateAll(cards => cards.map(card => ({
+    id: card.dataset.ability,
+    overflow: card.querySelector('.rogue-ability-changes').getBoundingClientRect().bottom - card.getBoundingClientRect().bottom,
+    rows: card.querySelectorAll('.rogue-ability-changes li').length,
+  })));
+  assert.ok(previewBounds.every(card => card.rows <= 3 && card.overflow <= 1), JSON.stringify(previewBounds));
+  await runPage.screenshot({ path: '.qa/roguelite30-prep-1280.png' });
+  await runPage.evaluate(() => {
+    const game = window.__qaRogue; game.state.abilityChoices = ['recalibrate', 'bargain', 'shield']; game.renderPanel();
+  });
+  await runPage.locator('[data-ability="recalibrate"]').click();
+  await runPage.locator('[data-remove-ability="heavyAmmo"]').scrollIntoViewIfNeeded();
+  await runPage.screenshot({ path: '.qa/roguelite30-removal-1280.png' });
+  await runPage.locator('[data-remove-ability="heavyAmmo"]').click();
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.state.abilities.includes('heavyAmmo')), false);
   await runPage.close();
   assert.deepEqual(errors, []); assert.deepEqual(externalRequests, []);
-  console.log('Offline Edge check passed: all five modes, Roguelite naming, new ability cards and selection, oversized-shell ricochet, immediate first combat, persistent totals, every round-chart metric, keyboard navigation, manual return, narrow layout, ten-round victory charts, centered starts and fresh-run reset.');
+  console.log('Offline Edge check passed: all five modes, rarity labels, Recalibration, optional picks, oversized-shell ricochet, four result totals, five chart metrics, music stopped on victory/loss, keyboard navigation, narrow layout, thirty-round victory charts, centered starts and fresh-run reset.');
 } finally { await browser.close(); }

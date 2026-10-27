@@ -16,6 +16,7 @@ export class RoguePlayerTank extends Tank {
     this.ammo = STARTING_AMMO;
     this.ammoSuppliedThroughRound = 1;
     this.runStats = createRogueRunStats();
+    this.combatElapsed = 0;
     this.setWeapon();
   }
   setWeapon() {
@@ -38,11 +39,30 @@ export class RoguePlayerTank extends Tank {
     return true;
   }
   takeDamage(damage) {
-    if (!Number.isFinite(damage) || damage <= 0) return;
+    if (!Number.isFinite(damage) || damage <= 0 || this.isShieldActive()) return;
     const before = Math.max(0, this.hp);
     // Negative armor is a survival tradeoff; team-mode damage rules stay intact.
-    super.takeDamage(damage + Math.max(0, -this.armor));
+    const incoming = damage + Math.max(0, -this.armor);
+    // Apply the bargain after armor: the actual damage suffered is doubled.
+    const armored = this.armor > 0 ? Math.max(1, incoming - this.armor) : incoming;
+    const scaled = armored * (this.incomingDamageMultiplier ?? 1);
+    super.takeDamage(scaled + Math.max(0, this.armor));
     this.runStats.damageTaken += before - Math.max(0, this.hp);
+  }
+  isShieldActive() {
+    return !!this.pulseShield && this.combatElapsed >= 3 - 1e-9 && (this.combatElapsed + 1e-9) % 3 < 1;
+  }
+  update(dt, world, input) {
+    if (this.hp <= 0) return;
+    this.combatElapsed += dt;
+    super.update(dt, world, input);
+  }
+  draw(ctx, camera) {
+    super.draw(ctx, camera);
+    if (this.hp <= 0 || !this.isShieldActive()) return;
+    ctx.save(); ctx.strokeStyle = '#81e8ff'; ctx.lineWidth = 3;
+    ctx.shadowBlur = 12; ctx.shadowColor = '#81e8ff';
+    ctx.beginPath(); ctx.arc(this.x - camera.x, this.y - camera.y, this.radius + 10, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
 }
 
@@ -104,6 +124,7 @@ export class RogueWorld extends World {
     this.player.x = (this.bounds.minX + this.bounds.maxX) / 2;
     this.player.y = (this.bounds.minY + this.bounds.maxY) / 2;
     this.player.rogueMotionVX = this.player.rogueMotionVY = 0;
+    this.player.combatElapsed = 0;
     supplyRoundAmmo(this.player, round);
     this.roundConfig = getRoundConfig(round, enemyDiceBonuses);
     this.spawnedByWeapon = { standard: 0, scatter: 0, heavy: 0 };

@@ -46,7 +46,7 @@ test('per-round totals reconcile with final totals, including shop repairs, purc
   assert.equal(history.record(1, 'cleared', state, player), true);
   const first = history.rows[0];
   assert.equal(first.combat.kills, 2); assert.equal(first.combat.pointsEarned, 8);
-  assert.equal(first.combat.ammoSpent, 1); assert.equal(first.combat.ammoPerKill, .5);
+  assert.deepEqual(Object.keys(first.combat), ['kills', 'damageTaken', 'damageDealt', 'pointsEarned']);
   assert.equal(first.tank.ammo, 299); assert.equal(first.tank.hp, 100);
   assert.equal(state.buy('heal', player), true); assert.equal(state.points, 3);
   assert.equal(state.buyAmmo(player, 1), true);
@@ -55,11 +55,10 @@ test('per-round totals reconcile with final totals, including shop repairs, purc
   history.record(2, 'lost', state, player);
   const second = history.rows[1];
   assert.equal(second.outcome, 'lost'); assert.equal(second.tank.hp, 0);
-  assert.equal(second.combat.healing, 25); assert.equal(second.combat.damageTaken, 125);
-  assert.equal(second.combat.ammoSpent, 1); assert.equal(second.combat.ammoPerKill, null);
+  assert.equal(player.runStats.healing, 25); assert.equal(second.combat.damageTaken, 125);
   assert.equal(second.combat.pointsEarned, 0); assert.equal(second.tank.points, 2);
   assert.equal(first.tank.hp, 100); assert.equal(first.tank.ammo, 299);
-  for (const key of ['damageTaken', 'damageDealt', 'healing', 'ammoSpent']) {
+  for (const key of ['damageTaken', 'damageDealt']) {
     assert.equal(first.combat[key] + second.combat[key], player.runStats[key]);
   }
   assert.equal(history.record(2, 'lost', state, player), false);
@@ -78,7 +77,7 @@ test('ten snapshots use actual modified weapon stats and capped explosions witho
   assert.equal(history.rows.length, 10);
   assert.equal(history.rows[0].combat.kills, 1); assert.equal(history.rows[9].combat.kills, 10);
   assert.equal(history.rows[9].combat.pointsEarned, 40);
-  assert.equal(history.rows[9].combat.ammoPerKill, 3);
+  assert.equal(ROGUE_HISTORY_METRICS.length, 5);
   assert.ok(history.rows[9].tank.payloadRadius <= 150); assert.ok(history.rows[9].tank.novaRadius <= 110);
   for (const metric of ROGUE_HISTORY_METRICS) {
     const model = getRogueChartModel(history.rows, metric);
@@ -87,7 +86,7 @@ test('ten snapshots use actual modified weapon stats and capped explosions witho
   }
 });
 
-test('chart geometry handles an empty run, a single zero, inactive abilities, gaps and negative armor', () => {
+test('simple chart geometry handles an empty run, a single zero and remaining HP', () => {
   const { state, player, history } = fixture();
   const metric = key => ROGUE_HISTORY_METRICS.find(item => item.key === key);
   assert.deepEqual(getRogueChartModel([], metric('kills')).points, []);
@@ -95,14 +94,11 @@ test('chart geometry handles an empty run, a single zero, inactive abilities, ga
   const one = getRogueChartModel(history.rows, metric('kills'));
   assert.equal(one.points[0].x, 355); assert.ok(Number.isFinite(one.points[0].y));
   assert.equal(new Set(one.ticks.map(tick => tick.value.toFixed(1))).size, one.ticks.length);
-  assert.equal(getRogueChartModel(history.rows, metric('ammoPerKill')).points[0].y, null);
-  assert.equal(getRogueChartModel(history.rows, metric('tank-payloadRadius')).points[0].y, null);
-  player.armor = -40; state.kills = 2; player.runStats.ammoSpent = 10; history.record(2, 'cleared', state, player);
-  player.armor = 10; history.record(3, 'lost', state, player);
-  const armor = getRogueChartModel(history.rows, metric('tank-armor'));
-  assert.ok(armor.points[1].y > armor.points[0].y); assert.ok(armor.points[2].y < armor.points[0].y);
-  assert.ok(armor.ticks[0].value < -40);
-  assert.deepEqual(getRogueChartModel(history.rows, metric('ammoPerKill')).points.map(point => point.value), [null, 5, null]);
+  player.hp = 40; state.kills = 2; history.record(2, 'cleared', state, player);
+  player.hp = 0; history.record(3, 'lost', state, player);
+  const hp = getRogueChartModel(history.rows, metric('tank-hp'));
+  assert.ok(hp.points[1].y > hp.points[0].y); assert.ok(hp.points[2].y > hp.points[1].y);
+  assert.deepEqual(hp.points.map(point => point.value), [125, 40, 0]);
 });
 
 test('the transition captures final stats once before slow motion and the next supply', () => {
@@ -114,7 +110,7 @@ test('the transition captures final stats once before slow motion and the next s
   RogueGame.prototype.beginRoundTransition.call(game);
   RogueGame.prototype.beginRoundTransition.call(game);
   assert.equal(history.rows.length, 1); assert.equal(history.rows[0].round, 1);
-  assert.equal(history.rows[0].combat.kills, 3); assert.equal(history.rows[0].combat.healing, 5);
+  assert.equal(history.rows[0].combat.kills, 3); assert.equal(player.runStats.healing, 5);
   assert.equal(history.rows[0].tank.ammo, 300);
   world.startRound(2); assert.equal(player.ammo, 450);
   assert.equal(history.rows[0].tank.ammo, 300);

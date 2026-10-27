@@ -56,9 +56,9 @@ test('the bonus independently samples all 41 integer amounts from 20 to 60; Pass
   assert.equal(pass.bonus, 0); assert.equal(calls, 1);
 });
 
-test('every round requires one roll after ability selection, rolling locks upgrades and Pass still unlocks starting', () => {
+test('every round requires one roll with optional ability selection, rolling locks upgrades and Pass still unlocks starting', () => {
   const { state, player } = fixture();
-  assert.equal(state.rollDice(), null); assert.equal(state.startRound(), false);
+  assert.equal(state.startRound(), false);
   choose(state, player); assert.equal(state.startRound(), false);
   state.points = 100; assert.equal(state.buy('speed', player), true);
   assert.equal(state.rollDice(() => 0).key, 'speed');
@@ -323,7 +323,6 @@ test('dice card spins in, waits for acknowledgment and spins out without advanci
 
 test('next-round action rolls once automatically, blocks early clicks, and starts combat only after the exit flip', () => {
   const { game, player, getRolls } = diceGame();
-  assert.equal(game.requestRoundStart(), false);
   choose(game.state, player);
   game.state.points = 100; assert.equal(game.state.buy('speed', player), true);
   assert.equal(game.requestRoundStart(), true);

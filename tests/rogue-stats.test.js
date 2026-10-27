@@ -114,10 +114,10 @@ test('earned points and stats persist across rounds and purchases, freeze during
   assert.notEqual(new RoguePlayerTank(0, 0).runStats, player.runStats);
 });
 
-test('victory and loss show seven final metrics, separate earned points from balance and handle zero kills without division by zero', () => {
+test('victory and loss show four readable totals and separate earned points from balance', () => {
   const { player, state, stats } = fixture();
   let summary = getRogueRunSummary(state, stats);
-  assert.equal(summary.find(row => row.key === 'ammoPerKill').value, '—');
+  assert.equal(summary.find(row => row.key === 'kills').value, '0');
   Object.assign(stats, { damageTaken: 34.25, damageDealt: 200, healing: 10, ammoSpent: 23 });
   Object.assign(state, { kills: 3, points: 1, pointsEarned: 12 });
   const section = {}, values = Object.fromEntries(summary.map(row => [row.key, {}]));
@@ -126,10 +126,9 @@ test('victory and loss show seven final metrics, separate earned points from bal
     state.phase = phase; RogueGame.prototype.renderRunSummary.call(game);
     assert.equal(section.hidden, phase === 'shop');
     if (phase !== 'shop') {
-      assert.equal(Object.keys(values).length, 7);
+      assert.equal(Object.keys(values).length, 4);
       assert.equal(values.kills.textContent, '3'); assert.equal(values.damageTaken.textContent, '34.3');
-      assert.equal(values.damageDealt.textContent, '200'); assert.equal(values.healing.textContent, '10');
-      assert.equal(values.ammoSpent.textContent, '23'); assert.equal(values.ammoPerKill.textContent, '7.67');
+      assert.equal(values.damageDealt.textContent, '200');
       assert.equal(values.pointsEarned.textContent, '12');
     }
   }

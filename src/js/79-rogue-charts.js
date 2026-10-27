@@ -28,7 +28,7 @@ export class RogueHistoryView {
   render() {
     const metric = ROGUE_HISTORY_METRICS.find(item => item.key === this.select.value);
     const model = getRogueChartModel(this.history.rows, metric);
-    const decimals = metric.decimals ?? ({ 'tank-reload': 3, 'tank-projectileLifetime': 2 }[metric.key] ?? 1);
+    const decimals = metric.decimals ?? 1;
     const fmt = value => formatRogueMetric(value, decimals);
     const svg = this.chart.querySelector('svg');
     let path = '', connected = false;
@@ -39,12 +39,12 @@ export class RogueHistoryView {
     svg.setAttribute('aria-label', `${metric.label} by round. Exact values are listed below.`);
     svg.innerHTML = model.ticks.map(tick => `<line x1="82" x2="628" y1="${tick.y}" y2="${tick.y}" class="chart-grid"/><text x="72" y="${tick.y + 6}" text-anchor="end">${fmt(tick.value)}</text>`).join('')
       + `<path d="${path}" class="chart-line"/>`
-      + model.points.map(point => `<text x="${point.x}" y="292" text-anchor="middle">${point.round}</text>`
+      + model.points.map(point => `${model.points.length <= 10 || point.round === 1 || point.round % 5 === 0 ? `<text x="${point.x}" y="292" text-anchor="middle">${point.round}</text>` : ''}`
         + (point.y === null ? '' : `<circle cx="${point.x}" cy="${point.y}" r="6" class="${point.outcome === 'lost' ? 'chart-lost' : 'chart-point'}"><title>Round ${point.round}: ${fmt(point.value)}${point.outcome === 'lost' ? ' (lost)' : ''}</title></circle>`)).join('')
       + '<text x="355" y="322" text-anchor="middle">Round</text>';
     this.chart.querySelector('.rogue-chart-values').innerHTML = model.points.map(point => `<div><dt>R${point.round}${point.outcome === 'lost' ? ' · Lost' : ''}</dt><dd>${fmt(point.value)}</dd></div>`).join('');
     this.chart.querySelector('.rogue-chart-note').textContent = metric.section === 'combat'
-      ? 'Values for each round, including a failed round. Repairs count toward the following round. — = no kills.'
-      : 'Snapshot at each round end, before the next upgrades or ammo supply. — = ability inactive.';
+      ? 'Each round, including a failed round. Point totals reflect the amount actually received.'
+      : 'Remaining HP at each round end, before the next upgrades.';
   }
 }

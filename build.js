@@ -11,7 +11,7 @@ export const JS_MODULES = [
   '20-rogue-ammo', '21-rogue-dice', '22-rogue-stats',
   '30-entities', '31-systems', '40-rogue-balance', '41-rogue-abilities',
   '42-rogue-state', '43-rogue-effects', '44-rogue-transition', '45-rogue-projectiles', '50-rogue-world',
-  '51-rogue-history', '79-rogue-charts', '80-mode-cards', '81-rogue-game', '90-game', '95-fps', '99-api',
+  '51-rogue-history', '78-rogue-ability-ui', '79-rogue-charts', '80-mode-cards', '81-rogue-game', '90-game', '95-fps', '99-api',
 ].map(name => `src/js/${name}.js`);
 export const CSS_FILES = ['src/styles/main.css', 'src/styles/rogue.css', 'src/styles/mode-select.css'];
 const assetCache = new Map();
