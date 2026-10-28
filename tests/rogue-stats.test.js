@@ -88,7 +88,7 @@ test('repairs and kill recovery count only HP actually restored and never count 
 test('ammo totals include ten-unit payloads and partial volleys, but exclude supplies, purchases and blocked shots', () => {
   const { world, state, player, stats } = fixture(['splitter', 'explosive']);
   state.points = 4; state.buyAmmo(player, 4); supplyRoundAmmo(player, 2);
-  assert.equal(player.ammo, 490); assert.equal(stats.ammoSpent, 0);
+  assert.equal(player.ammo, 676); assert.equal(stats.ammoSpent, 0);
   player.tryShoot(world); assert.equal(stats.ammoSpent, 14);
   player.tryShoot(world); assert.equal(stats.ammoSpent, 14);
   player.fireCooldown = 0; player.ammo = 3;
@@ -114,7 +114,7 @@ test('earned points and stats persist across rounds and purchases, freeze during
   assert.notEqual(new RoguePlayerTank(0, 0).runStats, player.runStats);
 });
 
-test('victory and loss show four readable totals and separate earned points from balance', () => {
+test('victory and loss show the six requested combat totals including real ammo efficiency', () => {
   const { player, state, stats } = fixture();
   let summary = getRogueRunSummary(state, stats);
   assert.equal(summary.find(row => row.key === 'kills').value, '0');
@@ -126,10 +126,19 @@ test('victory and loss show four readable totals and separate earned points from
     state.phase = phase; RogueGame.prototype.renderRunSummary.call(game);
     assert.equal(section.hidden, phase === 'shop');
     if (phase !== 'shop') {
-      assert.equal(Object.keys(values).length, 4);
+      assert.equal(Object.keys(values).length, 6);
       assert.equal(values.kills.textContent, '3'); assert.equal(values.damageTaken.textContent, '34.3');
       assert.equal(values.damageDealt.textContent, '200');
-      assert.equal(values.pointsEarned.textContent, '12');
+      assert.equal(values.healing.textContent, '10'); assert.equal(values.ammoSpent.textContent, '23');
+      assert.equal(values.ammoPerKill.textContent, '7.67');
     }
   }
+});
+
+test('overall ammo per kill uses total ammo / total kills, and zero kills has no defined efficiency', () => {
+  const { state, stats } = fixture();
+  assert.equal(getRogueRunSummary(state, stats).find(row => row.key === 'ammoPerKill').value, '—');
+  state.kills = 4; stats.ammoSpent = 16;
+  assert.equal(getRogueRunSummary(state, stats).find(row => row.key === 'ammoPerKill').value, '4.00');
+  assert.ok(getRogueRunSummary(state, stats).every(row => row.key !== 'pointsEarned'));
 });

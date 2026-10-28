@@ -57,6 +57,7 @@ test('all modes return to a ready selector without reloading assets or leaving m
     window: windowMock, document: documentMock, console, isMobileDevice: false,
     Game: Session, RogueGame: Session, InputManager: class {}, gameResources: resources,
     setModeSelectionHandler, returnToModeSelection, resolveScenario: (_, id) => ({ id }),
+    installRogueGuide() {}, isRogueGuideOpen: () => false,
     loadLevelCatalog: async () => { catalogLoads++; return {}; },
     preloadSprites: async () => { spriteLoads++; },
     setInterval: callback => { intervals.set(++nextTimer, callback); return nextTimer; },

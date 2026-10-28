@@ -37,8 +37,8 @@
     font-size: 1.2rem;
   }
   #point, #special-weapon, #specialWeaponPoint {
-    text-shadow: 
-    0 0 4px  currentColor, 
+    text-shadow:
+    0 0 4px  currentColor,
     0 0 8px currentColor,
     0 0 16px currentColor,
     0 0 32px currentColor;
@@ -91,11 +91,11 @@
     font-size: 1rem;
     color: #d4d4d4;
   }
-
-
-
-
-
+
+
+
+
+
 
   #barrier-status {
     color: #8fd8ff;
@@ -562,4 +562,3 @@
 
 
   body.mobile-mode #loading-status,
-  

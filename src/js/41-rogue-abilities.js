@@ -1,6 +1,8 @@
 import { ROGUE_PLAYER_BASE, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast, getRogueExplosionRadiusText } from './40-rogue-balance.js';
 import { EXPLOSIVE_AMMO_COST } from './20-rogue-ammo.js';
 
+export const DIVIDEND_RULES = Object.freeze({ pointsPerRound: 100, pointsCap: 5000 });
+
 // Base percentages add; oversized-shell size/speed factors multiply per pick.
 // Icons are local SVG paths, avoiding font and image dependencies.
 export const ABILITIES = Object.freeze({
@@ -107,8 +109,8 @@ export const ABILITIES = Object.freeze({
     effects: { pointFactor: 1, incomingDamageFactor: 1 }, icon: 'M4 3l4 5h8l4-5v12l-8 7-8-7Z M8 12h1 M15 12h1',
   },
   dividends: {
-    name: 'Round Dividend', description: 'Each cleared round grants round ×200 points per level. Your points are capped at 10,000.',
-    effects: { roundIncome: 200, pointsCap: -1 }, icon: 'M3 8h18 M6 8v12 M12 8v12 M18 8v12 M3 21h18 M12 2 2 7h20Z',
+    name: 'Round Dividend', description: `Each cleared round grants round ×${DIVIDEND_RULES.pointsPerRound} points per level. Your points are capped at ${DIVIDEND_RULES.pointsCap.toLocaleString('en-US')}.`,
+    effects: { roundIncome: DIVIDEND_RULES.pointsPerRound, pointsCap: -1 }, icon: 'M3 8h18 M6 8v12 M12 8v12 M18 8v12 M3 21h18 M12 2 2 7h20Z',
   },
   shield: {
     name: 'Pulse Shield', description: 'Block all damage for 1 second every 3 combat seconds. First shield at 3 seconds. Maximum level 1.', maxLevel: 1,
@@ -183,7 +185,7 @@ export function calculateRogueStats(levels, owned) {
     pointMultiplier,
     incomingDamageMultiplier,
     roundIncome: totals.roundIncome ?? 0,
-    pointsCap: totals.pointsCap ? 10000 : Infinity,
+    pointsCap: totals.pointsCap ? DIVIDEND_RULES.pointsCap : Infinity,
     pulseShield: (totals.pulseShield ?? 0) > 0,
     wallBounces: totals.wallBounces ?? 0,
     explosionRadiusMultiplier: 1 + (totals.explosionRadius ?? 0),

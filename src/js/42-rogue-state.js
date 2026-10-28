@@ -1,7 +1,7 @@
 import { ABILITIES, calculateRogueStats, rollAbilityChoices, canOfferAbility } from './41-rogue-abilities.js';
 import { getRogueEnemyScaling } from './40-rogue-balance.js';
 import { ENEMY_DICE_FACES, createEnemyDiceBonuses, rollEnemyDice } from './21-rogue-dice.js';
-import { AMMO_PER_POINT } from './20-rogue-ammo.js';
+import { getAmmoPerPoint } from './20-rogue-ammo.js';
 import { healRoguePlayer } from './22-rogue-stats.js';
 
 // Survival rules are independent of DOM and the existing team scenarios.
@@ -49,6 +49,17 @@ export class RogueState {
     this.diceResult = null;
     this.diceRolled = false;
     this.levels = Object.fromEntries(Object.keys(UPGRADES).map(key => [key, 0]));
+    this.roundStartLevels = { ...this.levels };
+    this.roundPreparation = this.snapshotPreparation();
+  }
+  snapshotPreparation() {
+    const ability = this.selectedAbility === 'recalibrate' && !this.removedAbility ? null : this.selectedAbility;
+    const upgrades = Object.entries(this.levels).filter(([key, level]) => level > this.roundStartLevels[key])
+      .map(([key, level]) => Object.freeze({ key, count: level - this.roundStartLevels[key], level }));
+    return Object.freeze({ round: this.round, upgrades: Object.freeze(upgrades), ability,
+      abilityLevel: ability ? this.abilities.filter(id => id === ability).length : 0,
+      removedAbility: this.removedAbility,
+      removedAbilityLevel: this.removedAbility ? this.abilities.filter(id => id === this.removedAbility).length : 0 });
   }
   cost(key) { return Object.hasOwn(UPGRADES, key) ? 5 + this.levels[key] * 2 : Infinity; }
   applyStats(player) {
@@ -99,11 +110,13 @@ export class RogueState {
   buyAmmo(player, points = 1) {
     if (this.phase !== 'shop' || this.diceRolled || !Number.isSafeInteger(points) || points <= 0 || points > this.points) return false;
     this.points -= points;
-    player.ammo += points * AMMO_PER_POINT;
+    player.ammo += points * getAmmoPerPoint(this.round);
     return true;
   }
   startRound() {
     if (this.phase !== 'shop' || !this.diceRolled) return false;
+    this.roundPreparation = this.snapshotPreparation();
+    this.roundStartLevels = { ...this.levels };
     this.remaining = ROUND_SECONDS;
     this.phase = 'combat';
     return true;

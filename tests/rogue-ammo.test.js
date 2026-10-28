@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { RoguePlayerTank, RogueWorld } from '../src/js/50-rogue-world.js';
 import { RogueState, ROUND_SECONDS } from '../src/js/42-rogue-state.js';
 import { RogueGame } from '../src/js/81-rogue-game.js';
-import { supplyRoundAmmo } from '../src/js/20-rogue-ammo.js';
+import { supplyRoundAmmo, getAmmoPerPoint } from '../src/js/20-rogue-ammo.js';
 import { rollAbilityChoices } from '../src/js/41-rogue-abilities.js';
 import { Tank, Bullet, Explosion } from '../src/js/30-entities.js';
 import { Pool } from '../src/js/31-systems.js';
@@ -29,25 +29,25 @@ test('round one starts at 300, later supplies preserve leftovers and cannot be d
   assert.equal(supplyRoundAmmo(player, 1), 0);
   world.startRound(1); assert.equal(player.ammo, 300);
   player.ammo = 37;
-  assert.equal(supplyRoundAmmo(player, 2), 150);
-  assert.equal(player.ammo, 187);
+  assert.equal(supplyRoundAmmo(player, 2), 300);
+  assert.equal(player.ammo, 337);
   assert.equal(supplyRoundAmmo(player, 2), 0);
-  world.startRound(2); assert.equal(player.ammo, 187);
-  world.startRound(3); assert.equal(player.ammo, 337);
+  world.startRound(2); assert.equal(player.ammo, 337);
+  world.startRound(3); assert.equal(player.ammo, 637);
   assert.equal(new RoguePlayerTank(0, 0).ammo, 300);
 });
 
-test('unlimited ammo purchases stay at ten per point and leave upgrade levels, choices and HP unchanged', () => {
+test('ammo purchases use the current round rate and leave upgrades, choices and HP unchanged', () => {
   const { player, state } = fixture(['explosive', 'splitter']);
   state.points = 100000; player.hp = 40;
   const levels = { ...state.levels }, choices = [...state.abilityChoices];
   assert.equal(state.buyAmmo(player, 1), true);
   assert.equal(state.buyAmmo(player, 99999), true);
-  assert.equal(player.ammo, 1000300); assert.equal(state.points, 0);
+  assert.equal(player.ammo, 1900300); assert.equal(state.points, 0);
   assert.deepEqual(state.levels, levels); assert.deepEqual(state.abilityChoices, choices);
   assert.equal(state.cost('heal'), 5); assert.equal(player.hp, 40);
   state.points = 5; state.buy('damage', player);
-  assert.equal(player.ammo, 1000300);
+  assert.equal(player.ammo, 1900300);
 });
 
 test('invalid, unaffordable and locked purchases never spend points or grant ammo', () => {
@@ -138,7 +138,7 @@ test('blast-only cards require an explosion source and Death Cascade effects nev
   assert.equal(effects.pendingDeathBlasts.length, 1); assert.equal(player.ammo, 299);
 });
 
-test('HUD displays ammo and volley cost through depletion; ammo shop reflects fixed prices, funds and dice locking', () => {
+test('HUD displays ammo and volley cost; the shop reflects round prices, funds and dice locking', () => {
   const { player, state } = fixture(['splitter', 'explosive']);
   const fields = new Map();
   const game = {
@@ -160,11 +160,12 @@ test('HUD displays ammo and volley cost through depletion; ammo shop reflects fi
   assert.match(game.el('ammo').textContent, /EMPTY/); assert.equal(game.el('ammo').classes.has('danger'), true);
   game.el('ammo-spend').value = '2'; state.points = 5;
   RogueGame.prototype.renderAmmoShop.call(game);
-  assert.equal(game.el('buy-ammo').textContent, 'Buy 20 ammo (2 pt)');
+  assert.equal(game.el('buy-ammo').textContent, 'Buy 38 ammo (2 pt)');
+  assert.equal(game.el('ammo-rate').textContent, 'Round 2: 1 pt = 19 ammo');
   assert.equal(game.el('buy-ammo').disabled, false);
   assert.equal(state.buyAmmo(player, 2), true);
   RogueGame.prototype.renderAmmoShop.call(game);
-  assert.equal(game.el('ammo-stock').textContent, '20'); assert.equal(state.points, 3);
+  assert.equal(game.el('ammo-stock').textContent, '38'); assert.equal(state.points, 3);
   game.el('ammo-spend').value = '4'; RogueGame.prototype.renderAmmoShop.call(game);
   assert.equal(game.el('buy-ammo').disabled, true);
   game.el('ammo-spend').value = '0.5'; RogueGame.prototype.renderAmmoShop.call(game);

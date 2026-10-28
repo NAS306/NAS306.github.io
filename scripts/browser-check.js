@@ -19,6 +19,19 @@ try {
   assert.equal(await page.locator('[data-scenario]').count(), 5);
   assert.equal(await page.locator('[data-scenario="roguelite"] .mode-name').innerText(), 'Roguelite');
   await page.screenshot({ path: '.qa/mode-select-desktop.png', fullPage: true });
+  await page.locator('.mode-guide-button').click();
+  const guide = page.locator('.rogue-guide-dialog');
+  assert.equal(await guide.isVisible(), true);
+  assert.equal(await guide.locator('[data-guide-ability]').count(), 30);
+  assert.match(await guide.locator('[data-guide-ability="dividends"]').innerText(), /round ×100 points.*5,000/s);
+  assert.equal(await page.locator('[data-scenario] [data-rogue-guide]').count(), 0);
+  await page.keyboard.press('5');
+  assert.equal(await page.locator('#rogue-ui').count(), 0);
+  await page.screenshot({ path: '.qa/roguelite-guide-selector.png' });
+  await guide.getByRole('button', { name: 'Close mode guide' }).click();
+  assert.equal(await page.locator('.mode-guide-button').evaluate(button => button === document.activeElement), true);
+  await page.locator('.mode-guide-button').click(); await page.keyboard.press('Escape');
+  assert.equal(await guide.isVisible(), false);
   for (const mode of ['frontline', 'siege', 'defense', 'breakthrough']) {
     await page.locator(`[data-scenario="${mode}"]`).click();
     await page.locator('#loading-screen').waitFor({ state: 'hidden' });
@@ -33,26 +46,33 @@ try {
   await page.screenshot({ path: '.qa/rogue-first-round.png' });
   await page.clock.runFor(45000);
   await page.locator('#rogue-run-summary').waitFor();
-  assert.equal(await page.locator('#rogue-run-stats > div').count(), 4);
+  assert.equal(await page.locator('#rogue-run-stats > div').count(), 6);
   assert.equal(await page.evaluate(() => document.getElementById('bgm').paused), true);
   const summary = await page.locator('#rogue-run-stats').innerText();
   await page.screenshot({ path: '.qa/rogue-result.png' });
-  await page.getByRole('button', { name: 'By Round', exact: true }).click();
   const chart = page.locator('#rogue-result-rounds');
   assert.equal(await chart.isVisible(), true);
-  assert.equal(await chart.locator('circle').count(), 1);
+  assert.equal(await chart.locator('[data-series]').count(), 6);
+  assert.equal(await chart.locator('circle').count(), 5);
+  assert.match(await chart.locator('[data-metric="ammoPerKill"]').getAttribute('title'), /no value recorded/);
   assert.match(await chart.locator('.rogue-chart-values').innerText(), /R1.*Lost/s);
-  for (const option of await page.locator('#rogue-chart-metric option').evaluateAll(options => options.map(option => option.value))) {
-    await page.locator('#rogue-chart-metric').selectOption(option);
-    assert.doesNotMatch(await chart.locator('svg').innerHTML(), /NaN|Infinity|undefined/);
+  assert.match(await chart.locator('tbody tr').getAttribute('title'), /Ability: none \(starting round\)/);
+  const metricKeys = await chart.locator('[data-metric]').evaluateAll(buttons => buttons.map(button => button.dataset.metric));
+  for (const key of metricKeys) {
+    await chart.locator(`[data-metric="${key}"]`).click();
+    assert.equal(await chart.locator(`[data-series="${key}"]`).count(), 0);
   }
-  await page.locator('#rogue-chart-metric').selectOption('damageTaken');
+  assert.match(await chart.locator('.rogue-chart-note').innerText(), /Use the legend/);
+  assert.equal(await chart.locator('tbody tr').count(), 1);
+  for (const key of metricKeys) await chart.locator(`[data-metric="${key}"]`).click();
+  assert.equal(await chart.locator('[data-series]').count(), 6);
+  assert.doesNotMatch(await chart.locator('svg').innerHTML(), /NaN|Infinity|undefined/);
   await page.screenshot({ path: '.qa/rogue-result-chart.png' });
-  await page.locator('#rogue-chart-metric').focus();
+  await chart.locator('[data-metric="ammoPerKill"]').focus();
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.className), 'rogue-chart-values');
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement.id), 'rogue-next');
-  await page.getByRole('button', { name: 'Totals', exact: true }).click();
-  assert.equal(await chart.isVisible(), false);
   await page.clock.runFor(12000);
   assert.equal(await page.locator('#rogue-run-stats').innerText(), summary);
   assert.equal(await page.locator('#loading-screen').isVisible(), false);
@@ -65,6 +85,11 @@ try {
   await page.screenshot({ path: '.qa/mode-select-mobile-bottom.png' });
   const horizontalOverflow = await page.evaluate(() => document.querySelector('#loading-screen').scrollWidth > innerWidth);
   assert.equal(horizontalOverflow, false);
+  await page.locator('.mode-guide-button').scrollIntoViewIfNeeded(); await page.locator('.mode-guide-button').click();
+  const mobileGuide = await guide.boundingBox();
+  assert.ok(mobileGuide.x >= 0 && mobileGuide.x + mobileGuide.width <= 390);
+  await page.screenshot({ path: '.qa/roguelite-guide-mobile.png' });
+  await page.keyboard.press('Escape');
   // Instrument only an in-memory QA copy, keeping the shipped global API private.
   const html = await readFile(new URL('../dist/app.html', import.meta.url), 'utf8');
   const hook = 'this.history = new RogueRunHistory();';
@@ -83,6 +108,27 @@ try {
     game.state.abilityChoices = ['ricochet', 'oversized', 'hull']; game.renderPanel();
   });
   assert.equal(await runPage.locator('#rogue-title').innerText(), 'Roguelite Upgrades');
+  assert.match(await runPage.locator('#rogue-ammo-rate').innerText(), /Round 2: 1 pt = 19 ammo/);
+  await runPage.locator('.rogue-panel-guide-button').click();
+  assert.equal(await runPage.locator('.rogue-guide-dialog').isVisible(), true);
+  await runPage.keyboard.press('Tab');
+  assert.equal(await runPage.evaluate(() => document.activeElement.className), 'rogue-guide-content');
+  await runPage.keyboard.press('5');
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.state.phase), 'shop');
+  await runPage.screenshot({ path: '.qa/roguelite-guide-upgrades.png' });
+  await runPage.keyboard.press('Escape');
+  await runPage.evaluate(() => { const game = window.__qaRogue; game.state.points = 5; game.renderPanel(); });
+  const beforeAmmo = await runPage.evaluate(() => window.__qaRogue.world.player.ammo);
+  await runPage.locator('#rogue-ammo-spend').fill('2');
+  assert.equal(await runPage.locator('#rogue-buy-ammo').innerText(), 'Buy 38 ammo (2 pt)');
+  await runPage.locator('#rogue-buy-ammo').click();
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.ammo), beforeAmmo + 38);
+  const lateQuotes = await runPage.evaluate(() => {
+    const game = window.__qaRogue, quotes = [];
+    for (const round of [20, 30]) { game.state.round = round; game.renderAmmoShop(); quotes.push(game.el('ammo-rate').textContent); }
+    game.state.round = 2; game.renderAmmoShop(); return quotes;
+  });
+  assert.deepEqual(lateQuotes, ['Round 20: 1 pt = 1 ammo', 'Round 30: 1 pt = 1 ammo']);
   assert.match(await runPage.locator('[data-ability="ricochet"]').innerText(), /Wall bounces.*0.*1/s);
   assert.match(await runPage.locator('[data-ability="oversized"]').innerText(), /100%.*200%/s);
   await runPage.screenshot({ path: '.qa/roguelite-new-abilities.png' });
@@ -162,22 +208,44 @@ try {
   assert.equal(fullRun.phase, 'won'); assert.equal(fullRun.rounds, 30); assert.equal(fullRun.kills, 465);
   assert.equal(await runPage.evaluate(() => document.getElementById('bgm').paused), true);
   assert.ok(fullRun.starts.every(([x, y, center]) => x === center && y === center));
-  await runPage.getByRole('button', { name: 'By Round', exact: true }).click();
-  assert.equal(await runPage.locator('.rogue-chart-values > div').count(), 30);
-  assert.equal(await runPage.locator('#rogue-result-rounds circle').count(), 30);
-  assert.equal(await runPage.locator('#rogue-chart-metric option').count(), 5);
+  assert.equal(await runPage.locator('.rogue-chart-values tbody tr').count(), 30);
+  assert.equal(await runPage.locator('#rogue-result-rounds circle').count(), 180);
+  assert.equal(await runPage.locator('.rogue-chart-legend button[aria-pressed="true"]').count(), 6);
+  assert.match(await runPage.locator('tr[data-round="2"]').getAttribute('title'), /Reinforced Hull \(Lv.1\)/);
+  assert.match(await runPage.locator('tr[data-round="3"]').getAttribute('title'), /Repair \+1 \(Lv.1\)/);
+  assert.match(await runPage.locator('tr[data-round="30"]').getAttribute('title'), /Reinforced Hull \(Lv.29\)/);
+  assert.match(await runPage.locator('[data-series="kills"] circle title').nth(1).textContent(), /Reinforced Hull \(Lv.1\)/);
+  assert.equal(await runPage.locator('#rogue-result-rounds').innerText().then(text => text.includes('Remaining HP')), false);
+  const statsRatio = await runPage.locator('.rogue-layout.is-result').evaluate(layout => {
+    const stats = layout.querySelector('.rogue-stats-panel').getBoundingClientRect().width;
+    const results = layout.querySelector('.rogue-run-summary').getBoundingClientRect().width;
+    return stats / (stats + results);
+  });
+  assert.ok(Math.abs(statsRatio - .2) < .005);
   await runPage.screenshot({ path: '.qa/rogue-thirty-round-chart.png' });
   const fits = await runPage.locator('.rogue-chart-note').evaluate(element => {
     const panel = element.closest('.rogue-run-summary').getBoundingClientRect();
     return element.getBoundingClientRect().bottom <= panel.bottom;
   });
   assert.equal(fits, true);
+  await runPage.setViewportSize({ width: 1280, height: 800 });
+  await runPage.waitForFunction(() => document.getElementById('gameCanvas').width === 1280);
+  const resultBounds = await runPage.locator('.rogue-run-summary').evaluate(panel => ({
+    noteFits: panel.querySelector('.rogue-chart-note').getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom,
+    chartHeight: panel.querySelector('svg').getBoundingClientRect().height,
+    horizontalOverflow: panel.scrollWidth > panel.clientWidth,
+  }));
+  assert.equal(resultBounds.noteFits, true); assert.equal(resultBounds.horizontalOverflow, false);
+  assert.ok(resultBounds.chartHeight >= 160, JSON.stringify(resultBounds));
+  await runPage.locator('tr[data-round="30"]').scrollIntoViewIfNeeded();
+  await runPage.screenshot({ path: '.qa/rogue-combined-results-1280.png' });
+  await runPage.locator('[data-metric="healing"]').click();
   const fresh = await runPage.evaluate(() => {
     window.__qaRogue.resetRun();
     const game = window.__qaRogue;
-    return { rounds: game.history.rows.length, metric: game.el('chart-metric').value, totals: !game.el('result-totals').hidden };
+    return { rounds: game.history.rows.length, hidden: game.historyView.hiddenMetrics.size, tableRows: game.el('result-rounds').querySelectorAll('tbody tr').length };
   });
-  assert.deepEqual(fresh, { rounds: 0, metric: 'kills', totals: true });
+  assert.deepEqual(fresh, { rounds: 0, hidden: 0, tableRows: 0 });
   // A late run must remain readable at the minimum panel size.
   await runPage.setViewportSize({ width: 1280, height: 800 });
   await runPage.evaluate(() => {
@@ -204,5 +272,5 @@ try {
   assert.equal(await runPage.evaluate(() => window.__qaRogue.state.abilities.includes('heavyAmmo')), false);
   await runPage.close();
   assert.deepEqual(errors, []); assert.deepEqual(externalRequests, []);
-  console.log('Offline Edge check passed: all five modes, rarity labels, Recalibration, optional picks, oversized-shell ricochet, four result totals, five chart metrics, music stopped on victory/loss, keyboard navigation, narrow layout, thirty-round victory charts, centered starts and fresh-run reset.');
+  console.log('Offline Edge check passed: five modes, rarity and Recalibration, optional picks, oversized ricochet, six normalized series and totals, 20/80 results layout, raw values and round preparation tooltips, legend toggles, keyboard scrolling, music stop, thirty-round victory and fresh reset.');
 } finally { await browser.close(); }

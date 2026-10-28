@@ -5,6 +5,7 @@ import { clampFrameDelta } from './01-runtime.js';
 import { detectMobileDevice, getLayoutDragThreshold } from './02-mobile-support.js';
 import { getNextPlayerWeaponId } from './10-weapon-config.js';
 import { RogueGame } from './81-rogue-game.js';
+import { installRogueGuide, isRogueGuideOpen } from './77-rogue-guide.js';
 import { returnToModeSelection, setModeSelectionHandler } from './12-game-flow.js';
 import {
   loadLevelCatalog,
@@ -963,6 +964,7 @@ async function preloadSprites() {
   await Explosion.initSprite();
 }
 window.addEventListener("DOMContentLoaded", async () => {
+  installRogueGuide();
   document.body.classList.toggle("mobile-mode", isMobileDevice);
   const canvas = document.getElementById("gameCanvas");
   let game,
@@ -1010,7 +1012,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   function startGame(scenarioId = "frontline", useSuper = false) {
-    if (gameStarted || !gameReady) return;
+    if (gameStarted || !gameReady || isRogueGuideOpen()) return;
     gameStarted = true;
     const bottomHudEl = document.getElementById("bottom-hud");
     if (bottomHudEl) bottomHudEl.style.display = "grid";
@@ -1113,7 +1115,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   updateLoadingScreen(100, true);
   gameReady = true;
   window.addEventListener("keydown", (e) => {
-    if (gameStarted || !gameReady) return;
+    if (gameStarted || !gameReady || isRogueGuideOpen()) return;
     const focusedScenarioButton = e.target.closest?.("[data-scenario]");
     const isHeldScenarioShortcut = e.code === "Enter" && heldScenario !== null;
     if (focusedScenarioButton && !isHeldScenarioShortcut && (e.code === "Enter" || e.code === "Space")) return;

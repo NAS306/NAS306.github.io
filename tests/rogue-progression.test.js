@@ -108,24 +108,24 @@ test('Devil’s Bargain doubles all earned points and damage after armor, and re
   state.phase = 'combat'; state.awardKills(1); assert.equal(state.points, 28);
 });
 
-test('Round Dividend grants the completed round times 200 once, multiplies income and caps every source at 10000', () => {
+test('Round Dividend grants round times 100 once, multiplies income and caps every source at 5000', () => {
   const { state, player } = fixture(['dividends', 'bargain']);
-  state.points = 9900; state.awardKills(100);
-  assert.equal(state.points, 10000); assert.equal(state.pointsEarned, 100);
+  state.points = 4900; state.awardKills(100);
+  assert.equal(state.points, 5000); assert.equal(state.pointsEarned, 100);
   state.points = 0; state.round = 5; state.tick(ROUND_SECONDS, player.hp);
-  assert.equal(state.points, 2000); assert.equal(state.pointsEarned, 2100);
-  state.tick(ROUND_SECONDS, player.hp); assert.equal(state.pointsEarned, 2100);
+  assert.equal(state.points, 1000); assert.equal(state.pointsEarned, 1100);
+  state.tick(ROUND_SECONDS, player.hp); assert.equal(state.pointsEarned, 1100);
   state.phase = 'combat'; state.round = 30; state.tick(ROUND_SECONDS, player.hp);
-  assert.equal(state.phase, 'won'); assert.equal(state.points, 10000); assert.equal(state.pointsEarned, 10100);
+  assert.equal(state.phase, 'won'); assert.equal(state.points, 5000); assert.equal(state.pointsEarned, 5100);
   const summary = getRogueRunSummary(state, player.runStats);
-  assert.equal(summary.length, 4); assert.equal(summary.find(row => row.key === 'pointsEarned').value, '10,100');
+  assert.equal(summary.length, 6); assert.equal(state.pointsEarned, 5100);
 });
 
 test('removing Dividend removes the cap and lethal round endings never grant a clear reward', () => {
   const { state, player } = fixture(['dividends']);
   shop(state); state.chooseAbility('recalibrate', player); state.removeAbility('dividends', player);
   state.phase = 'combat'; state.awardKills(3000); assert.equal(state.points, 12000);
-  state.abilities = ['dividends']; state.applyStats(player); assert.equal(state.points, 10000);
+  state.abilities = ['dividends']; state.applyStats(player); assert.equal(state.points, 5000);
   state.points = 0; state.tick(ROUND_SECONDS, 0); assert.equal(state.phase, 'lost'); assert.equal(state.points, 0);
 });
 

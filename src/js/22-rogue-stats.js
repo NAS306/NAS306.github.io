@@ -12,14 +12,16 @@ export function healRoguePlayer(player, amount) {
 }
 
 export const ROGUE_RUN_METRICS = Object.freeze([
-  { key: 'kills', label: 'Kills' },
-  { key: 'damageTaken', label: 'Damage taken' },
-  { key: 'damageDealt', label: 'Damage dealt' },
-  { key: 'pointsEarned', label: 'Points earned' },
+  { key: 'kills', label: 'Kills', color: '#f5cf70', dash: '' },
+  { key: 'damageDealt', label: 'Damage dealt', color: '#72d9ff', dash: '10 4' },
+  { key: 'damageTaken', label: 'Damage taken', color: '#ff8d9b', dash: '3 4' },
+  { key: 'healing', label: 'HP restored', color: '#8ce6ac', dash: '12 4 3 4' },
+  { key: 'ammoSpent', label: 'Ammo spent', color: '#c9acff', dash: '7 4' },
+  { key: 'ammoPerKill', label: 'Ammo per kill', decimals: 2, color: '#ffb17e', dash: '2 3' },
 ]);
 
 export function getRogueRunMetricValues(state, stats) {
-  return { kills: state.kills, damageTaken: stats.damageTaken, damageDealt: stats.damageDealt, pointsEarned: state.pointsEarned };
+  return { kills: state.kills, ...stats, ammoPerKill: state.kills > 0 ? stats.ammoSpent / state.kills : null };
 }
 
 export function formatRogueMetric(value, decimals = 1) {

@@ -1,7 +1,11 @@
 export const STARTING_AMMO = 300;
-export const ROUND_AMMO_SUPPLY = 150;
-export const AMMO_PER_POINT = 10;
+export const ROUND_AMMO_SUPPLY = 300;
 export const EXPLOSIVE_AMMO_COST = 10;
+
+export function getAmmoPerPoint(round) {
+  if (!Number.isInteger(round) || round < 1) throw new RangeError('Round must be a positive integer');
+  return Math.max(1, 21 - round);
+}
 
 export function supplyRoundAmmo(player, round) {
   const previous = player.ammoSuppliedThroughRound;

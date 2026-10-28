@@ -2,10 +2,7 @@ import { ROGUE_RUN_METRICS, getRogueRunMetricValues } from './22-rogue-stats.js'
 import { getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast } from './40-rogue-balance.js';
 import { EXPLOSIVE_AMMO_COST } from './20-rogue-ammo.js';
 
-export const ROGUE_HISTORY_METRICS = Object.freeze([
-  ...ROGUE_RUN_METRICS.map(metric => ({ ...metric, group: 'Round totals', section: 'combat' })),
-  { key: 'tank-hp', field: 'hp', label: 'Remaining HP', group: 'Tank at round end', section: 'tank' },
-]);
+export const ROGUE_HISTORY_METRICS = ROGUE_RUN_METRICS;
 
 // At most thirty small snapshots, kept only for this run.
 export class RogueRunHistory {
@@ -15,8 +12,11 @@ export class RogueRunHistory {
     const totals = getRogueRunMetricValues(state, player.runStats);
     const combat = {};
     for (const { key } of ROGUE_RUN_METRICS) {
+      if (key === 'ammoPerKill') continue;
       combat[key] = totals[key] - (this.previous[key] ?? 0);
     }
+    // A round's efficiency is its own ammo / kills, never a difference of ratios.
+    combat.ammoPerKill = combat.kills > 0 ? combat.ammoSpent / combat.kills : null;
     const weapon = getRoguePlayerWeapon(player), payload = getRogueExplosivePayload(player);
     const nova = getRogueDeathBlast(player), payloadCount = player.extraExplosiveProjectiles;
     const tank = {
@@ -31,24 +31,26 @@ export class RogueRunHistory {
       payloadRadius: payloadCount ? payload.explosion.radius : null,
       novaDamage: nova?.maxDamage ?? null, novaRadius: nova?.radius ?? null,
     };
-    this.rows.push(Object.freeze({ round, outcome, combat: Object.freeze(combat), tank: Object.freeze(tank) }));
+    const preparation = state.roundPreparation?.round === round ? state.roundPreparation : null;
+    this.rows.push(Object.freeze({ round, outcome, combat: Object.freeze(combat), tank: Object.freeze(tank), preparation }));
     this.previous = totals;
     return true;
   }
 }
 
-// Pure geometry also handles one round, all-zero series, negative armor and gaps.
-export function getRogueChartModel(rows, metric) {
-  const values = rows.map(row => row[metric.section][metric.field ?? metric.key]);
-  const finite = values.filter(Number.isFinite);
-  const min = Math.min(0, ...finite), max = Math.max(0, ...finite);
-  const span = max - min || 1;
-  const low = min < 0 ? min - span * .1 : 0, high = min === max ? 4 : max + span * .1;
-  const points = values.map((value, index) => ({
-    round: rows[index].round, outcome: rows[index].outcome, value,
-    x: rows.length === 1 ? 355 : 82 + index * 546 / Math.max(1, rows.length - 1),
-    y: Number.isFinite(value) ? 260 - (value - low) / (high - low) * 220 : null,
-  }));
-  const ticks = Array.from({ length: 5 }, (_, index) => ({ value: low + (high - low) * index / 4, y: 260 - index * 55 }));
-  return { points, ticks };
+// Each metric uses its own per-round peak. Raw values stay available for tables/tooltips.
+// A zero-kill round has no efficiency point, so lines never imply zero ammo / kill.
+export function getRogueChartModel(rows) {
+  const series = ROGUE_HISTORY_METRICS.map(metric => {
+    const values = rows.map(row => row.combat[metric.key]);
+    const peak = Math.max(0, ...values.filter(Number.isFinite));
+    const points = values.map((value, index) => {
+      const percent = Number.isFinite(value) ? peak > 0 ? value / peak * 100 : 0 : null;
+      return { round: rows[index].round, outcome: rows[index].outcome, value, percent,
+        x: rows.length === 1 ? 468 : 60 + index * 816 / Math.max(1, rows.length - 1),
+        y: percent === null ? null : 240 - percent * 2.2 };
+    });
+    return { ...metric, peak, points };
+  });
+  return { series, ticks: [0, 25, 50, 75, 100].map(value => ({ value, y: 240 - value * 2.2 })) };
 }
