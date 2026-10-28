@@ -2,7 +2,7 @@ import { STARTING_AMMO, ROUND_AMMO_SUPPLY, EXPLOSIVE_AMMO_COST, getAmmoPerPoint 
 import { ENEMY_DICE_FACES, ENEMY_DICE_MIN_BONUS, ENEMY_DICE_MAX_BONUS } from './21-rogue-dice.js';
 import { ROGUE_RUN_METRICS } from './22-rogue-stats.js';
 import { ROGUE_PLAYER_BASE, ROGUE_EXPLOSION_RULES, getRoguePlayerWeapon } from './40-rogue-balance.js';
-import { ABILITIES, RARITIES, abilityRarity } from './41-rogue-abilities.js';
+import { ABILITIES, RARITIES, abilityRarity, ABILITY_CHOICE_COUNT } from './41-rogue-abilities.js';
 import { ROUND_COUNT, ROUND_SECONDS, KILL_POINTS, UPGRADES, getRoundConfig } from './42-rogue-state.js';
 
 import { renderProgressionGuide } from './23-progression.js';
@@ -26,7 +26,7 @@ export function renderRogueGuide() {
     <section><h3>Ammunition gets more expensive</h3><p>Start with ${STARTING_AMMO} ammo and receive <strong>${ROUND_AMMO_SUPPLY} free ammo before each later round</strong>, keeping leftovers. Purchases are available in preparation from Round 2. Each point buys one fewer shell each round, reaching 1 shell per point in Round 20 and staying there through Round ${ROUND_COUNT}.</p>
     <div class="rogue-guide-table"><table><thead><tr><th>Round</th><th>Ammo for 1 point</th></tr></thead><tbody>${[1, 2, 5, 10, 15, 19, 20, ROUND_COUNT].map(round => `<tr><td>${round}</td><td>${getAmmoPerPoint(round)}</td></tr>`).join('')}</tbody></table></div>
     <p>A standard shell costs 1 ammo; an additional explosive shell costs ${EXPLOSIVE_AMMO_COST}. Multishot spends ammo on every standard shell. With limited ammo, only affordable projectiles fire.</p></section>
-    <section><h3>Abilities and rarity</h3><p>Each preparation offers three different cards. Each slot first rolls its rarity: ${Object.values(RARITIES).map(tier => `<strong>${tier.name} ${Math.round(tier.chance * 100)}%</strong>`).join(' / ')}, then selects an eligible ability from that tier. Choose at most one, or continue without choosing. Repeat picks stack both benefits and penalties. Max-level abilities are excluded.</p>
+    <section><h3>Abilities and rarity</h3><p>Each preparation offers ${ABILITY_CHOICE_COUNT} different cards. Each slot first rolls its rarity: ${Object.values(RARITIES).map(tier => `<strong>${tier.name} ${Math.round(tier.chance * 100)}%</strong>`).join(' / ')}, then selects an eligible ability from that tier. Choose at most one, or continue without choosing. Repeat picks stack both benefits and penalties. Max-level abilities are excluded.</p>
     <p>Most percentages add relative to base stats. Oversized Rounds multiplies shell size and speed; Devil’s Bargain multiplies points and damage taken. Maximum HP cannot fall below 25, the base damage and shell-speed multipliers cannot fall below 20%, and move/fire-rate multipliers cannot fall below 25%. Oversized Rounds applies its speed factor after the shell-speed floor.</p>
     <p><strong>Recalibration:</strong> choose an owned ability to lose one level, removing it at level 1. Both benefits and penalties are recalculated. This action does not stack, heal, revive, or refund discarded points. You may cancel before choosing a target or continue to forfeit it.</p>
     <p><strong>Pulse Shield:</strong> first activates 3 seconds into each round, then blocks all damage during seconds 3–4, 6–7, and so on. Its clock runs only during combat and resets each round.</p>

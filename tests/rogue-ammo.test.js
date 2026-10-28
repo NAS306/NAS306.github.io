@@ -29,11 +29,11 @@ test('round one starts at 300, later supplies preserve leftovers and cannot be d
   assert.equal(supplyRoundAmmo(player, 1), 0);
   world.startRound(1); assert.equal(player.ammo, 300);
   player.ammo = 37;
-  assert.equal(supplyRoundAmmo(player, 2), 300);
-  assert.equal(player.ammo, 337);
+  assert.equal(supplyRoundAmmo(player, 2), 200);
+  assert.equal(player.ammo, 237);
   assert.equal(supplyRoundAmmo(player, 2), 0);
-  world.startRound(2); assert.equal(player.ammo, 337);
-  world.startRound(3); assert.equal(player.ammo, 637);
+  world.startRound(2); assert.equal(player.ammo, 237);
+  world.startRound(3); assert.equal(player.ammo, 437);
   assert.equal(new RoguePlayerTank(0, 0).ammo, 300);
 });
 

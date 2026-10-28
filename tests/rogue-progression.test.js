@@ -49,15 +49,15 @@ test('rarity intervals are exactly 60/30/10 and actual offers retain those proba
   const counts = { common: 0, rare: 0, legendary: 0 };
   for (let i = 0; i < 10000; i++) {
     const choices = rollAbilityChoices(random, ['explosive']);
-    assert.equal(new Set(choices).size, 3);
+    assert.equal(new Set(choices).size, 4);
     for (const id of choices) { assert.ok(ABILITIES[id]); counts[abilityRarity(id)]++; }
   }
   for (const [rarity, probability] of [['common', .6], ['rare', .3], ['legendary', .1]]) {
-    assert.ok(Math.abs(counts[rarity] / 30000 - probability) < .015);
+    assert.ok(Math.abs(counts[rarity] / 40000 - probability) < .015);
   }
 });
 
-test('max-level and conditional exclusions preserve three eligible cards in every tier', () => {
+test('max-level and conditional exclusions preserve four eligible cards in every tier', () => {
   assert.equal(canOfferAbility('recalibrate', []), false);
   const owned = ['oversized', 'oversized', 'oversized', 'shield', 'bargain', 'bargain', 'bargain'];
   assert.equal(canOfferAbility('oversized', owned), false); assert.equal(canOfferAbility('shield', owned), false);
@@ -65,7 +65,7 @@ test('max-level and conditional exclusions preserve three eligible cards in ever
   for (const sample of [.3, .75, .95]) {
     let calls = 0;
     const choices = rollAbilityChoices(() => calls++ % 2 === 0 ? sample : .99999, owned);
-    assert.equal(new Set(choices).size, 3); assert.ok(choices.every(id => canOfferAbility(id, owned)));
+    assert.equal(new Set(choices).size, 4); assert.ok(choices.every(id => canOfferAbility(id, owned)));
   }
 });
 
@@ -100,12 +100,12 @@ test('Oversized Rounds doubles size, reduces current shell speed by thirty perce
 test('Devil’s Bargain doubles all earned points and damage after armor, and removing it restores both', () => {
   const { state, player } = fixture(['bargain']);
   state.levels.armor = 5; state.applyStats(player);
-  state.awardKills(3); assert.equal(state.points, 24); assert.equal(state.pointsEarned, 24);
-  player.takeDamage(25); assert.equal(player.hp, 95); assert.equal(player.runStats.damageTaken, 30);
-  player.takeDamage(1); assert.equal(player.hp, 93);
+  state.awardKills(3); assert.equal(state.points, 30); assert.equal(state.pointsEarned, 30);
+  player.takeDamage(25); assert.equal(player.hp, 85); assert.equal(player.runStats.damageTaken, 40);
+  player.takeDamage(1); assert.equal(player.hp, 83);
   shop(state); state.chooseAbility('recalibrate', player); state.removeAbility('bargain', player);
   assert.equal(player.incomingDamageMultiplier, 1); assert.equal(player.pointMultiplier, 1);
-  state.phase = 'combat'; state.awardKills(1); assert.equal(state.points, 28);
+  state.phase = 'combat'; state.awardKills(1); assert.equal(state.points, 35);
 });
 
 test('Round Dividend grants round times 100 once, multiplies income and caps every source at 5000', () => {
@@ -124,7 +124,7 @@ test('Round Dividend grants round times 100 once, multiplies income and caps eve
 test('removing Dividend removes the cap and lethal round endings never grant a clear reward', () => {
   const { state, player } = fixture(['dividends']);
   shop(state); state.chooseAbility('recalibrate', player); state.removeAbility('dividends', player);
-  state.phase = 'combat'; state.awardKills(3000); assert.equal(state.points, 12000);
+  state.phase = 'combat'; state.awardKills(3000); assert.equal(state.points, 15000);
   state.abilities = ['dividends']; state.applyStats(player); assert.equal(state.points, 5000);
   state.points = 0; state.tick(ROUND_SECONDS, 0); assert.equal(state.phase, 'lost'); assert.equal(state.points, 0);
 });

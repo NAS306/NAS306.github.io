@@ -88,7 +88,7 @@ test('repairs and kill recovery count only HP actually restored and never count 
 test('ammo totals include ten-unit payloads and partial volleys, but exclude supplies, purchases and blocked shots', () => {
   const { world, state, player, stats } = fixture(['splitter', 'explosive']);
   state.points = 4; state.buyAmmo(player, 4); supplyRoundAmmo(player, 2);
-  assert.equal(player.ammo, 676); assert.equal(stats.ammoSpent, 0);
+  assert.equal(player.ammo, 576); assert.equal(stats.ammoSpent, 0);
   player.tryShoot(world); assert.equal(stats.ammoSpent, 14);
   player.tryShoot(world); assert.equal(stats.ammoSpent, 14);
   player.fireCooldown = 0; player.ammo = 3;
@@ -99,15 +99,15 @@ test('ammo totals include ten-unit payloads and partial volleys, but exclude sup
 test('earned points and stats persist across rounds and purchases, freeze during the ending scene, and reset for a new run', () => {
   const { world, player, stats, state } = fixture();
   state.phase = 'combat'; state.awardKills(3);
-  assert.equal(state.points, 12); assert.equal(state.pointsEarned, 12);
+  assert.equal(state.points, 15); assert.equal(state.pointsEarned, 15);
   player.takeDamage(10); player.tryShoot(world);
   state.tick(ROUND_SECONDS, player.hp);
   state.buyAmmo(player, 4); state.buy('speed', player);
-  assert.equal(state.points, 3); assert.equal(state.pointsEarned, 12);
+  assert.equal(state.points, 6); assert.equal(state.pointsEarned, 15);
   const before = { ...stats };
   world.updateAfterRound(1); world.clearRound(); world.startRound(2);
   assert.deepEqual(stats, before);
-  state.phase = 'lost'; state.awardKills(1); assert.equal(state.pointsEarned, 12);
+  state.phase = 'lost'; state.awardKills(1); assert.equal(state.pointsEarned, 15);
   const fresh = fixture();
   assert.deepEqual(fresh.stats, { damageTaken: 0, damageDealt: 0, healing: 0, ammoSpent: 0 });
   assert.equal(fresh.state.pointsEarned, 0);

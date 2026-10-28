@@ -54,11 +54,11 @@ test('negative armor adds incoming damage, armor upgrades offset it, and team-mo
   assert.equal(player.armor, -8);
   player.takeDamage(10); assert.equal(player.hp, 107);
   state.points = 5; state.buy('armor', player);
-  player.takeDamage(10); assert.equal(player.hp, 91);
+  player.takeDamage(10); assert.equal(player.hp, 90);
   const armored = fixture(['reactor', 'plating']).player;
   assert.equal(armored.armor, 2); armored.takeDamage(10); assert.equal(armored.hp, 117);
   for (const damage of [0, -1, NaN, Infinity]) player.takeDamage(damage);
-  assert.equal(player.hp, 91);
+  assert.equal(player.hp, 90);
   const team = new Tank(0, 0, 'blue', true); team.armor = -4; team.takeDamage(10);
   assert.equal(team.hp, 115);
 });
@@ -108,7 +108,7 @@ test('death novas chain through enemies, scale with old cards, award points and 
   state.phase = 'combat'; projectile(world, enemies[0]);
   world.handleCollisions(); state.awardKills(world.killcount.player);
   assert.ok(enemies.every(enemy => enemy.hp <= 0));
-  assert.equal(world.killcount.player, 4); assert.equal(state.points, 16);
+  assert.equal(world.killcount.player, 4); assert.equal(state.points, 20);
   assert.equal(player.hp, 25); assert.equal(world.pendingDeathBlasts.length, 0);
   world.handleCollisions();
   assert.equal(world.killcount.player, 4);

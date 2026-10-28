@@ -2,6 +2,7 @@ import { resolveWeaponProfile, getModifiedWeaponProfile } from './10-weapon-conf
 
 // Survival tuning is isolated from the weapons and tanks used by team modes.
 export const ROGUE_PLAYER_BASE = Object.freeze({ maxHP: 125, speed: 200 });
+export const ARMOR_PER_UPGRADE = 1;
 export const ROGUE_EXPLOSION_RULES = Object.freeze({
   payloadRadius: 90, maxPayloadRadius: 150,
   novaRadius: 70, maxNovaRadius: 110,

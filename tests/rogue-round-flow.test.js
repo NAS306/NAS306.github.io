@@ -262,7 +262,7 @@ test('resetting a run starts unmodified first-round combat with six enemies and 
   game.renderHUD = () => {}; game.fitPanel = () => {};
   RogueGame.prototype.resetRun.call(game);
   assert.equal(game.state.phase, 'combat'); assert.equal(game.state.round, 1);
-  assert.equal(game.state.remaining, 40); assert.equal(game.roundTransition, null);
+  assert.equal(game.state.remaining, 30); assert.equal(game.roundTransition, null);
   assert.equal(game.state.diceRolled, false); assert.deepEqual(game.state.abilities, []);
   assert.deepEqual(game.state.abilityChoices, []); assert.equal(game.panels.length, 0);
   assert.equal(game.el('shade').hidden, true); assert.equal(game.el('dice-overlay').hidden, true);
@@ -341,7 +341,7 @@ test('next-round action rolls once automatically, blocks early clicks, and start
   assert.equal(game.state.phase, 'shop'); assert.equal(game.world.tanks.length, 1);
   game.input.mouse.down = true;
   game.advanceDiceReveal(.01);
-  assert.equal(game.state.phase, 'combat'); assert.equal(game.state.remaining, 40);
+  assert.equal(game.state.phase, 'combat'); assert.equal(game.state.remaining, 30);
   assert.equal(game.diceReveal, null); assert.equal(game.el('dice-overlay').hidden, true);
   assert.equal(game.el('shade').hidden, true); assert.equal(game.el('shade').inert, false);
   assert.equal(game.input.mouse.down, false); assert.deepEqual(game.input.keys, {}); assert.equal(game.canvas.focused, true);
@@ -414,7 +414,7 @@ test('hidden dice overlay pauses in the frame loop, and its exit cannot consume 
     game.dismissDiceOverlay();
     for (let i = 1; i <= 4; i++) RogueGame.prototype.loop.call(game, 10500 + i * 100);
     assert.equal(game.diceReveal, null); assert.equal(game.state.phase, 'combat');
-    assert.equal(game.state.remaining, 40); assert.equal(combatUpdates, 0); assert.equal(game.input.mouse.down, false);
+    assert.equal(game.state.remaining, 30); assert.equal(combatUpdates, 0); assert.equal(game.input.mouse.down, false);
     RogueGame.prototype.loop.call(game, 11000);
     assert.ok(combatUpdates > 0); assert.ok(game.state.remaining < 40);
     game.disposed = true; const updatesBefore = combatUpdates;

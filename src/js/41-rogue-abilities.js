@@ -1,7 +1,8 @@
-import { ROGUE_PLAYER_BASE, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast, getRogueExplosionRadiusText } from './40-rogue-balance.js';
+import { ROGUE_PLAYER_BASE, ARMOR_PER_UPGRADE, getRoguePlayerWeapon, getRogueExplosivePayload, getRogueDeathBlast, getRogueExplosionRadiusText } from './40-rogue-balance.js';
 import { EXPLOSIVE_AMMO_COST } from './20-rogue-ammo.js';
 
 export const DIVIDEND_RULES = Object.freeze({ pointsPerRound: 100, pointsCap: 5000 });
+export const ABILITY_CHOICE_COUNT = 4;
 
 // Base percentages add; oversized-shell size/speed factors multiply per pick.
 // Icons are local SVG paths, avoiding font and image dependencies.
@@ -151,10 +152,10 @@ export function rollAbilityRarity(sample) {
 export function rollAbilityChoices(random = Math.random, owned = []) {
   const ids = Object.keys(ABILITIES).filter(id => canOfferAbility(id, owned));
   const choices = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < ABILITY_CHOICE_COUNT; i++) {
     const rarity = rollAbilityRarity(random());
     const pool = ids.filter(id => abilityRarity(id) === rarity && !choices.includes(id));
-    // Each tier has enough eligible cards for all three slots, including max-level exclusions.
+    // Every tier retains at least four eligible cards, including max-level exclusions.
     const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
     choices.push(pool[index]);
   }
@@ -178,7 +179,7 @@ export function calculateRogueStats(levels, owned) {
     speed: ROGUE_PLAYER_BASE.speed * Math.max(0.25, 1 + levels.speed * 0.03 + (totals.speed ?? 0)),
     damageMultiplier: Math.max(0.2, 1 + levels.damage * 0.03 + (totals.damage ?? 0)),
     attackSpeedMultiplier: Math.max(0.25, 1 + levels.attackSpeed * 0.03 + (totals.attackSpeed ?? 0)),
-    armor: levels.armor * 2 + (totals.armor ?? 0),
+    armor: levels.armor * ARMOR_PER_UPGRADE + (totals.armor ?? 0),
     projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)) * shellSpeedMultiplier,
     projectileLifetimeMultiplier: 1 + (totals.projectileLifetime ?? 0),
     projectileSizeMultiplier,

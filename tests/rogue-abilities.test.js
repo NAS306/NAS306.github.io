@@ -17,7 +17,7 @@ function worldWith(abilities = []) {
 }
 const input = { keys: {}, mouse: { canvasX: 600, canvasY: 325, down: false } };
 
-test('thirty named abilities have descriptions, local icons and distinct three-card offers', () => {
+test('thirty named abilities have descriptions, local icons and distinct four-card offers', () => {
   assert.equal(Object.keys(ABILITIES).length, 30);
   for (const id of Object.keys(ABILITIES)) {
     assert.ok(ABILITIES[id].description.length > 10);
@@ -26,7 +26,7 @@ test('thirty named abilities have descriptions, local icons and distinct three-c
   }
   for (const random of [() => 0, () => 0.5, () => 0.999999, Math.random]) {
     const offer = rollAbilityChoices(random);
-    assert.equal(offer.length, 3); assert.equal(new Set(offer).size, 3);
+    assert.equal(offer.length, 4); assert.equal(new Set(offer).size, 4);
     assert.ok(offer.every(id => Object.hasOwn(ABILITIES, id)));
   }
 });
@@ -45,7 +45,7 @@ test('at most one free ability can be selected per round; repeated picks stack w
   assert.equal(state.chooseAbility('hull', player), false);
   state.tick(ROUND_SECONDS, player.hp);
   assert.equal(state.selectedAbility, null);
-  assert.equal(state.abilityChoices.length, 3);
+  assert.equal(state.abilityChoices.length, 4);
   assert.equal(state.startRound(), false);
   state.abilityChoices = ['turbo', 'hull', 'piercing'];
   state.chooseAbility('turbo', player);

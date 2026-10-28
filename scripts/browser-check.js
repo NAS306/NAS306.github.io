@@ -23,6 +23,10 @@ try {
   const guide = page.locator('.rogue-guide-dialog');
   assert.equal(await guide.isVisible(), true);
   assert.equal(await guide.locator('[data-guide-ability]').count(), 30);
+  assert.match(await guide.locator('.rogue-guide-content').innerText(), /30 rounds of 30 seconds/);
+  assert.match(await guide.locator('.rogue-guide-content').innerText(), /200 free ammo/);
+  assert.match(await guide.locator('.rogue-guide-content').innerText(), /4 different cards/);
+  assert.equal(await page.locator('.language-picker').count(), 0);
   assert.match(await guide.locator('[data-guide-ability="dividends"]').innerText(), /round ×100 points.*5,000/s);
   assert.equal(await page.locator('[data-scenario] [data-rogue-guide]').count(), 0);
   await page.keyboard.press('5');
@@ -30,6 +34,14 @@ try {
   await page.screenshot({ path: '.qa/roguelite-guide-selector.png' });
   await guide.getByRole('button', { name: 'Close mode guide' }).click();
   assert.equal(await page.locator('.mode-guide-button').evaluate(button => button === document.activeElement), true);
+  // Future language selectors must retain keyboard control instead of starting a match.
+  await page.evaluate(() => {
+    const select = document.createElement('select'); select.id = 'qa-language-select';
+    select.innerHTML = '<option>English</option>'; document.querySelector('.selector-topline').append(select); select.focus();
+  });
+  await page.keyboard.press('1');
+  assert.equal(await page.locator('#loading-screen').isVisible(), true);
+  await page.evaluate(() => document.getElementById('qa-language-select').remove());
   await page.locator('.mode-guide-button').click(); await page.keyboard.press('Escape');
   assert.equal(await guide.isVisible(), false);
   for (const mode of ['frontline', 'siege', 'defense', 'breakthrough']) {
@@ -105,8 +117,13 @@ try {
     cancelAnimationFrame(game.animationFrameId);
     game.state.tick(40, game.world.player.hp);
     game.beginRoundTransition(); game.advanceRoundTransition(1.5);
-    game.state.abilityChoices = ['ricochet', 'oversized', 'hull']; game.renderPanel();
+    if (game.state.abilityChoices.length !== 4 || new Set(game.state.abilityChoices).size !== 4) throw Error('Expected four distinct offers');
+    game.state.abilityChoices = ['ricochet', 'oversized', 'hull', 'lightHull']; game.renderPanel();
   });
+  assert.equal(await runPage.locator('.rogue-ability:visible').count(), 4);
+  assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.ammo), 500);
+  assert.match(await runPage.locator('#rogue-summary').innerText(), /Survive 30s.*one of 4/);
+  await runPage.screenshot({ path: '.qa/rogue-four-choices.png' });
   assert.equal(await runPage.locator('#rogue-title').innerText(), 'Roguelite Upgrades');
   assert.match(await runPage.locator('#rogue-ammo-rate').innerText(), /Round 2: 1 pt = 19 ammo/);
   await runPage.locator('.rogue-panel-guide-button').click();
@@ -195,7 +212,7 @@ try {
       game.state.tick(40, player.hp);
       game.beginRoundTransition(); game.advanceRoundTransition(1.5);
       if (round < 30) {
-        game.state.abilityChoices = ['hull', 'hull', 'hull'];
+        game.state.abilityChoices = ['hull', 'turbo', 'plating', 'lightHull'];
         game.state.chooseAbility('hull', player);
         game.state.buy('heal', player);
         game.renderPanel();
@@ -212,7 +229,7 @@ try {
   assert.equal(await runPage.locator('#rogue-result-rounds circle').count(), 180);
   assert.equal(await runPage.locator('.rogue-chart-legend button[aria-pressed="true"]').count(), 6);
   assert.match(await runPage.locator('tr[data-round="2"]').getAttribute('title'), /Reinforced Hull \(Lv.1\)/);
-  assert.match(await runPage.locator('tr[data-round="3"]').getAttribute('title'), /Repair \+1 \(Lv.1\)/);
+  assert.match(await runPage.locator('tr[data-round="3"]').getAttribute('title'), /Repair \+1 \(Lv.2\)/);
   assert.match(await runPage.locator('tr[data-round="30"]').getAttribute('title'), /Reinforced Hull \(Lv.29\)/);
   assert.match(await runPage.locator('[data-series="kills"] circle title').nth(1).textContent(), /Reinforced Hull \(Lv.1\)/);
   assert.equal(await runPage.locator('#rogue-result-rounds').innerText().then(text => text.includes('Remaining HP')), false);
@@ -252,7 +269,7 @@ try {
     const game = window.__qaRogue; cancelAnimationFrame(game.animationFrameId);
     game.state.phase = 'shop'; game.state.round = 30;
     game.state.abilities = ['explosive', 'volatile', 'storm', 'rail', 'blood', 'oversized', 'bargain', 'dividends', 'shield', 'hull', 'plating', 'turbo', 'loader', 'splitter', 'recycler', 'ballistics', 'slowOrb', 'lightHull', 'heavyAmmo', ...Array(8).fill('glass')];
-    game.state.abilityChoices = ['warhead', 'siege', 'overdrive'];
+    game.state.abilityChoices = ['warhead', 'siege', 'overdrive', 'hull'];
     game.state.applyStats(game.world.player); game.renderPanel();
   });
   const previewBounds = await runPage.locator('.rogue-ability').evaluateAll(cards => cards.map(card => ({
@@ -272,7 +289,7 @@ try {
   assert.equal(await runPage.evaluate(() => window.__qaRogue.state.abilities.includes('heavyAmmo')), false);
   await runPage.close();
   // Exercise progression using a disposable local HTML origin and private QA hooks.
-  const qaHTML = html.replace(hook, `${hook}\nwindow.__qaRogue = this;`).replace(
+  const qaHTML = html.replace('installLanguageUI();', 'installLanguageUI(); window.__qaCreateI18n = createI18n; window.__qaApplyTranslations = applyTranslations; window.__qaLanguage = getI18n();').replace(hook, `${hook}\nwindow.__qaRogue = this;`).replace(
     'this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode);',
     'this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode); window.__qaTeam = this;',
   );
@@ -281,6 +298,21 @@ try {
   walletPage.on('pageerror', error => errors.push(error.message));
   await walletPage.goto(pathToFileURL(resolve('.qa/progression-qa.html')).href);
   await walletPage.locator('#loading-screen.is-ready').waitFor();
+  const translationResult = await walletPage.evaluate(() => {
+    const language = window.__qaCreateI18n({ catalogs: {
+      en: { name: 'English', messages: { greeting: 'Hello', close: 'Close' } },
+      ko: { name: '한국어', messages: { greeting: '<em>번역</em>', close: '닫기' } },
+    } });
+    const fixture = document.createElement('section');
+    fixture.innerHTML = '<span data-i18n="greeting">Hello</span><button data-i18n-aria-label="close" aria-label="Close">×</button><p data-i18n="missing">Original English</p>';
+    document.body.append(fixture);
+    language.subscribe(() => window.__qaApplyTranslations(fixture, language));
+    language.setLocale('ko');
+    const translated = { text: fixture.querySelector('span').textContent, injectedHTML: fixture.querySelector('em') !== null, label: fixture.querySelector('button').getAttribute('aria-label'), fallback: fixture.querySelector('p').textContent };
+    language.setLocale('en'); translated.restored = fixture.querySelector('span').textContent;
+    fixture.remove(); return translated;
+  });
+  assert.deepEqual(translationResult, { text: '<em>번역</em>', injectedHTML: false, label: '닫기', fallback: 'Original English', restored: 'Hello' });
   assert.equal(await walletPage.locator('[data-super-mode]:disabled').count(), 5);
   await walletPage.evaluate(() => document.activeElement.blur()); await walletPage.keyboard.press('Enter');
   assert.equal(await walletPage.locator('#loading-screen').isVisible(), true);

@@ -11,7 +11,7 @@ test('ammo prices decrease one shell per round from twenty to one, then stay at 
     assert.equal(getAmmoPerPoint(round), expected);
   }
   for (const value of [0, -1, 1.5, NaN, Infinity, '2']) assert.throws(() => getAmmoPerPoint(value), RangeError);
-  assert.equal(STARTING_AMMO, 300); assert.equal(ROUND_AMMO_SUPPLY, 300);
+  assert.equal(STARTING_AMMO, 300); assert.equal(ROUND_AMMO_SUPPLY, 200);
 });
 
 test('actual ammo purchases use the upcoming round and spend exactly the entered points', () => {
@@ -30,9 +30,9 @@ test('Dividend tuning, English help and ability card all share the new 100 / 500
   assert.match(ABILITIES.dividends.description, /5,000/);
   const html = renderRogueGuide();
   assert.equal([...html.matchAll(/data-guide-ability=/g)].length, 30);
-  assert.ok(html.includes(`${ROUND_COUNT} rounds of 40 seconds`));
+  assert.ok(html.includes(`${ROUND_COUNT} rounds of 30 seconds`));
   for (const item of Object.values(UPGRADES)) assert.ok(html.includes(item.name));
-  assert.match(html, /300 free ammo/); assert.match(html, /Round 20/);
+  assert.match(html, /200 free ammo/); assert.match(html, /Round 20/);
   assert.match(html, /round ×100 points/); assert.match(html, /5,000/);
   assert.doesNotMatch(html, /10,000|round ×200 points/);
 });

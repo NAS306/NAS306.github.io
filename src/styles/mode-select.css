@@ -86,3 +86,7 @@
   #loading-screen *, #loading-screen *::before, #loading-screen *::after { animation: none !important; transition: none !important; }
   .scenario-button:hover, .scenario-button:focus-visible, .scenario-button:hover .mode-art svg { transform: none; }
 }
+
+.selector-topline:has(.language-picker) { flex-wrap: wrap; }
+.language-picker { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: normal; }
+.language-picker select { max-width: 160px; color: #e8eee7; background: #111920; border: 1px solid #65766b; padding: 6px; }

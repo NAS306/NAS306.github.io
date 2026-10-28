@@ -34,7 +34,7 @@ test('all ten round starts recenter before enemy spawn, retain HP, stats and car
     assert.equal(player.vx, 0); assert.equal(player.vy, 0);
     assert.equal(player.rogueMotionVX, 0); assert.equal(player.rogueMotionVY, 0);
     assert.equal(player.hp, 73); assert.equal(player.armor, -12); assert.equal(player.speed, 350);
-    assert.equal(player.ammo, ammo + (round > 1 ? 300 : 0));
+    assert.equal(player.ammo, ammo + (round > 1 ? 200 : 0));
     assert.equal(world.camera.y, world.player.y - world.canvas.height / 2 + (world.topHudReserve - world.bottomHudReserve) / -2);
   }
 });
@@ -50,7 +50,7 @@ test('per-round totals reconcile with final totals, including shop repairs, purc
   assert.equal(first.combat.ammoSpent, 1); assert.equal(first.combat.ammoPerKill, .5);
   assert.deepEqual(Object.keys(first.combat), ['kills', 'damageDealt', 'damageTaken', 'healing', 'ammoSpent', 'ammoPerKill']);
   assert.equal(first.tank.ammo, 299); assert.equal(first.tank.hp, 100);
-  assert.equal(state.buy('heal', player), true); assert.equal(state.points, 3);
+  assert.equal(state.buy('heal', player), true); assert.equal(state.points, 5);
   assert.equal(state.buyAmmo(player, 1), true);
   world.startRound(2); player.fireCooldown = 0; player.tryShoot(world);
   player.takeDamage(10000); state.phase = 'combat'; state.tick(1, player.hp);
@@ -59,7 +59,7 @@ test('per-round totals reconcile with final totals, including shop repairs, purc
   assert.equal(second.outcome, 'lost'); assert.equal(second.tank.hp, 0);
   assert.equal(second.combat.healing, 25); assert.equal(second.combat.damageTaken, 125);
   assert.equal(second.combat.ammoSpent, 1); assert.equal(second.combat.ammoPerKill, null);
-  assert.equal(second.tank.points, 2);
+  assert.equal(second.tank.points, 4);
   assert.equal(first.tank.hp, 100); assert.equal(first.tank.ammo, 299);
   for (const key of ['damageTaken', 'damageDealt', 'healing', 'ammoSpent']) {
     assert.equal(first.combat[key] + second.combat[key], player.runStats[key]);
@@ -164,6 +164,6 @@ test('the transition captures final stats once before slow motion and the next s
   assert.equal(history.rows.length, 1); assert.equal(history.rows[0].round, 1);
   assert.equal(history.rows[0].combat.kills, 3); assert.equal(player.runStats.healing, 5);
   assert.equal(history.rows[0].tank.ammo, 300);
-  world.startRound(2); assert.equal(player.ammo, 600);
+  world.startRound(2); assert.equal(player.ammo, 500);
   assert.equal(history.rows[0].tank.ammo, 300);
 });

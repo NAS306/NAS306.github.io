@@ -647,7 +647,11 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 #rogue-upgrades button { display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; gap: 4px; min-width: 0; min-height: 0; padding: 7px 4px; text-align: center; font-size: 18px; }
 #rogue-upgrades small { display: block; color: #b1c5d9; font-size: 14px; line-height: 1.25; margin-top: 4px; }
 .rogue-price { font-size: 15px; color: #ffdc94; }
-.rogue-ability-grid { grid-area: abilities; position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; min-height: 0; }
+.rogue-ability-grid { grid-area: abilities; position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; min-width: 0; min-height: 0; }
+.rogue-ability-grid .rogue-ability h2 { font-size: 18px; }
+#rogue-ui .rogue-ability-grid .rogue-ability p { font-size: 14px; }
+.rogue-ability-grid .rogue-ability-changes li { font-size: 13px; }
+.rogue-super-mode .rogue-ability-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .rogue-super-mode .rogue-ability-grid { overflow-y: auto; grid-auto-rows: minmax(280px, auto); padding: 3px; }
 .rogue-super-mode .rogue-ability-grid:has(.rogue-recalibration:not([hidden])) { overflow: hidden; }
 .rogue-super-mode .rogue-recalibration { position: sticky; top: 0; grid-column: 1 / -1; grid-row: 1; height: 260px; }
@@ -875,6 +879,10 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
   .scenario-button:hover, .scenario-button:focus-visible, .scenario-button:hover .mode-art svg { transform: none; }
 }
 
+.selector-topline:has(.language-picker) { flex-wrap: wrap; }
+.language-picker { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: normal; }
+.language-picker select { max-width: 160px; color: #e8eee7; background: #111920; border: 1px solid #65766b; padding: 6px; }
+
 </style>
 </head>
 <body>
@@ -888,16 +896,16 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
       <div id="overlay-submessage"></div>
     </div>
   </div>
-  <button id="overlay-menu" type="button" hidden>Mode Select →</button>
+  <button id="overlay-menu" type="button" data-i18n="menu.select" hidden>Mode Select →</button>
   <div id="loading-screen">
     <div id="loading-panel">
       <div class="selector-topline"><span class="selector-brand"><span class="brand-mark" aria-hidden="true">⌖</span>TANK BATTLE</span><span class="selector-status">SYSTEMS ONLINE</span></div>
-      <div class="selector-heading"><h1 id="loading-title">Preparing the battlefield…</h1><p class="selector-intro">Five ways to fight. One battlefield to make your own.<br>Pick a mission. Take command.</p></div>
+      <div class="selector-heading"><h1 id="loading-title">Preparing the battlefield…</h1><p class="selector-intro" data-i18n="menu.intro">Five ways to fight. One battlefield to make your own.<br>Pick a mission. Take command.</p></div>
       <div id="loading-bar"><div id="loading-bar-fill"></div></div>
       <div id="loading-status">0%</div>
       <div id="loading-hint" class="hidden">
         <div class="selector-section-label"><span>SELECT OPERATION</span><span>05 MISSION PROFILES</span></div>
-        <div class="progression-wallet"><div><strong><span id="victory-wallet">0</span> VICTORY POINTS</strong><small id="progression-status" role="status"></small></div><button type="button" data-progression-guide aria-haspopup="dialog">Progression guide</button><button type="button" id="progression-save" hidden>Retry Save</button></div>
+        <div class="progression-wallet"><div><strong><span id="victory-wallet">0</span> <span data-i18n="wallet.unit">VICTORY POINTS</span></strong><small id="progression-status" role="status"></small></div><button type="button" data-progression-guide data-i18n="menu.progressionGuide" aria-haspopup="dialog">Progression guide</button><button type="button" id="progression-save" data-i18n="menu.retrySave" hidden>Retry Save</button></div>
         <div id="scenario-buttons">
           <div class="mode-card-with-guide"><button class="scenario-button" data-scenario="frontline" style="--mode-accent:#83baff" aria-label="1. Frontline. Capture strongholds. Push the front. Break their base.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
@@ -939,7 +947,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="M112 286 130 251M285 196 267 223" stroke="#ffe600" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#83baff" stroke-opacity=".4"/>
   </svg><span class="mode-number">01</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">TERRITORY WAR</span><span class="mode-name">Frontline</span><span class="mode-description">Capture strongholds. Push the front. Break their base.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag" data-i18n="mode.frontline.tag">TERRITORY WAR</span><span class="mode-name" data-i18n="mode.frontline.name">Frontline</span><span class="mode-description" data-i18n="mode.frontline.description">Capture strongholds. Push the front. Break their base.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button><button type="button" class="super-mode-button" data-super-mode="frontline">Unlock Super</button></div>
 <div class="mode-card-with-guide"><button class="scenario-button" data-scenario="siege" style="--mode-accent:#edac74" aria-label="2. Siege Attack. Lead the assault through three fortified defense lines.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
@@ -978,7 +986,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="M210 305v-35m0-20v-20" stroke="#ffe600" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#edac74" stroke-opacity=".4"/>
   </svg><span class="mode-number">02</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">BREAK THE LINE</span><span class="mode-name">Siege Attack</span><span class="mode-description">Lead the assault through three fortified defense lines.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag" data-i18n="mode.siege.tag">BREAK THE LINE</span><span class="mode-name" data-i18n="mode.siege.name">Siege Attack</span><span class="mode-description" data-i18n="mode.siege.description">Lead the assault through three fortified defense lines.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button><button type="button" class="super-mode-button" data-super-mode="siege">Unlock Super</button></div>
 <div class="mode-card-with-guide"><button class="scenario-button" data-scenario="defense" style="--mode-accent:#87d9cf" aria-label="3. Siege Defense. Protect your strongholds. Stop the advancing army.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
@@ -1019,7 +1027,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="M192 204v-30m-96 26v-26" stroke="#5cb3ff" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#87d9cf" stroke-opacity=".4"/>
   </svg><span class="mode-number">03</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">HOLD YOUR GROUND</span><span class="mode-name">Siege Defense</span><span class="mode-description">Protect your strongholds. Stop the advancing army.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag" data-i18n="mode.defense.tag">HOLD YOUR GROUND</span><span class="mode-name" data-i18n="mode.defense.name">Siege Defense</span><span class="mode-description" data-i18n="mode.defense.description">Protect your strongholds. Stop the advancing army.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button><button type="button" class="super-mode-button" data-super-mode="defense">Unlock Super</button></div>
 <div class="mode-card-with-guide"><button class="scenario-button" data-scenario="breakthrough" style="--mode-accent:#b5d787" aria-label="4. Breakthrough. Outfight the enemy and drain their reinforcements.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
@@ -1057,9 +1065,9 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="M162 294 180 275m107-129 4-30" stroke="#5cb3ff" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#b5d787" stroke-opacity=".4"/>
   </svg><span class="mode-number">04</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">ALL-OUT ATTRITION</span><span class="mode-name">Breakthrough</span><span class="mode-description">Outfight the enemy and drain their reinforcements.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag" data-i18n="mode.breakthrough.tag">ALL-OUT ATTRITION</span><span class="mode-name" data-i18n="mode.breakthrough.name">Breakthrough</span><span class="mode-description" data-i18n="mode.breakthrough.description">Outfight the enemy and drain their reinforcements.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button><button type="button" class="super-mode-button" data-super-mode="breakthrough">Unlock Super</button></div>
-<div class="mode-card-with-guide"><button type="button" class="mode-guide-button" data-rogue-guide aria-haspopup="dialog" aria-label="Read Roguelite mode guide">ⓘ Mode guide</button><button class="scenario-button" data-scenario="roguelite" style="--mode-accent:#d4b1ff" aria-label="5. Roguelite. Survive 30 rounds. Choose your powers. Balance the risk.">
+<div class="mode-card-with-guide"><button type="button" class="mode-guide-button" data-i18n="menu.guide" data-rogue-guide aria-haspopup="dialog" aria-label="Read Roguelite mode guide">ⓘ Mode guide</button><button class="scenario-button" data-scenario="roguelite" style="--mode-accent:#d4b1ff" aria-label="5. Roguelite. Survive 30 rounds. Choose your powers. Balance the risk.">
     <span class="mode-art"><svg viewBox="0 0 420 430" fill="none" aria-hidden="true" focusable="false">
     <defs><radialGradient id="glow-roguelite"><stop stop-color="#d4b1ff" stop-opacity=".08"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><pattern id="grid-roguelite" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" stroke="#444" stroke-opacity=".45"/></pattern></defs>
     <path fill="#03060a" d="M0 0h420v430H0z"/><path fill="url(#grid-roguelite)" d="M0 0h420v430H0z"/>
@@ -1101,7 +1109,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
     <path class="scene-tracer" d="m243 158 18-31m-84 160-15 28" stroke="#ffe600" stroke-width="4"/></g>
     <path d="M18 35V18h17m350 0h17v17M18 395v17h17m350 0h17v-17" stroke="#d4b1ff" stroke-opacity=".4"/>
   </svg><span class="mode-number">05</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
-    <span class="mode-copy"><span class="mode-tag">ONE TANK. THIRTY ROUNDS.</span><span class="mode-name">Roguelite</span><span class="mode-description">Survive 30 rounds. Choose your powers. Balance the risk.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
+    <span class="mode-copy"><span class="mode-tag" data-i18n="mode.roguelite.tag">ONE TANK. THIRTY ROUNDS.</span><span class="mode-name" data-i18n="mode.roguelite.name">Roguelite</span><span class="mode-description" data-i18n="mode.roguelite.description">Survive 30 rounds. Choose your powers. Balance the risk.</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
   </button><button type="button" class="super-mode-button" data-super-mode="roguelite">Unlock Super</button></div>
         </div>
         <div class="selector-bottomline"><span><kbd>1—5</kbd> QUICK SELECT <span aria-hidden="true">&nbsp; / &nbsp;</span> WASD + MOUSE TO PLAY</span><span>Win normal matches. Unlock each Super Mode for 100,000 points.</span></div>
@@ -1688,7 +1696,7 @@ var TankGame = (() => {
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\20-rogue-ammo.js
   var STARTING_AMMO = 300;
-  var ROUND_AMMO_SUPPLY = 300;
+  var ROUND_AMMO_SUPPLY = 200;
   var EXPLOSIVE_AMMO_COST = 10;
   function getAmmoPerPoint(round) {
     if (!Number.isInteger(round) || round < 1) throw new RangeError("Round must be a positive integer");
@@ -1908,6 +1916,143 @@ var TankGame = (() => {
     return `<section><h3>Victory points and permanent Super Modes</h3><p>Normal-mode victories add to one shared wallet. In Frontline, Siege Attack, Siege Defense, and Breakthrough, each personal kill is worth ${VICTORY_POINTS_PER_KILL} victory points, paid only if your team wins. Combat item points are separate. Defeat or leaving a match pays nothing.</p><p>In Roguelite, complete Round ${EXTRACTION_ROUND} to unlock Extract &amp; Win in preparation for Round ${EXTRACTION_ROUND + 1} and later. Extraction or surviving Round 30 counts as victory and banks only the run points remaining at the end, with no extra kill-based reward. Death is defeat and pays nothing. Spending run points lowers the possible payout.</p><p>Spend ${SUPER_UNLOCK_COST.toLocaleString("en-US")} shared victory points to permanently unlock Super Mode for one chosen mode; all five cost 500,000 total. Unlocking does not start a match. Use that mode's Play Super button afterward. Enter no longer bypasses locks. Every Super Mode awards zero victory points.</p><p>Roguelite Super Mode has unlimited run points and shows every ability during preparation. Select any ability repeatedly without the normal one-pick, rarity, prerequisite, or level restrictions. Recalibration still needs an owned ability; Pulse Shield remains a single timed shield when stacked. Ability tradeoffs and combat survival still apply.</p><p>The wallet and unlocks are saved in this browser on this site, independently of each run. Clearing site data removes them; another browser or the offline HTML has its own save. If saving fails, a visible status and Retry Save button appear.</p></section>`;
   }
 
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\locales\en.json
+  var en_default = {
+    "language.label": "Language",
+    "menu.select": "Mode Select",
+    "menu.guide": "ⓘ Mode guide",
+    "menu.progressionGuide": "Progression guide",
+    "menu.retrySave": "Retry Save",
+    "menu.ready": "Choose your front.",
+    "menu.loading": "Preparing the battlefield…",
+    "menu.intro": "Five ways to fight. One battlefield to make your own. Pick a mission. Take command.",
+    "wallet.unit": "VICTORY POINTS",
+    "wallet.rules": "Win: +{points} per personal kill; Roguelite: bank remaining run points. Super Mode: no rewards.",
+    "wallet.playSuper": "Play Super",
+    "wallet.unlockSuper": "Unlock Super · {cost} pts",
+    "wallet.modeAction": "{mode}: {action}",
+    "rogue.upgrades": "Roguelite Upgrades",
+    "rogue.lost": "Run Over",
+    "rogue.won": "All {rounds} Rounds Survived!",
+    "rogue.extracted": "Extracted after Round {round}!",
+    "rogue.preparation": "Round {round} / {rounds} · Survive {seconds}s · Choose one of {choices} free abilities or continue without choosing · Common 60% / Rare 30% / Legendary 10%",
+    "rogue.super": "SUPER MODE · Unlimited run points · All abilities, repeat freely · No victory points",
+    "rogue.extract": "Extract & Win",
+    "rogue.startRound": "Start Round {round}",
+    "rogue.buyAmmo": "Buy {ammo} ammo ({points} pt)",
+    "rogue.enterPoints": "Enter points",
+    "rogue.ammoRate": "Round {round}: 1 pt = {ammo} ammo",
+    "rogue.stats": "Stats",
+    "rogue.owned": "Acquired abilities",
+    "rogue.results": "Run Results",
+    "rogue.upgradeHeading": "Upgrades",
+    "upgrade.heal.name": "Repair",
+    "upgrade.heal.description": "Restore all HP",
+    "upgrade.speed.name": "Speed",
+    "upgrade.speed.description": "+3% of base speed",
+    "upgrade.damage.name": "Damage",
+    "upgrade.damage.description": "+3% of base damage",
+    "upgrade.attackSpeed.name": "Fire Rate",
+    "upgrade.attackSpeed.description": "+3% of base fire rate",
+    "upgrade.armor.name": "Armor",
+    "upgrade.armor.description": "−{amount} damage per hit; minimum 1",
+    "mode.frontline.name": "Frontline",
+    "mode.frontline.tag": "TERRITORY WAR",
+    "mode.frontline.description": "Capture strongholds. Push the front. Break their base.",
+    "mode.siege.name": "Siege Attack",
+    "mode.siege.tag": "BREAK THE LINE",
+    "mode.siege.description": "Lead the assault through three fortified defense lines.",
+    "mode.defense.name": "Siege Defense",
+    "mode.defense.tag": "HOLD YOUR GROUND",
+    "mode.defense.description": "Protect your strongholds. Stop the advancing army.",
+    "mode.breakthrough.name": "Breakthrough",
+    "mode.breakthrough.tag": "ALL-OUT ATTRITION",
+    "mode.breakthrough.description": "Outfight the enemy and drain their reinforcements.",
+    "mode.roguelite.name": "Roguelite",
+    "mode.roguelite.tag": "ONE TANK. THIRTY ROUNDS.",
+    "mode.roguelite.description": "Survive 30 rounds. Choose your powers. Balance the risk."
+  };
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\24-i18n.js
+  var LANGUAGE_KEY = "tank-battle.language.v1";
+  var LANGUAGE_CATALOGS = Object.freeze({ en: Object.freeze({ name: "English", messages: Object.freeze(en_default) }) });
+  function createI18n({ catalogs = LANGUAGE_CATALOGS, storage, locale = "en" } = {}) {
+    const listeners = /* @__PURE__ */ new Set();
+    const resolve = (value) => {
+      if (typeof value !== "string") return null;
+      const normalized = value.toLowerCase().replaceAll("_", "-");
+      return Object.keys(catalogs).find((key) => key.toLowerCase() === normalized) ?? Object.keys(catalogs).find((key) => key.toLowerCase() === normalized.split("-")[0]) ?? null;
+    };
+    let current = resolve(locale) ?? "en";
+    try {
+      current = resolve(storage?.getItem(LANGUAGE_KEY)) ?? current;
+    } catch {
+    }
+    return {
+      get locale() {
+        return current;
+      },
+      get languages() {
+        return Object.entries(catalogs).map(([code, catalog]) => ({ code, name: catalog.name }));
+      },
+      t(key, params = {}, fallback = key) {
+        const lookup = (code) => Object.hasOwn(catalogs[code]?.messages ?? {}, key) ? catalogs[code].messages[key] : void 0;
+        const message = lookup(current) ?? lookup("en") ?? fallback;
+        return String(message).replace(/\{([\w]+)\}/g, (token, name) => Object.hasOwn(params, name) ? String(params[name]) : token);
+      },
+      number(value) {
+        return new Intl.NumberFormat(current).format(value);
+      },
+      setLocale(value) {
+        const next = resolve(value);
+        if (!next) return false;
+        if (current === next) return true;
+        current = next;
+        try {
+          storage?.setItem(LANGUAGE_KEY, next);
+        } catch {
+        }
+        for (const listener of listeners) listener(current);
+        return true;
+      },
+      subscribe(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      }
+    };
+  }
+  var instance;
+  function getI18n() {
+    if (!instance) {
+      let storage;
+      try {
+        storage = globalThis.localStorage;
+      } catch {
+      }
+      instance = createI18n({ storage });
+    }
+    return instance;
+  }
+  var t = (key, params, fallback) => getI18n().t(key, params, fallback);
+  var originalText = /* @__PURE__ */ new WeakMap();
+  function applyTranslations(root = document, language = getI18n()) {
+    const elements = [...root.querySelectorAll("[data-i18n], [data-i18n-title], [data-i18n-aria-label]")];
+    if (root.matches?.("[data-i18n], [data-i18n-title], [data-i18n-aria-label]")) elements.unshift(root);
+    for (const element of elements) {
+      for (const [attribute, target] of [["data-i18n", null], ["data-i18n-title", "title"], ["data-i18n-aria-label", "aria-label"]]) {
+        const key = element.getAttribute(attribute);
+        if (!key) continue;
+        if (!originalText.has(element)) originalText.set(element, {});
+        const originals = originalText.get(element);
+        originals[attribute] ??= target ? element.getAttribute(target) : element.textContent;
+        const fallback = originals[attribute];
+        const translated = language.t(key, {}, fallback);
+        if (target) element.setAttribute(target, translated);
+        else element.textContent = translated;
+      }
+    }
+  }
+
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\30-entities.js
   function getEquilateralTriangleVertices(radius) {
     const halfHeight = Math.sqrt(3) * radius / 2;
@@ -2088,10 +2233,10 @@ var TankGame = (() => {
     update(dt) {
       if (!this.active) return;
       this.age += dt;
-      const t = this.age / this.lifetime;
-      this.scale = 1 - 0.5 * t;
-      this.alpha = Math.max(0, 1 - t);
-      if (t >= 1) {
+      const t2 = this.age / this.lifetime;
+      this.scale = 1 - 0.5 * t2;
+      this.alpha = Math.max(0, 1 - t2);
+      if (t2 >= 1) {
         this.active = false;
       }
     }
@@ -2387,7 +2532,7 @@ var TankGame = (() => {
      */
     update(dt, world) {
       const enemies = world.tanks.filter(
-        (t) => t.team !== this.team && t.hp > 0
+        (t2) => t2.team !== this.team && t2.hp > 0
       );
       if (enemies.length > 0) {
         enemies.sort((a, b) => distance(a, this) - distance(b, this));
@@ -2542,13 +2687,13 @@ var TankGame = (() => {
   }
   function buildTargetsInRange(tank, world) {
     const targetsInRange = [];
-    for (const t of world.tanks) {
-      const isEnemy = t.team !== tank.team;
-      const isAlive = t.hp > 0;
-      const distToTank = distance(t, tank);
+    for (const t2 of world.tanks) {
+      const isEnemy = t2.team !== tank.team;
+      const isAlive = t2.hp > 0;
+      const distToTank = distance(t2, tank);
       const inRange = distToTank <= AI_CONSTANTS.ENGAGE_RANGE;
       if (isEnemy && isAlive && inRange) {
-        targetsInRange.push(t);
+        targetsInRange.push(t2);
       }
     }
     for (const s of world.strongholds) {
@@ -3006,7 +3151,7 @@ var TankGame = (() => {
       }
       this.updateStrongholds(dt);
       this.removeDestroyedAITanks();
-      const player = this.tanks.find((t) => t.isPlayer);
+      const player = this.tanks.find((t2) => t2.isPlayer);
       if (player && !input.keys[" "]) {
         const cw = this.canvas.width;
         const ch = this.canvas.height;
@@ -3346,7 +3491,7 @@ var TankGame = (() => {
                   s.captureTimer = 0.05;
                   s.hp = -1;
                   this.turrets = this.turrets.filter(
-                    (t) => !(t.x === s.x && t.y === s.y)
+                    (t2) => !(t2.x === s.x && t2.y === s.y)
                   );
                   if (s.isTurret) {
                     this.turrets.push(
@@ -3436,10 +3581,10 @@ var TankGame = (() => {
     spawnWave(requestedTeam = null) {
       let spawnedAny = false;
       const blueAlive = this.tanks.filter(
-        (t) => t.team === "blue" && (t.hp > 0 || t.isPlayer)
+        (t2) => t2.team === "blue" && (t2.hp > 0 || t2.isPlayer)
       ).length;
       const redAlive = this.tanks.filter(
-        (t) => t.team === "red" && (t.hp > 0 || t.isPlayer)
+        (t2) => t2.team === "red" && (t2.hp > 0 || t2.isPlayer)
       ).length;
       const blueMax = this.teamRules.blue.maxTanks;
       const redMax = this.teamRules.red.maxTanks;
@@ -3562,9 +3707,9 @@ var TankGame = (() => {
         return circlesOverlap(x1, y1, bullet.radius ?? 0, target.x, target.y, target.radius ?? 0);
       }
       const projection = ((target.x - x0) * dx + (target.y - y0) * dy) / segmentLengthSquared;
-      const t = clamp(projection, 0, 1);
-      const closestX = x0 + dx * t;
-      const closestY = y0 + dy * t;
+      const t2 = clamp(projection, 0, 1);
+      const closestX = x0 + dx * t2;
+      const closestY = y0 + dy * t2;
       const targetDx = closestX - target.x;
       const targetDy = closestY - target.y;
       return targetDx * targetDx + targetDy * targetDy <= combinedRadius * combinedRadius;
@@ -4160,6 +4305,7 @@ var TankGame = (() => {
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\40-rogue-balance.js
   var ROGUE_PLAYER_BASE = Object.freeze({ maxHP: 125, speed: 200 });
+  var ARMOR_PER_UPGRADE = 1;
   var ROGUE_EXPLOSION_RULES = Object.freeze({
     payloadRadius: 90,
     maxPayloadRadius: 150,
@@ -4248,6 +4394,7 @@ var TankGame = (() => {
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\41-rogue-abilities.js
   var DIVIDEND_RULES = Object.freeze({ pointsPerRound: 100, pointsCap: 5e3 });
+  var ABILITY_CHOICE_COUNT = 4;
   var ABILITIES = Object.freeze({
     hull: {
       name: "Reinforced Hull",
@@ -4459,7 +4606,7 @@ var TankGame = (() => {
   function rollAbilityChoices(random = Math.random, owned = []) {
     const ids = Object.keys(ABILITIES).filter((id) => canOfferAbility(id, owned));
     const choices = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < ABILITY_CHOICE_COUNT; i++) {
       const rarity = rollAbilityRarity(random());
       const pool = ids.filter((id) => abilityRarity(id) === rarity && !choices.includes(id));
       const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
@@ -4484,7 +4631,7 @@ var TankGame = (() => {
       speed: ROGUE_PLAYER_BASE.speed * Math.max(0.25, 1 + levels.speed * 0.03 + (totals.speed ?? 0)),
       damageMultiplier: Math.max(0.2, 1 + levels.damage * 0.03 + (totals.damage ?? 0)),
       attackSpeedMultiplier: Math.max(0.25, 1 + levels.attackSpeed * 0.03 + (totals.attackSpeed ?? 0)),
-      armor: levels.armor * 2 + (totals.armor ?? 0),
+      armor: levels.armor * ARMOR_PER_UPGRADE + (totals.armor ?? 0),
       projectileSpeedMultiplier: Math.max(0.2, 1 + (totals.projectileSpeed ?? 0)) * shellSpeedMultiplier,
       projectileLifetimeMultiplier: 1 + (totals.projectileLifetime ?? 0),
       projectileSizeMultiplier,
@@ -4550,15 +4697,15 @@ var TankGame = (() => {
   }
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\42-rogue-state.js
-  var ROUND_SECONDS = 40;
+  var ROUND_SECONDS = 30;
   var ROUND_COUNT = 30;
-  var KILL_POINTS = 4;
+  var KILL_POINTS = 5;
   var UPGRADES = Object.freeze({
     heal: { name: "Repair", description: "Restore all HP" },
     speed: { name: "Speed", description: "+3% of base speed" },
     damage: { name: "Damage", description: "+3% of base damage" },
     attackSpeed: { name: "Fire Rate", description: "+3% of base fire rate" },
-    armor: { name: "Armor", description: "−2 damage per hit; minimum 1" }
+    armor: { name: "Armor", description: `−${ARMOR_PER_UPGRADE} damage per hit; minimum 1` }
   });
   var MIXES = [
     [80, 15, 5],
@@ -4819,7 +4966,7 @@ var TankGame = (() => {
       const before = this.elapsed;
       const advanced = this.elapsed + Math.max(0, dt);
       this.elapsed = advanced >= ROUND_END_SECONDS - 1e-9 ? ROUND_END_SECONDS : advanced;
-      const integral = (t) => 0.04 * t + 0.96 * (t - t * t / ROUND_END_SECONDS + t ** 3 / (3 * ROUND_END_SECONDS ** 2));
+      const integral = (t2) => 0.04 * t2 + 0.96 * (t2 - t2 * t2 / ROUND_END_SECONDS + t2 ** 3 / (3 * ROUND_END_SECONDS ** 2));
       return { ...getRoundTransitionFrame(this.elapsed), simulationDelta: integral(this.elapsed) - integral(before) };
     }
   };
@@ -4847,8 +4994,8 @@ var TankGame = (() => {
     for (; ; ) {
       const tx = dx > 0 ? (right - x) / dx : dx < 0 ? (left - x) / dx : Infinity;
       const ty = dy > 0 ? (bottom - y) / dy : dy < 0 ? (top - y) / dy : Infinity;
-      const t = Math.min(1, tx, ty);
-      const endX = x + dx * t, endY = y + dy * t;
+      const t2 = Math.min(1, tx, ty);
+      const endX = x + dx * t2, endY = y + dy * t2;
       bullet.rogueSegments.push({ previousX: x, previousY: y, x: endX, y: endY });
       x = endX;
       y = endY;
@@ -4858,11 +5005,11 @@ var TankGame = (() => {
         break;
       }
       bullet.wallBouncesRemaining--;
-      const hitX = Math.abs(tx - t) < 1e-9, hitY = Math.abs(ty - t) < 1e-9;
+      const hitX = Math.abs(tx - t2) < 1e-9, hitY = Math.abs(ty - t2) < 1e-9;
       if (hitX) bullet.vx = -bullet.vx;
       if (hitY) bullet.vy = -bullet.vy;
-      dx *= (1 - t) * (hitX ? -1 : 1);
-      dy *= (1 - t) * (hitY ? -1 : 1);
+      dx *= (1 - t2) * (hitX ? -1 : 1);
+      dy *= (1 - t2) * (hitY ? -1 : 1);
       if (dx === 0 && dy === 0) break;
     }
     bullet.x = x;
@@ -5243,7 +5390,7 @@ var TankGame = (() => {
     <section><h3>Ammunition gets more expensive</h3><p>Start with ${STARTING_AMMO} ammo and receive <strong>${ROUND_AMMO_SUPPLY} free ammo before each later round</strong>, keeping leftovers. Purchases are available in preparation from Round 2. Each point buys one fewer shell each round, reaching 1 shell per point in Round 20 and staying there through Round ${ROUND_COUNT}.</p>
     <div class="rogue-guide-table"><table><thead><tr><th>Round</th><th>Ammo for 1 point</th></tr></thead><tbody>${[1, 2, 5, 10, 15, 19, 20, ROUND_COUNT].map((round) => `<tr><td>${round}</td><td>${getAmmoPerPoint(round)}</td></tr>`).join("")}</tbody></table></div>
     <p>A standard shell costs 1 ammo; an additional explosive shell costs ${EXPLOSIVE_AMMO_COST}. Multishot spends ammo on every standard shell. With limited ammo, only affordable projectiles fire.</p></section>
-    <section><h3>Abilities and rarity</h3><p>Each preparation offers three different cards. Each slot first rolls its rarity: ${Object.values(RARITIES).map((tier) => `<strong>${tier.name} ${Math.round(tier.chance * 100)}%</strong>`).join(" / ")}, then selects an eligible ability from that tier. Choose at most one, or continue without choosing. Repeat picks stack both benefits and penalties. Max-level abilities are excluded.</p>
+    <section><h3>Abilities and rarity</h3><p>Each preparation offers ${ABILITY_CHOICE_COUNT} different cards. Each slot first rolls its rarity: ${Object.values(RARITIES).map((tier) => `<strong>${tier.name} ${Math.round(tier.chance * 100)}%</strong>`).join(" / ")}, then selects an eligible ability from that tier. Choose at most one, or continue without choosing. Repeat picks stack both benefits and penalties. Max-level abilities are excluded.</p>
     <p>Most percentages add relative to base stats. Oversized Rounds multiplies shell size and speed; Devil’s Bargain multiplies points and damage taken. Maximum HP cannot fall below 25, the base damage and shell-speed multipliers cannot fall below 20%, and move/fire-rate multipliers cannot fall below 25%. Oversized Rounds applies its speed factor after the shell-speed floor.</p>
     <p><strong>Recalibration:</strong> choose an owned ability to lose one level, removing it at level 1. Both benefits and penalties are recalculated. This action does not stack, heal, revive, or refund discarded points. You may cancel before choosing a target or continue to forfeit it.</p>
     <p><strong>Pulse Shield:</strong> first activates 3 seconds into each round, then blocks all damage during seconds 3–4, 6–7, and so on. Its clock runs only during combat and resets each round.</p>
@@ -5485,20 +5632,20 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         <article class="rogue-panel" role="dialog" aria-modal="true" aria-labelledby="rogue-title" tabindex="-1">
           <div class="rogue-panel-content">
           <div class="rogue-panel-heading">
-            <button type="button" class="rogue-panel-guide-button" data-rogue-guide aria-haspopup="dialog">ⓘ Mode guide</button>
+            <button type="button" class="rogue-panel-guide-button" data-i18n="menu.guide" data-rogue-guide aria-haspopup="dialog">ⓘ Mode guide</button>
             <span class="rogue-eyebrow">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
             <h1 id="rogue-title"></h1><p id="rogue-summary"></p>
           </div>
           <div id="rogue-layout" class="rogue-layout">
             <section class="rogue-stats-panel" aria-labelledby="rogue-stats-title">
-              <h2 id="rogue-stats-title">Stats</h2>
+              <h2 id="rogue-stats-title" data-i18n="rogue.stats">Stats</h2>
               <div id="rogue-panel-hp" class="rogue-health">${HEALTH_DISPLAY_MARKUP}</div>
               <dl id="rogue-stats" class="rogue-stats"></dl>
               <p class="rogue-stat-note" id="rogue-economy-note"></p>
-              <h3>Acquired abilities</h3><div class="rogue-owned" aria-label="No acquired abilities"></div>
+              <h3 data-i18n="rogue.owned">Acquired abilities</h3><div class="rogue-owned" aria-label="No acquired abilities"></div>
             </section>
             <section id="rogue-run-summary" class="rogue-run-summary" aria-labelledby="rogue-run-summary-title" hidden>
-              <div class="rogue-result-heading"><h2 id="rogue-run-summary-title">Run Results</h2><span>Totals &amp; round trends</span></div>
+              <div class="rogue-result-heading"><h2 id="rogue-run-summary-title" data-i18n="rogue.results">Run Results</h2><span>Totals &amp; round trends</span></div>
               <dl id="rogue-run-stats" aria-label="Combat totals"></dl>
               <div id="rogue-result-rounds" class="rogue-round-charts">
                 <div class="rogue-chart-legend" role="group" aria-label="Toggle chart lines"></div>
@@ -5511,14 +5658,14 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
               <div id="rogue-recalibration" class="rogue-recalibration" role="group" aria-label="Choose an ability to reduce" hidden><h2>Recalibration</h2><p>Lose one level. Both its benefit and penalty are removed.</p><div class="rogue-removal-targets"></div><button id="rogue-cancel-removal" type="button">Back to choices</button></div>
             </section>
             <section id="rogue-shop" aria-labelledby="rogue-shop-title">
-              <h2 id="rogue-shop-title">Upgrades <small>Each item: 5 → 7 → 9… points</small></h2><div id="rogue-upgrades"></div>
+              <h2 id="rogue-shop-title"><span data-i18n="rogue.upgradeHeading">Upgrades</span> <small>Each item: 5 → 7 → 9… points</small></h2><div id="rogue-upgrades"></div>
             </section>
             <button id="rogue-next" type="button"><span class="rogue-next-icon" aria-hidden="true">→</span><span id="rogue-next-label"></span></button>
           </div>
           <div class="rogue-panel-tools">
             <div id="rogue-ammo-shop"><span>Ammo <strong id="rogue-ammo-stock"></strong></span><label>Points <input id="rogue-ammo-spend" type="number" min="1" step="1" value="1" inputmode="numeric"></label><button id="rogue-buy-ammo" type="button">Buy ammo</button><small id="rogue-ammo-rate"></small></div>
-            <button id="rogue-extract" type="button" hidden>Extract &amp; Win</button>
-            <button id="rogue-menu" type="button">Mode Select</button>
+            <button id="rogue-extract" data-i18n="rogue.extract" type="button" hidden>Extract &amp; Win</button>
+            <button id="rogue-menu" data-i18n="menu.select" type="button">Mode Select</button>
           </div>
           </div>
         </article>
@@ -5575,7 +5722,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         if (["deathNova", "payload", "blast"].includes(key)) row.hidden = true;
       }
       this.abilityCards = [];
-      for (let index = 0; index < (superMode ? Object.keys(ABILITIES).length : 3); index++) {
+      for (let index = 0; index < (superMode ? Object.keys(ABILITIES).length : ABILITY_CHOICE_COUNT); index++) {
         const card = document.createElement("button");
         card.type = "button";
         card.className = "rogue-ability";
@@ -5663,6 +5810,11 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         this.accumulator = 0;
         this.lastTime = performance.now();
       }, eventOptions);
+      applyTranslations(this.root);
+      this.unsubscribeLanguage = getI18n().subscribe(() => {
+        applyTranslations(this.root);
+        if (this.state.phase !== "combat") this.renderPanel({ focus: false });
+      });
       this.resetRun();
       this.loop = this.loop.bind(this);
       this.animationFrameId = requestAnimationFrame(this.loop);
@@ -5672,6 +5824,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.disposed = true;
       cancelAnimationFrame(this.animationFrameId);
       this.events.abort();
+      this.unsubscribeLanguage?.();
       this.input.reset();
       this.input.dispose();
       this.root.remove();
@@ -5710,10 +5863,10 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       if (state.phase === "shop") supplyRoundAmmo(player, state.round);
       const weapon = getRoguePlayerWeapon(player);
       this.el("shade").hidden = false;
-      this.el("title").textContent = state.phase === "won" ? state.extracted ? `Extracted after Round ${state.round - 1}!` : `All ${ROUND_COUNT} Rounds Survived!` : state.phase === "lost" ? "Run Over" : "Roguelite Upgrades";
-      this.el("summary").textContent = ended ? `${state.kills} kills · ${displayPoints(state.points)} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}` : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Pick one free ability or continue without choosing · Common 60% / Rare 30% / Legendary 10%`;
+      this.el("title").textContent = state.phase === "won" ? state.extracted ? t("rogue.extracted", { round: state.round - 1 }) : t("rogue.won", { rounds: ROUND_COUNT }) : state.phase === "lost" ? t("rogue.lost") : t("rogue.upgrades");
+      this.el("summary").textContent = ended ? `${state.kills} kills · ${displayPoints(state.points)} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}` : t("rogue.preparation", { round: state.round, rounds: ROUND_COUNT, seconds: ROUND_SECONDS, choices: ABILITY_CHOICE_COUNT });
       if (ended) this.el("summary").textContent += ` | ${victoryRewardText(this.reward, this.isSuperMode)}`;
-      else if (this.isSuperMode) this.el("summary").textContent = `SUPER MODE · Unlimited run points · All abilities, repeat freely · No victory points`;
+      else if (this.isSuperMode) this.el("summary").textContent = t("rogue.super");
       this.el("extract").hidden = !state.canExtract;
       this.el("abilities").setAttribute("aria-label", this.isSuperMode ? "All abilities: select repeatedly or continue" : "Optional free ability: choose one or continue without choosing");
       const stats = {
@@ -5736,10 +5889,12 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.renderAbilities(ended);
       for (const button of this.el("upgrades").querySelectorAll("button")) {
         const key = button.dataset.upgrade;
+        button.querySelector("strong").textContent = t(`upgrade.${key}.name`, {}, UPGRADES[key].name);
+        button.querySelector("small").textContent = t(`upgrade.${key}.description`, { amount: ARMOR_PER_UPGRADE }, UPGRADES[key].description);
         button.disabled = ended || state.diceRolled || state.points < state.cost(key) || key === "heal" && player.hp >= player.maxHP;
         button.querySelector(".rogue-price").textContent = `${state.cost(key)} pts · Lv.${state.levels[key]}`;
       }
-      const nextLabel = ended ? "Mode Select" : `Start Round ${state.round}`;
+      const nextLabel = ended ? t("menu.select") : t("rogue.startRound", { round: state.round });
       this.el("next-label").textContent = nextLabel;
       this.el("next").disabled = false;
       this.el("next").setAttribute("aria-label", nextLabel);
@@ -5767,12 +5922,12 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       const points = Number(this.el("ammo-spend").value);
       const valid = Number.isSafeInteger(points) && points > 0;
       const rate = getAmmoPerPoint(state.round);
-      this.el("ammo-rate").textContent = `Round ${state.round}: 1 pt = ${rate} ammo`;
+      this.el("ammo-rate").textContent = t("rogue.ammoRate", { round: state.round, ammo: rate });
       this.el("ammo-shop").hidden = ended;
       this.el("ammo-stock").textContent = `${world.player.ammo}`;
       this.el("ammo-spend").disabled = ended || state.diceRolled;
       this.el("buy-ammo").disabled = ended || state.diceRolled || !valid || points > state.points;
-      this.el("buy-ammo").textContent = valid ? `Buy ${points * rate} ammo (${points} pt)` : "Enter points";
+      this.el("buy-ammo").textContent = valid ? t("rogue.buyAmmo", { ammo: points * rate, points }) : t("rogue.enterPoints");
     }
     requestRoundStart() {
       if (this.disposed || this.roundTransition || this.diceReveal || this.state.phase !== "shop") return false;
@@ -5960,14 +6115,14 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
     const retry = document.getElementById("progression-save");
     function refresh() {
       store.reload();
-      document.getElementById("victory-wallet").textContent = store.data.points.toLocaleString("en-US");
-      status.textContent = store.error || "Win: +20 per personal kill; Roguelite: bank remaining run points. Super Mode: no rewards.";
+      document.getElementById("victory-wallet").textContent = getI18n().number(store.data.points);
+      status.textContent = store.error || t("wallet.rules", { points: VICTORY_POINTS_PER_KILL });
       retry.hidden = !store.dirty;
       for (const card of MODE_CARDS) {
         const button = document.querySelector(`[data-super-mode="${card.id}"]`);
         const unlocked = store.isUnlocked(card.id);
-        button.textContent = unlocked ? "Play Super" : `Unlock Super · ${SUPER_UNLOCK_COST.toLocaleString("en-US")} pts`;
-        button.setAttribute("aria-label", `${card.title}: ${button.textContent}`);
+        button.textContent = unlocked ? t("wallet.playSuper") : t("wallet.unlockSuper", { cost: getI18n().number(SUPER_UNLOCK_COST) });
+        button.setAttribute("aria-label", t("wallet.modeAction", { mode: t(`mode.${card.id}.name`, {}, card.title), action: button.textContent }));
         button.disabled = store.blocked || !unlocked && store.data.points < SUPER_UNLOCK_COST;
       }
     }
@@ -5987,8 +6142,44 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       refresh();
     });
     window.addEventListener("storage", refresh);
+    getI18n().subscribe(refresh);
     refresh();
     return refresh;
+  }
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\83-language-ui.js
+  function installLanguageUI() {
+    const language = getI18n();
+    let select;
+    if (language.languages.length > 1) {
+      const label = document.createElement("label"), text = document.createElement("span");
+      label.className = "language-picker";
+      text.dataset.i18n = "language.label";
+      select = document.createElement("select");
+      select.setAttribute("aria-label", language.t("language.label"));
+      for (const { code, name } of language.languages) {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = name;
+        select.append(option);
+      }
+      select.addEventListener("change", () => language.setLocale(select.value));
+      label.append(text, select);
+      document.querySelector(".selector-topline").append(label);
+    }
+    const refresh = () => {
+      document.documentElement.lang = language.locale;
+      applyTranslations();
+      for (const [index, button] of [...document.querySelectorAll("[data-scenario]")].entries()) {
+        button.setAttribute("aria-label", `${language.number(index + 1)}. ${button.querySelector(".mode-name").textContent}. ${button.querySelector(".mode-description").textContent}`);
+      }
+      if (select) {
+        select.value = language.locale;
+        select.setAttribute("aria-label", language.t("language.label"));
+      }
+    };
+    language.subscribe(refresh);
+    refresh();
   }
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\90-game.js
@@ -6879,6 +7070,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
   }
   window.addEventListener("DOMContentLoaded", async () => {
     installRogueGuide();
+    installLanguageUI();
     document.body.classList.toggle("mobile-mode", isMobileDevice);
     const canvas = document.getElementById("gameCanvas");
     let game, gameStarted = false;
@@ -6915,7 +7107,8 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         loadingStatusEl.textContent = `${Math.min(100, Math.max(0, Math.round(progress)))}%`;
       }
       if (loadingTitleEl) {
-        loadingTitleEl.textContent = ready ? "Choose your front." : "Preparing the battlefield…";
+        loadingTitleEl.textContent = ready ? t("menu.ready") : t("menu.loading");
+        loadingTitleEl.dataset.i18n = ready ? "menu.ready" : "menu.loading";
       }
       if (loadingHintEl) {
         loadingHintEl.classList.toggle("hidden", !ready);
@@ -7030,7 +7223,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
     gameReady = true;
     window.addEventListener("keydown", (e) => {
       if (gameStarted || !gameReady || isRogueGuideOpen()) return;
-      if (e.target.closest?.("input, dialog")) return;
+      if (e.target.closest?.('input, select, textarea, dialog, [contenteditable="true"]')) return;
       if (e.target.closest?.("button") && (e.code === "Enter" || e.code === "Space")) return;
       if (e.code === "Digit1" || e.code === "Space") startGame("frontline");
       if (e.code === "Digit2") startGame("siege");

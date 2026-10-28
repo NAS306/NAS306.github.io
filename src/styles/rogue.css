@@ -75,7 +75,11 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 #rogue-upgrades button { display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; gap: 4px; min-width: 0; min-height: 0; padding: 7px 4px; text-align: center; font-size: 18px; }
 #rogue-upgrades small { display: block; color: #b1c5d9; font-size: 14px; line-height: 1.25; margin-top: 4px; }
 .rogue-price { font-size: 15px; color: #ffdc94; }
-.rogue-ability-grid { grid-area: abilities; position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; min-height: 0; }
+.rogue-ability-grid { grid-area: abilities; position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; min-width: 0; min-height: 0; }
+.rogue-ability-grid .rogue-ability h2 { font-size: 18px; }
+#rogue-ui .rogue-ability-grid .rogue-ability p { font-size: 14px; }
+.rogue-ability-grid .rogue-ability-changes li { font-size: 13px; }
+.rogue-super-mode .rogue-ability-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .rogue-super-mode .rogue-ability-grid { overflow-y: auto; grid-auto-rows: minmax(280px, auto); padding: 3px; }
 .rogue-super-mode .rogue-ability-grid:has(.rogue-recalibration:not([hidden])) { overflow: hidden; }
 .rogue-super-mode .rogue-recalibration { position: sticky; top: 0; grid-column: 1 / -1; grid-row: 1; height: 260px; }

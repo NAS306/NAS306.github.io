@@ -21,8 +21,8 @@ function startRoundWithAbility(state, player = new Tank(0, 0, 'blue', true)) {
   assert.equal(state.startRound(), true);
 }
 
-test('40 second rounds carry HP; only completion of round 30 wins', () => {
-  assert.equal(ROUND_SECONDS, 40);
+test('30 second rounds carry HP; only completion of round 30 wins', () => {
+  assert.equal(ROUND_SECONDS, 30);
   const state = new RogueState(), player = new Tank(0, 0, 'blue', true);
   player.takeDamage(25);
   for (let round = 1; round <= ROUND_COUNT; round++) {
@@ -33,9 +33,9 @@ test('40 second rounds carry HP; only completion of round 30 wins', () => {
     } else {
       assert.equal(state.phase, 'shop'); startRoundWithAbility(state, player);
     }
-    state.tick(30, player.hp);
+    state.tick(20, player.hp);
     assert.equal(state.phase, 'combat');
-    state.tick(ROUND_SECONDS - 30 - 0.1, player.hp);
+    state.tick(ROUND_SECONDS - 20 - 0.1, player.hp);
     assert.equal(state.phase, 'combat');
     state.tick(0.1, player.hp);
     assert.equal(player.hp, 100);
@@ -92,10 +92,10 @@ test('armor reduces each hit, leaves minimum damage 1, and keeps hit flash', () 
   state.points = 100;
   state.buy('armor', player); state.buy('armor', player);
   player.takeDamage(25);
-  assert.equal(player.hp, 104);
+  assert.equal(player.hp, 102);
   assert.ok(player.hitFlashRemaining > 0);
   player.takeDamage(2);
-  assert.equal(player.hp, 103);
+  assert.equal(player.hp, 101);
   const normal = new Tank(0, 0, 'red'); normal.takeDamage(0.5);
   assert.equal(normal.hp, 124.5);
 });
@@ -120,7 +120,7 @@ test('round mixtures change, max enemies grows by six, and no allies or bases ar
   }
 });
 
-test('real projectile kills earn exactly four points, clear combat objects and preserve player HP', () => {
+test('real projectile kills earn exactly five points, clear combat objects and preserve player HP', () => {
   const world = makeWorld(), state = new RogueState();
   world.startRound(1);
   const enemy = world.tanks[1]; enemy.hp = 25;
@@ -128,7 +128,7 @@ test('real projectile kills earn exactly four points, clear combat objects and p
   const before = world.killcount.player;
   world.handleCollisions();
   state.awardKills(world.killcount.player - before);
-  assert.equal(state.points, 4); assert.equal(state.kills, 1); assert.equal(state.pointsEarned, 4);
+  assert.equal(state.points, 5); assert.equal(state.kills, 1); assert.equal(state.pointsEarned, 5);
   world.player.takeDamage(10);
   world.clearRound();
   assert.equal(world.player.hp, 115);
@@ -146,18 +146,18 @@ test('new run resets purchases, points, abilities, round and HP', () => {
   for (const key of Object.keys(UPGRADES)) assert.equal(state.levels[key], 0);
 });
 
-test('one credited kill funds forty ammo while two kills fund a basic upgrade after the round', () => {
+test('one credited kill funds a basic upgrade while two leave five points after purchase', () => {
   const state = createShopState(), player = new Tank(0, 0, 'blue', true);
   startRoundWithAbility(state, player);
   state.awardKills(1);
-  assert.equal(state.points, 4);
-  state.awardKills(1); assert.equal(state.points, 8);
+  assert.equal(state.points, 5);
+  state.awardKills(1); assert.equal(state.points, 10);
   state.tick(ROUND_SECONDS - .1, player.hp);
   assert.equal(state.phase, 'combat');
   state.tick(.1, player.hp);
   assert.equal(state.phase, 'shop');
   assert.equal(state.buy('speed', player), true);
-  assert.equal(state.points, 3);
+  assert.equal(state.points, 5);
   assert.equal(player.speed, ROGUE_PLAYER_BASE.speed * 1.03);
 });
 
@@ -173,7 +173,7 @@ test('a full thirty-round run has 29 optional ability choices and 29 dice rolls'
     assert.equal(state.round, round);
     if (round > 1) {
       shops++;
-      assert.equal(state.abilityChoices.length, 3);
+      assert.equal(state.abilityChoices.length, 4);
       state.abilityChoices = ['hull']; assert.equal(state.chooseAbility('hull', player), true);
       assert.equal(state.buy('speed', player), true);
       assert.ok(state.rollDice(() => 5.5 / 7)); dice++;

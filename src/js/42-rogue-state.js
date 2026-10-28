@@ -1,20 +1,20 @@
 import { ABILITIES, calculateRogueStats, rollAbilityChoices, canOfferAbility } from './41-rogue-abilities.js';
-import { getRogueEnemyScaling } from './40-rogue-balance.js';
+import { getRogueEnemyScaling, ARMOR_PER_UPGRADE } from './40-rogue-balance.js';
 import { ENEMY_DICE_FACES, createEnemyDiceBonuses, rollEnemyDice } from './21-rogue-dice.js';
 import { getAmmoPerPoint } from './20-rogue-ammo.js';
 import { healRoguePlayer } from './22-rogue-stats.js';
 import { EXTRACTION_ROUND } from './23-progression.js';
 
 // Survival rules are independent of DOM and the existing team scenarios.
-export const ROUND_SECONDS = 40;
+export const ROUND_SECONDS = 30;
 export const ROUND_COUNT = 30;
-export const KILL_POINTS = 4;
+export const KILL_POINTS = 5;
 export const UPGRADES = Object.freeze({
   heal: { name: 'Repair', description: 'Restore all HP' },
   speed: { name: 'Speed', description: '+3% of base speed' },
   damage: { name: 'Damage', description: '+3% of base damage' },
   attackSpeed: { name: 'Fire Rate', description: '+3% of base fire rate' },
-  armor: { name: 'Armor', description: '−2 damage per hit; minimum 1' },
+  armor: { name: 'Armor', description: `−${ARMOR_PER_UPGRADE} damage per hit; minimum 1` },
 });
 
 // Standard / Scatter / Heavy percentages. Each row sums to 100.

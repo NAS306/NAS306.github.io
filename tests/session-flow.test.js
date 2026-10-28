@@ -57,6 +57,7 @@ test('all modes return to a ready selector without reloading assets or leaving m
     window: windowMock, document: documentMock, console, isMobileDevice: false,
     Game: Session, RogueGame: Session, InputManager: class {}, gameResources: resources,
     setModeSelectionHandler, returnToModeSelection, resolveScenario: (_, id) => ({ id }),
+    installLanguageUI() {}, t: key => key === 'menu.ready' ? 'Choose your front.' : 'Preparing the battlefield…',
     installRogueGuide() {}, isRogueGuideOpen: () => false,
     installProgressionUI: () => () => {}, getProgression: () => ({ isUnlocked: () => false }),
     loadLevelCatalog: async () => { catalogLoads++; return {}; },

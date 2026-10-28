@@ -7,6 +7,8 @@ import { getNextPlayerWeaponId } from './10-weapon-config.js';
 import { RogueGame } from './81-rogue-game.js';
 import { createRewardSession, getProgression, victoryRewardText } from './23-progression.js';
 import { installProgressionUI } from './82-progression-ui.js';
+import { installLanguageUI } from './83-language-ui.js';
+import { t } from './24-i18n.js';
 import { installRogueGuide, isRogueGuideOpen } from './77-rogue-guide.js';
 import { returnToModeSelection, setModeSelectionHandler } from './12-game-flow.js';
 import {
@@ -970,6 +972,7 @@ async function preloadSprites() {
 }
 window.addEventListener("DOMContentLoaded", async () => {
   installRogueGuide();
+  installLanguageUI();
   document.body.classList.toggle("mobile-mode", isMobileDevice);
   const canvas = document.getElementById("gameCanvas");
   let game,
@@ -1008,7 +1011,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       loadingStatusEl.textContent = `${Math.min(100, Math.max(0, Math.round(progress)))}%`;
     }
     if (loadingTitleEl) {
-      loadingTitleEl.textContent = ready ? "Choose your front." : "Preparing the battlefield…";
+      loadingTitleEl.textContent = ready ? t('menu.ready') : t('menu.loading');
+      loadingTitleEl.dataset.i18n = ready ? 'menu.ready' : 'menu.loading';
     }
     if (loadingHintEl) {
       loadingHintEl.classList.toggle("hidden", !ready);
@@ -1123,7 +1127,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   gameReady = true;
   window.addEventListener("keydown", (e) => {
     if (gameStarted || !gameReady || isRogueGuideOpen()) return;
-    if (e.target.closest?.("input, dialog")) return;
+    if (e.target.closest?.('input, select, textarea, dialog, [contenteditable="true"]')) return;
     if (e.target.closest?.("button") && (e.code === "Enter" || e.code === "Space")) return;
     if (e.code === "Digit1" || e.code === "Space") startGame("frontline");
     if (e.code === "Digit2") startGame("siege");

@@ -13,7 +13,9 @@ import { RogueRunHistory } from './51-rogue-history.js';
 import { RogueHistoryView } from './79-rogue-charts.js';
 import { isRogueGuideOpen } from './77-rogue-guide.js';
 
-import { ABILITIES } from './41-rogue-abilities.js';
+import { ABILITIES, ABILITY_CHOICE_COUNT } from './41-rogue-abilities.js';
+import { t, getI18n, applyTranslations } from './24-i18n.js';
+import { ARMOR_PER_UPGRADE } from './40-rogue-balance.js';
 import { createRewardSession, victoryRewardText } from './23-progression.js';
 
 const displayPoints = value => value === Infinity ? '∞' : String(value);
@@ -66,20 +68,20 @@ export class RogueGame {
         <article class="rogue-panel" role="dialog" aria-modal="true" aria-labelledby="rogue-title" tabindex="-1">
           <div class="rogue-panel-content">
           <div class="rogue-panel-heading">
-            <button type="button" class="rogue-panel-guide-button" data-rogue-guide aria-haspopup="dialog">ⓘ Mode guide</button>
+            <button type="button" class="rogue-panel-guide-button" data-i18n="menu.guide" data-rogue-guide aria-haspopup="dialog">ⓘ Mode guide</button>
             <span class="rogue-eyebrow">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
             <h1 id="rogue-title"></h1><p id="rogue-summary"></p>
           </div>
           <div id="rogue-layout" class="rogue-layout">
             <section class="rogue-stats-panel" aria-labelledby="rogue-stats-title">
-              <h2 id="rogue-stats-title">Stats</h2>
+              <h2 id="rogue-stats-title" data-i18n="rogue.stats">Stats</h2>
               <div id="rogue-panel-hp" class="rogue-health">${HEALTH_DISPLAY_MARKUP}</div>
               <dl id="rogue-stats" class="rogue-stats"></dl>
               <p class="rogue-stat-note" id="rogue-economy-note"></p>
-              <h3>Acquired abilities</h3><div class="rogue-owned" aria-label="No acquired abilities"></div>
+              <h3 data-i18n="rogue.owned">Acquired abilities</h3><div class="rogue-owned" aria-label="No acquired abilities"></div>
             </section>
             <section id="rogue-run-summary" class="rogue-run-summary" aria-labelledby="rogue-run-summary-title" hidden>
-              <div class="rogue-result-heading"><h2 id="rogue-run-summary-title">Run Results</h2><span>Totals &amp; round trends</span></div>
+              <div class="rogue-result-heading"><h2 id="rogue-run-summary-title" data-i18n="rogue.results">Run Results</h2><span>Totals &amp; round trends</span></div>
               <dl id="rogue-run-stats" aria-label="Combat totals"></dl>
               <div id="rogue-result-rounds" class="rogue-round-charts">
                 <div class="rogue-chart-legend" role="group" aria-label="Toggle chart lines"></div>
@@ -92,14 +94,14 @@ export class RogueGame {
               <div id="rogue-recalibration" class="rogue-recalibration" role="group" aria-label="Choose an ability to reduce" hidden><h2>Recalibration</h2><p>Lose one level. Both its benefit and penalty are removed.</p><div class="rogue-removal-targets"></div><button id="rogue-cancel-removal" type="button">Back to choices</button></div>
             </section>
             <section id="rogue-shop" aria-labelledby="rogue-shop-title">
-              <h2 id="rogue-shop-title">Upgrades <small>Each item: 5 → 7 → 9… points</small></h2><div id="rogue-upgrades"></div>
+              <h2 id="rogue-shop-title"><span data-i18n="rogue.upgradeHeading">Upgrades</span> <small>Each item: 5 → 7 → 9… points</small></h2><div id="rogue-upgrades"></div>
             </section>
             <button id="rogue-next" type="button"><span class="rogue-next-icon" aria-hidden="true">→</span><span id="rogue-next-label"></span></button>
           </div>
           <div class="rogue-panel-tools">
             <div id="rogue-ammo-shop"><span>Ammo <strong id="rogue-ammo-stock"></strong></span><label>Points <input id="rogue-ammo-spend" type="number" min="1" step="1" value="1" inputmode="numeric"></label><button id="rogue-buy-ammo" type="button">Buy ammo</button><small id="rogue-ammo-rate"></small></div>
-            <button id="rogue-extract" type="button" hidden>Extract &amp; Win</button>
-            <button id="rogue-menu" type="button">Mode Select</button>
+            <button id="rogue-extract" data-i18n="rogue.extract" type="button" hidden>Extract &amp; Win</button>
+            <button id="rogue-menu" data-i18n="menu.select" type="button">Mode Select</button>
           </div>
           </div>
         </article>
@@ -151,7 +153,7 @@ export class RogueGame {
       if (['deathNova', 'payload', 'blast'].includes(key)) row.hidden = true;
     }
     this.abilityCards = [];
-    for (let index = 0; index < (superMode ? Object.keys(ABILITIES).length : 3); index++) {
+    for (let index = 0; index < (superMode ? Object.keys(ABILITIES).length : ABILITY_CHOICE_COUNT); index++) {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'rogue-ability';
@@ -222,6 +224,11 @@ export class RogueGame {
     document.addEventListener('visibilitychange', () => {
       this.input.reset(); this.accumulator = 0; this.lastTime = performance.now();
     }, eventOptions);
+    applyTranslations(this.root);
+    this.unsubscribeLanguage = getI18n().subscribe(() => {
+      applyTranslations(this.root);
+      if (this.state.phase !== 'combat') this.renderPanel({ focus: false });
+    });
     this.resetRun();
     this.loop = this.loop.bind(this);
     this.animationFrameId = requestAnimationFrame(this.loop);
@@ -231,6 +238,7 @@ export class RogueGame {
     this.disposed = true;
     cancelAnimationFrame(this.animationFrameId);
     this.events.abort();
+    this.unsubscribeLanguage?.();
     this.input.reset();
     this.input.dispose();
     this.root.remove();
@@ -269,12 +277,12 @@ export class RogueGame {
     if (state.phase === 'shop') supplyRoundAmmo(player, state.round);
     const weapon = getRoguePlayerWeapon(player);
     this.el('shade').hidden = false;
-    this.el('title').textContent = state.phase === 'won' ? state.extracted ? `Extracted after Round ${state.round - 1}!` : `All ${ROUND_COUNT} Rounds Survived!` : state.phase === 'lost' ? 'Run Over' : 'Roguelite Upgrades';
+    this.el('title').textContent = state.phase === 'won' ? state.extracted ? t('rogue.extracted', { round: state.round - 1 }) : t('rogue.won', { rounds: ROUND_COUNT }) : state.phase === 'lost' ? t('rogue.lost') : t('rogue.upgrades');
     this.el('summary').textContent = ended
       ? `${state.kills} kills · ${displayPoints(state.points)} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}`
-      : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Pick one free ability or continue without choosing · Common 60% / Rare 30% / Legendary 10%`;
+      : t('rogue.preparation', { round: state.round, rounds: ROUND_COUNT, seconds: ROUND_SECONDS, choices: ABILITY_CHOICE_COUNT });
     if (ended) this.el('summary').textContent += ` | ${victoryRewardText(this.reward, this.isSuperMode)}`;
-    else if (this.isSuperMode) this.el('summary').textContent = `SUPER MODE · Unlimited run points · All abilities, repeat freely · No victory points`;
+    else if (this.isSuperMode) this.el('summary').textContent = t('rogue.super');
     this.el('extract').hidden = !state.canExtract;
     this.el('abilities').setAttribute('aria-label', this.isSuperMode ? 'All abilities: select repeatedly or continue' : 'Optional free ability: choose one or continue without choosing');
     const stats = {
@@ -297,10 +305,12 @@ export class RogueGame {
     this.renderAbilities(ended);
     for (const button of this.el('upgrades').querySelectorAll('button')) {
       const key = button.dataset.upgrade;
+      button.querySelector('strong').textContent = t(`upgrade.${key}.name`, {}, UPGRADES[key].name);
+      button.querySelector('small').textContent = t(`upgrade.${key}.description`, { amount: ARMOR_PER_UPGRADE }, UPGRADES[key].description);
       button.disabled = ended || state.diceRolled || state.points < state.cost(key) || (key === 'heal' && player.hp >= player.maxHP);
       button.querySelector('.rogue-price').textContent = `${state.cost(key)} pts · Lv.${state.levels[key]}`;
     }
-    const nextLabel = ended ? 'Mode Select' : `Start Round ${state.round}`;
+    const nextLabel = ended ? t('menu.select') : t('rogue.startRound', { round: state.round });
     this.el('next-label').textContent = nextLabel;
     this.el('next').disabled = false;
     this.el('next').setAttribute('aria-label', nextLabel);
@@ -328,12 +338,12 @@ export class RogueGame {
     const points = Number(this.el('ammo-spend').value);
     const valid = Number.isSafeInteger(points) && points > 0;
     const rate = getAmmoPerPoint(state.round);
-    this.el('ammo-rate').textContent = `Round ${state.round}: 1 pt = ${rate} ammo`;
+    this.el('ammo-rate').textContent = t('rogue.ammoRate', { round: state.round, ammo: rate });
     this.el('ammo-shop').hidden = ended;
     this.el('ammo-stock').textContent = `${world.player.ammo}`;
     this.el('ammo-spend').disabled = ended || state.diceRolled;
     this.el('buy-ammo').disabled = ended || state.diceRolled || !valid || points > state.points;
-    this.el('buy-ammo').textContent = valid ? `Buy ${points * rate} ammo (${points} pt)` : 'Enter points';
+    this.el('buy-ammo').textContent = valid ? t('rogue.buyAmmo', { ammo: points * rate, points }) : t('rogue.enterPoints');
   }
   requestRoundStart() {
     if (this.disposed || this.roundTransition || this.diceReveal || this.state.phase !== 'shop') return false;

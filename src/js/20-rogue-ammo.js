@@ -1,5 +1,5 @@
 export const STARTING_AMMO = 300;
-export const ROUND_AMMO_SUPPLY = 300;
+export const ROUND_AMMO_SUPPLY = 200;
 export const EXPLOSIVE_AMMO_COST = 10;
 
 export function getAmmoPerPoint(round) {
