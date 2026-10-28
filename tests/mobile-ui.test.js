@@ -55,7 +55,7 @@ test("canvas resize tolerates an initializing game and clamps vertical camera", 
 });
 
 test("scenario buttons use standard click activation without stealing keyboard input", () => {
-  assert.match(gameSource, /focusedScenarioButton/);
+  assert.ok(gameSource.includes('if (e.target.closest?.("button") && (e.code === "Enter" || e.code === "Space")) return;'));
   assert.match(gameSource, /button\.addEventListener\("click"/);
   assert.match(
     gameSource,

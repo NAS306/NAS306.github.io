@@ -75,8 +75,8 @@ export function modeArtwork(id) {
   </svg>`;
 }
 export function renderModeCards() {
-  return MODE_CARDS.map((card, index) => `${card.id === 'roguelite' ? '<div class="mode-card-with-guide"><button type="button" class="mode-guide-button" data-rogue-guide aria-haspopup="dialog" aria-label="Read Roguelite mode guide">ⓘ Mode guide</button>' : ''}<button class="scenario-button" data-scenario="${card.id}" style="--mode-accent:${card.accent}" aria-label="${index+1}. ${card.title}. ${card.description}">
+  return MODE_CARDS.map((card, index) => `<div class="mode-card-with-guide">${card.id === 'roguelite' ? '<button type="button" class="mode-guide-button" data-rogue-guide aria-haspopup="dialog" aria-label="Read Roguelite mode guide">ⓘ Mode guide</button>' : ''}<button class="scenario-button" data-scenario="${card.id}" style="--mode-accent:${card.accent}" aria-label="${index+1}. ${card.title}. ${card.description}">
     <span class="mode-art">${modeArtwork(card.id)}<span class="mode-number">0${index+1}</span><span class="mode-deploy" aria-hidden="true">↗</span></span>
     <span class="mode-copy"><span class="mode-tag">${card.tag}</span><span class="mode-name">${card.title}</span><span class="mode-description">${card.description}</span><span class="mode-launch">DEPLOY <span aria-hidden="true">→</span></span></span>
-  </button>${card.id === 'roguelite' ? '</div>' : ''}`).join('\n');
+  </button><button type="button" class="super-mode-button" data-super-mode="${card.id}">Unlock Super</button></div>`).join('\n');
 }

@@ -135,3 +135,14 @@
 모드 복귀 시 페이지를 새로 불러오지 않습니다. 앱이 등록한 복귀 콜백에서 경기의 `dispose()`를 호출하고 입력·포인터·키보드·화면 크기 이벤트와 프레임 루프, 롱프레스 및 음악 타이머를 정리합니다. 스프라이트 캐시·오디오 풀·레벨 목록은 재사용하고 준비된 모드 선택 화면을 즉시 표시합니다. 새 경기의 체력·강화·라운드 상태는 새 게임 인스턴스에서 초기화하며, 폐기된 게임의 비동기 초기화/프레임 콜백은 재시작되지 않게 막습니다.
 
 모드 선택 화면은 5개의 이미지 카드로 구성합니다. 일반포·스캐터·대포는 실제 게임의 원·삼각형·사각형과 동일한 팀 색상·흰 테두리·체력바로 표시하고 삼각형은 실제 렌더러의 기하 함수를 재사용합니다. BASE·Stronghold도 인게임의 사각형·색상·라벨을 사용합니다. 카드 아래에 모드 이름과 설명을 두고 1~5 단축키·키보드 선택을 유지합니다. 작은 화면은 2열과 세로 스크롤을 사용하며 모션 감소 설정에서는 장식 애니메이션을 멈춥니다. 빈 배경 클릭은 전투를 시작하지 않습니다.
+
+
+## Victory points and permanent Super Modes
+
+- `src/js/23-progression.js`: shared victory wallet, versioned browser save (`tank-battle.progression.v1`), validated save reads, bounded settlement receipts, unlock rules and shared English progression guide. Combat item points and Roguelite run points remain separate from the wallet.
+- `src/js/82-progression-ui.js`: wallet status, save retry, per-mode permanent unlock and Super launch buttons; registered after the mode cards in `build.js`.
+- Normal team victories award 20 points per personal kill. Normal Roguelite victories bank remaining run points only. Extraction is available after clearing Round 15 (Round 16 preparation onward), before rolling enemy dice. Death or leaving grants no reward.
+- Each of five modes costs 100,000 shared points to unlock; unlock and launch are separate actions. Enter no longer launches Super Mode. All Super matches pay zero victory points.
+- Roguelite Super has infinite run points and all 30 ability cards in a scrollable preparation grid. Repeated picks are unrestricted by normal level limits, rarity, explosion prerequisites, or one-pick rule. Recalibration needs a target; stacked Pulse Shield remains one timed shield. Dice still locks preparation.
+- Saves are specific to this browser and site origin. Damaged or newer saves are protected from automatic overwrite. Failed reward saves remain in memory for retry; failed unlock saves do not spend points. Clearing browser/site data removes progression.
+- `tests/victory-wallet.test.js` covers victory-only awards, no Super awards, idempotent settlement, all five unlocks, reloads, damaged/unavailable storage, extraction boundaries, repeat abilities and unchanged normal limitations. Build with `node build.js`; verify with `npm run check` and `npm run test:browser`.

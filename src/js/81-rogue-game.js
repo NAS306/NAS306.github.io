@@ -13,6 +13,10 @@ import { RogueRunHistory } from './51-rogue-history.js';
 import { RogueHistoryView } from './79-rogue-charts.js';
 import { isRogueGuideOpen } from './77-rogue-guide.js';
 
+import { ABILITIES } from './41-rogue-abilities.js';
+import { createRewardSession, victoryRewardText } from './23-progression.js';
+
+const displayPoints = value => value === Infinity ? '∞' : String(value);
 const HEALTH_DISPLAY_MARKUP = '<div class="rogue-health-label"><span>HP</span><strong class="rogue-health-value"></strong></div><progress max="125" value="125" aria-label="Player health"></progress>';
 
 export function updateRogueHealthDisplay(display, hp, maxHP) {
@@ -33,7 +37,8 @@ export function getRoguePanelLayout(width, height) {
 }
 
 export class RogueGame {
-  constructor(canvas, resources, InputManager) {
+  constructor(canvas, resources, InputManager, superMode = false) {
+    this.isSuperMode = superMode;
     this.canvas = canvas;
     this.disposed = false;
     this.events = new AbortController();
@@ -93,6 +98,7 @@ export class RogueGame {
           </div>
           <div class="rogue-panel-tools">
             <div id="rogue-ammo-shop"><span>Ammo <strong id="rogue-ammo-stock"></strong></span><label>Points <input id="rogue-ammo-spend" type="number" min="1" step="1" value="1" inputmode="numeric"></label><button id="rogue-buy-ammo" type="button">Buy ammo</button><small id="rogue-ammo-rate"></small></div>
+            <button id="rogue-extract" type="button" hidden>Extract &amp; Win</button>
             <button id="rogue-menu" type="button">Mode Select</button>
           </div>
           </div>
@@ -145,7 +151,7 @@ export class RogueGame {
       if (['deathNova', 'payload', 'blast'].includes(key)) row.hidden = true;
     }
     this.abilityCards = [];
-    for (let index = 0; index < 3; index++) {
+    for (let index = 0; index < (superMode ? Object.keys(ABILITIES).length : 3); index++) {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'rogue-ability';
@@ -184,6 +190,11 @@ export class RogueGame {
     this.el('buy-ammo').addEventListener('click', () => {
       if (this.roundTransition || this.diceReveal) return;
       if (this.state.buyAmmo(this.world.player, Number(this.el('ammo-spend').value))) this.renderPanel();
+    });
+    this.el('extract').addEventListener('click', () => {
+      if (this.roundTransition || this.diceReveal || !this.state.extract(this.world.player.hp)) return;
+      this.reward = this.rewardSession.settle({ won: true, runPoints: this.state.points });
+      this.bgm?.pause(); this.input.reset(); this.world.clearRound(); this.renderPanel();
     });
     this.el('menu').addEventListener('click', returnToModeSelection);
     window.addEventListener('keydown', e => {
@@ -229,7 +240,10 @@ export class RogueGame {
   resetRun() {
     this.resources.bulletPool.reset();
     this.resources.explosionPool.reset();
-    this.state = new RogueState();
+    this.state = new RogueState(this.isSuperMode);
+    this.rewardSession = createRewardSession('roguelite', this.isSuperMode);
+    this.reward = 0;
+    this.root.classList.toggle('rogue-super-mode', this.isSuperMode);
     this.history = new RogueRunHistory();
     this.historyView.reset(this.history);
     this.world = new RogueWorld(this.canvas, this.resources);
@@ -255,12 +269,16 @@ export class RogueGame {
     if (state.phase === 'shop') supplyRoundAmmo(player, state.round);
     const weapon = getRoguePlayerWeapon(player);
     this.el('shade').hidden = false;
-    this.el('title').textContent = state.phase === 'won' ? `All ${ROUND_COUNT} Rounds Survived!` : state.phase === 'lost' ? 'Run Over' : 'Roguelite Upgrades';
+    this.el('title').textContent = state.phase === 'won' ? state.extracted ? `Extracted after Round ${state.round - 1}!` : `All ${ROUND_COUNT} Rounds Survived!` : state.phase === 'lost' ? 'Run Over' : 'Roguelite Upgrades';
     this.el('summary').textContent = ended
-      ? `${state.kills} kills · ${state.points} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}`
+      ? `${state.kills} kills · ${displayPoints(state.points)} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}`
       : `Round ${state.round} / ${ROUND_COUNT} · Survive ${ROUND_SECONDS}s · Pick one free ability or continue without choosing · Common 60% / Rare 30% / Legendary 10%`;
+    if (ended) this.el('summary').textContent += ` | ${victoryRewardText(this.reward, this.isSuperMode)}`;
+    else if (this.isSuperMode) this.el('summary').textContent = `SUPER MODE · Unlimited run points · All abilities, repeat freely · No victory points`;
+    this.el('extract').hidden = !state.canExtract;
+    this.el('abilities').setAttribute('aria-label', this.isSuperMode ? 'All abilities: select repeatedly or continue' : 'Optional free ability: choose one or continue without choosing');
     const stats = {
-      points: `${state.points}`,
+      points: displayPoints(state.points),
       speed: `${Math.round(player.speed)}`,
       damage: `${Number(weapon.damage.toFixed(1))}`,
       attackSpeed: `${Number((1 / weapon.reloadTime).toFixed(1))}`,
@@ -378,7 +396,10 @@ export class RogueGame {
     this.canvas.focus();
   }
   beginRoundTransition() {
-    if (this.state.phase === 'won' || this.state.phase === 'lost') this.bgm?.pause();
+    if (this.state.phase === 'won' || this.state.phase === 'lost') {
+      this.bgm?.pause();
+      this.reward = this.rewardSession.settle({ won: this.state.phase === 'won', runPoints: this.state.points });
+    }
     const round = this.state.phase === 'shop' ? this.state.round - 1 : this.state.round;
     this.history.record(round, this.state.phase === 'lost' ? 'lost' : 'cleared', this.state, this.world.player);
     this.roundTransition = new RogueRoundTransition(this.state.phase, round);
@@ -434,7 +455,7 @@ export class RogueGame {
     this.el('round').textContent = `ROUND ${this.roundTransition?.round ?? this.state.round} / ${ROUND_COUNT}`;
     for (const display of this.healthDisplays) updateRogueHealthDisplay(display, p.hp, p.maxHP);
     this.el('time').textContent = `${this.state.remaining.toFixed(1)}s`;
-    this.el('points').textContent = `${this.state.points} points · ${this.state.kills} kills`;
+    this.el('points').textContent = `${displayPoints(this.state.points)} points · ${this.state.kills} kills`;
     this.el('weapon').textContent = `${p.weapon.title} · Damage ${this.damageText()} · Reload ${(p.reloadTime / p.attackSpeedMultiplier).toFixed(2)}s`;
     const countdown = getRogueCountdown(this.state.remaining, this.state.phase === 'combat');
     this.root.classList.toggle('rogue-countdown-active', countdown.active);

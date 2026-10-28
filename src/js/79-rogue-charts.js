@@ -11,7 +11,8 @@ export function formatRoundPreparation(row) {
   const upgrades = prep.upgrades.map(item => `${UPGRADES[item.key].name} +${item.count} (Lv.${item.level})`).join(', ') || 'none';
   const ability = prep.ability ? `${ABILITIES[prep.ability].name}${prep.abilityLevel ? ` (Lv.${prep.abilityLevel})` : ''}` : row.round === 1 ? 'none (starting round)' : 'skipped';
   const removed = prep.removedAbility ? `\nReduced: ${ABILITIES[prep.removedAbility].name} Lv.${prep.removedAbilityLevel + 1} → ${prep.removedAbilityLevel ? `Lv.${prep.removedAbilityLevel}` : 'removed'}` : '';
-  return `Upgrades: ${upgrades}\nAbility: ${ability}${removed}`;
+  const selections = prep.superPicks ? Object.entries(prep.superPicks).map(([id, count]) => `${ABILITIES[id].name} +${count}`).join(', ') || 'skipped' : ability;
+  return `Upgrades: ${upgrades}\nAbility: ${selections}${removed}`;
 }
 
 export class RogueHistoryView {

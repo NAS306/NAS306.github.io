@@ -14,8 +14,16 @@
 .selector-section-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: #8e9c9f; font-size: 10px; font-weight: 700; letter-spacing: .17em; }
 .selector-section-label span:last-child { color: #c2cdba; }
 #scenario-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 0; }
-.mode-card-with-guide { position: relative; min-width: 0; }
-.mode-card-with-guide > .scenario-button { height: 100%; }
+.mode-card-with-guide { position: relative; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.mode-card-with-guide > .scenario-button { flex: 1; }
+.super-mode-button, .progression-wallet button { padding: 10px 8px; border: 1px solid #8f7e4e; border-radius: 5px; background: #282414; color: #ffe6a0; font: 12px system-ui, sans-serif; cursor: pointer; }
+.super-mode-button:disabled { opacity: .6; cursor: default; }
+.super-mode-button:focus-visible, .progression-wallet button:focus-visible { outline: 2px solid #ffe6a0; outline-offset: 2px; }
+.progression-wallet { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 16px; padding: 12px; border: 1px solid #46514a; border-radius: 5px; }
+.progression-wallet > div { flex: 1; min-width: 180px; }
+.progression-wallet strong { color: #e4d9a8; font-size: 14px; }
+.progression-wallet small { display: block; margin-top: 3px; color: #a5b2b7; font-size: 11px; }
+.progression-wallet [hidden] { display: none; }
 .mode-guide-button { position: absolute; top: 9px; right: 9px; z-index: 2; padding: 6px 8px; color: #e0ccff; background: #151b2ef2; border: 1px solid #997cbb; border-radius: 4px; font: 12px system-ui, sans-serif; cursor: pointer; }
 .mode-guide-button:hover { background: #373052; }
 .mode-guide-button:focus-visible { outline: 2px solid #d4b1ff; outline-offset: 2px; }

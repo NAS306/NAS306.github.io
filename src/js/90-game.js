@@ -5,6 +5,8 @@ import { clampFrameDelta } from './01-runtime.js';
 import { detectMobileDevice, getLayoutDragThreshold } from './02-mobile-support.js';
 import { getNextPlayerWeaponId } from './10-weapon-config.js';
 import { RogueGame } from './81-rogue-game.js';
+import { createRewardSession, getProgression, victoryRewardText } from './23-progression.js';
+import { installProgressionUI } from './82-progression-ui.js';
 import { installRogueGuide, isRogueGuideOpen } from './77-rogue-guide.js';
 import { returnToModeSelection, setModeSelectionHandler } from './12-game-flow.js';
 import {
@@ -524,6 +526,8 @@ export class GameStateManager {
     for (const audioPool of Object.values(game.resources.audio)) {
       for (const audio of audioPool.pool) audio.volume = 0;
     }
+    const reward = game.rewardSession.settle({ won: game.world.winner === game.world.level.playerTeam, kills: game.world.killcount.player });
+    game.rewardMessage = victoryRewardText(reward, game.isSuperMode);
     game.endingExplosions = {
       nextIdx: 0,
       explosions: [],
@@ -607,6 +611,7 @@ export class Game {
     this.stateManager = new GameStateManager(this);
     this.eventManager = new EventManager(this);
     this.endingExplosions = null;
+    this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode);
     const playerSpawn = this.getPlayerSpawn();
     this.playerRespawnTimer = 0;
     if (!this.isSpectatorMode) {
@@ -811,7 +816,7 @@ export class Game {
       ctx.fillText(msg, centerX, centerY - 100);
       ctx.fillStyle = "#7fd6ff";
       ctx.font = "bold 30px sans-serif";
-      ctx.fillText("Battle complete", centerX, centerY, this.canvas.width - 40);
+      ctx.fillText(this.rewardMessage || "Battle complete", centerX, centerY, this.canvas.width - 40);
       ctx.restore();
       this.animationFrameId = requestAnimationFrame(this.boundLoop);
       return;
@@ -971,7 +976,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     gameStarted = false;
   let gameReady = false;
   let levelCatalog = null;
-  let heldScenario = null;
   let bgmFadeIn = null;
   const ctx = canvas.getContext("2d");
   function resizeCanvas() {
@@ -1013,11 +1017,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   function startGame(scenarioId = "frontline", useSuper = false) {
     if (gameStarted || !gameReady || isRogueGuideOpen()) return;
+    if (useSuper && !getProgression().isUnlocked(scenarioId)) return;
     gameStarted = true;
     const bottomHudEl = document.getElementById("bottom-hud");
     if (bottomHudEl) bottomHudEl.style.display = "grid";
     if (scenarioId === "roguelite") {
-      game = new RogueGame(canvas, gameResources, InputManager);
+      game = new RogueGame(canvas, gameResources, InputManager, useSuper);
       loadingScreenEl?.classList.add("hidden");
       const bgm = document.getElementById("bgm");
       if (bgm) { bgm.volume = 0.5; bgm.play().catch(() => {}); }
@@ -1064,11 +1069,13 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  const refreshProgression = installProgressionUI(id => startGame(id, true));
+
   setModeSelectionHandler(() => {
+    refreshProgression();
     game?.dispose();
     game = null;
     gameStarted = false;
-    heldScenario = null;
     clearInterval(bgmFadeIn);
     bgmFadeIn = null;
     gameResources.bulletPool.reset();
@@ -1116,33 +1123,28 @@ window.addEventListener("DOMContentLoaded", async () => {
   gameReady = true;
   window.addEventListener("keydown", (e) => {
     if (gameStarted || !gameReady || isRogueGuideOpen()) return;
-    const focusedScenarioButton = e.target.closest?.("[data-scenario]");
-    const isHeldScenarioShortcut = e.code === "Enter" && heldScenario !== null;
-    if (focusedScenarioButton && !isHeldScenarioShortcut && (e.code === "Enter" || e.code === "Space")) return;
+    if (e.target.closest?.("input, dialog")) return;
+    if (e.target.closest?.("button") && (e.code === "Enter" || e.code === "Space")) return;
     if (e.code === "Digit1" || e.code === "Space") startGame("frontline");
     if (e.code === "Digit2") startGame("siege");
     if (e.code === "Digit3") startGame("defense");
     if (e.code === "Digit4") startGame("breakthrough");
     if (e.code === "Digit5") startGame("roguelite");
-    if (e.code === "Enter") startGame(heldScenario ?? "frontline", true);
   });
 
   for (const button of document.querySelectorAll("[data-scenario]")) {
     button.addEventListener("pointerdown", (e) => {
       if (gameStarted || !gameReady) return;
       e.stopPropagation();
-      heldScenario = button.dataset.scenario;
       button.classList.add("held");
       button.setPointerCapture?.(e.pointerId);
     });
     button.addEventListener("pointerup", (e) => {
       e.stopPropagation();
       button.classList.remove("held");
-      heldScenario = null;
     });
     button.addEventListener("pointercancel", () => {
       button.classList.remove("held");
-      heldScenario = null;
     });
     button.addEventListener("click", (e) => {
       e.stopPropagation();

@@ -1,4 +1,4 @@
-import { ABILITIES, RARITIES, abilityRarity, abilityIcon, previewAbility, canOfferAbility } from './41-rogue-abilities.js';
+import { ABILITIES, RARITIES, abilityRarity, abilityIcon, previewAbility } from './41-rogue-abilities.js';
 
 export function renderRogueAbilityChoices(game, ended) {
   const { state } = game;
@@ -7,18 +7,18 @@ export function renderRogueAbilityChoices(game, ended) {
     const id = state.abilityChoices[index], ability = ABILITIES[id];
     card.hidden = ended || !ability;
     if (card.hidden) continue;
-    const selected = state.selectedAbility === id;
+    const selected = !state.isSuperMode && state.selectedAbility === id;
     const level = state.abilities.filter(item => item === id).length;
     const rarity = abilityRarity(id);
     card.dataset.ability = id; card.dataset.rarity = rarity;
-    card.disabled = state.diceRolled || state.selectedAbility !== null || !canOfferAbility(id, before);
+    card.disabled = state.diceRolled || state.pendingRemoval || !state.canChooseAbility(id);
     card.classList.toggle('selected', selected);
     card.setAttribute('aria-pressed', String(selected));
     card.querySelector('.rogue-ability-icon').innerHTML = abilityIcon(id);
     card.querySelector('h2').textContent = ability.name;
-    card.querySelector('p').textContent = ability.description;
+    card.querySelector('p').textContent = state.isSuperMode ? ability.description.replace(/ Maximum level \d+\./g, '').replace('Your points are capped at 5,000.', 'Run points remain unlimited in Super Mode.') : ability.description;
     card.querySelector('.rogue-ability-status').textContent = `${RARITIES[rarity].name} · ${selected ? 'Selected' : level ? `Lv.${level} → ${level + 1}` : 'Free ability'}`;
-    const changes = ability.action ? [] : previewAbility(state.levels, before, id);
+    const changes = ability.action ? [] : previewAbility(state.levels, before, id).filter(change => !state.isSuperMode || !['points', 'pointsCap', 'roundIncome'].includes(change.key));
     card.title = changes.map(change => `${change.label}: ${change.before} → ${change.after}`).join('\n');
     const list = card.querySelector('.rogue-ability-changes');
     list.replaceChildren();

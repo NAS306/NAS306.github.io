@@ -5,6 +5,8 @@ import { ROGUE_PLAYER_BASE, ROGUE_EXPLOSION_RULES, getRoguePlayerWeapon } from '
 import { ABILITIES, RARITIES, abilityRarity } from './41-rogue-abilities.js';
 import { ROUND_COUNT, ROUND_SECONDS, KILL_POINTS, UPGRADES, getRoundConfig } from './42-rogue-state.js';
 
+import { renderProgressionGuide } from './23-progression.js';
+
 const escapeHTML = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 // One English manual for the selector and preparation screen. Balance values and
@@ -13,8 +15,8 @@ export function renderRogueGuide() {
   const weapon = getRoguePlayerWeapon({}), first = getRoundConfig(1), last = getRoundConfig(ROUND_COUNT);
   const tiers = Object.keys(RARITIES);
   const abilities = Object.entries(ABILITIES).sort(([a], [b]) => tiers.indexOf(abilityRarity(a)) - tiers.indexOf(abilityRarity(b)));
-  return `<section><h3>Survive, upgrade, and balance the risk</h3>
-    <p>Control one tank through ${ROUND_COUNT} rounds of ${ROUND_SECONDS} seconds. Survive the final round for VICTORY; destruction immediately ends the run with LOST. Music stops for either result. There are no allies, bases, or respawns, and no passive point income by default.</p>
+  return `${renderProgressionGuide()}<section><h3>Survive, upgrade, and balance the risk</h3>
+    <p>Control one tank through ${ROUND_COUNT} rounds of ${ROUND_SECONDS} seconds. Extract after completing Round 15 or survive the final round for VICTORY; destruction immediately ends the run with LOST. Music stops for either result. There are no allies, bases, or respawns, and no passive point income by default.</p>
     <p>Start with ${ROGUE_PLAYER_BASE.maxHP} HP, ${ROGUE_PLAYER_BASE.speed} move speed, and ${STARTING_AMMO} ammo. Your Standard Cannon deals ${weapon.damage} base damage, fires ${1 / weapon.reloadTime} times per second, and has ${weapon.projectileSpeed} shell speed and ${weapon.projectileLifetime}s shell life. Weapon switching is disabled.</p>
     <p><strong>Controls:</strong> WASD / arrow keys to move, mouse to aim, left click to fire. Direct play requires a keyboard and mouse.</p></section>
     <section><h3>Between rounds</h3><p>Round 1 starts immediately. Before rounds 2–${ROUND_COUNT}, choose one free ability or skip it, buy upgrades or ammo, then start the next round. An enemy die rolls once; acknowledge the card to enter combat. Rolling locks purchases and ability changes. HP, ammo, upgrades, and abilities carry over.</p></section>
@@ -34,7 +36,7 @@ export function renderRogueGuide() {
     <p>The ${ENEMY_DICE_FACES.length} equally likely die results are ${ENEMY_DICE_FACES.map(face => face.name).join(', ')}. Stat results add ${ENEMY_DICE_MIN_BONUS}–${ENEMY_DICE_MAX_BONUS}% of base permanently for the rest of the run. Pass adds nothing; Bomb adds the same rolled bonus to all five enemy stats. Repeated bonuses add rather than multiply.</p></section>
     <section><h3>Shells, explosions, and recovery</h3><p>Ricochet adds one arena-wall bounce per level without extending shell life; a corner uses one bounce. Standard-shell multishot and piercing do not multiply or pierce explosive payloads. Payload blast radius is capped at ${ROGUE_EXPLOSION_RULES.maxPayloadRadius}px, and Death Cascade at ${ROGUE_EXPLOSION_RULES.maxNovaRadius}px. Blast damage falls with distance. Player payloads and death blasts only hurt enemies; chained credited kills each award points and kill healing once. Healing cannot exceed maximum HP or revive a destroyed tank.</p></section>
     <section><h3>Results and round history</h3><p>The results area uses 80% of the layout, with compact current stats on the left. Totals show ${ROGUE_RUN_METRICS.map(metric => metric.label.toLowerCase()).join(', ')}. All six round trends share one graph, each normalized to its own peak of 100%. The totals, table, and tooltips show actual values. Toggle individual lines with the legend.</p>
-    <p>Ammo per kill is ammo spent divided by kills, calculated separately for each round and for the whole run. A zero-kill result displays — and has no efficiency point. Shop repairs count toward the following round. Hover a round row or chart point to see its upgrade purchases, chosen ability, levels, and Recalibration changes. Results stay open until you choose Mode Select; a new run clears all progress and history.</p></section>`;
+    <p>Ammo per kill is ammo spent divided by kills, calculated separately for each round and for the whole run. A zero-kill result displays — and has no efficiency point. Shop repairs count toward the following round. Hover a round row or chart point to see its upgrade purchases, chosen ability, levels, and Recalibration changes. Results stay open until you choose Mode Select; a new run clears run upgrades and history, while the shared wallet and permanent unlocks remain.</p></section>`;
 }
 
 let guideDialog = null;
@@ -50,10 +52,11 @@ export function installRogueGuide() {
   guideDialog.querySelector('button').addEventListener('click', () => guideDialog.close());
   guideDialog.addEventListener('close', () => opener?.isConnected && opener.focus());
   document.addEventListener('click', event => {
-    const trigger = event.target.closest?.('[data-rogue-guide]');
+    const trigger = event.target.closest?.('[data-rogue-guide], [data-progression-guide]');
     if (!trigger || guideDialog.open) return;
     opener = trigger;
-    guideDialog.querySelector('.rogue-guide-content').innerHTML = renderRogueGuide();
+    guideDialog.querySelector('#rogue-guide-title').textContent = trigger.hasAttribute('data-progression-guide') ? 'Progression Guide' : 'Roguelite Mode Guide';
+    guideDialog.querySelector('.rogue-guide-content').innerHTML = trigger.hasAttribute('data-progression-guide') ? renderProgressionGuide() : renderRogueGuide();
     guideDialog.querySelector('.rogue-guide-content').scrollTop = 0;
     guideDialog.showModal();
   });

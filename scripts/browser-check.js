@@ -1,6 +1,6 @@
 import { chromium } from 'playwright-core';
 import assert from 'node:assert/strict';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
@@ -271,6 +271,83 @@ try {
   await runPage.locator('[data-remove-ability="heavyAmmo"]').click();
   assert.equal(await runPage.evaluate(() => window.__qaRogue.state.abilities.includes('heavyAmmo')), false);
   await runPage.close();
+  // Exercise progression using a disposable local HTML origin and private QA hooks.
+  const qaHTML = html.replace(hook, `${hook}\nwindow.__qaRogue = this;`).replace(
+    'this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode);',
+    'this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode); window.__qaTeam = this;',
+  );
+  await writeFile('.qa/progression-qa.html', qaHTML);
+  const walletPage = await context.newPage();
+  walletPage.on('pageerror', error => errors.push(error.message));
+  await walletPage.goto(pathToFileURL(resolve('.qa/progression-qa.html')).href);
+  await walletPage.locator('#loading-screen.is-ready').waitFor();
+  assert.equal(await walletPage.locator('[data-super-mode]:disabled').count(), 5);
+  await walletPage.evaluate(() => document.activeElement.blur()); await walletPage.keyboard.press('Enter');
+  assert.equal(await walletPage.locator('#loading-screen').isVisible(), true);
+  await walletPage.locator('[data-progression-guide]').click();
+  assert.match(await walletPage.locator('.rogue-guide-content').innerText(), /500,000 total/);
+  await walletPage.keyboard.press('Escape');
+  await walletPage.locator('[data-scenario="frontline"]').click();
+  await walletPage.evaluate(() => {
+    const game = window.__qaTeam; game.world.killcount.player = 5000;
+    game.world.finishGame('blue', 'QA victory'); game.stateManager.handleGameOver();
+    game.stateManager.handleGameOver(); // Rendering twice must not double-pay.
+    window.TankGame.returnToModeSelection();
+  });
+  assert.equal(await walletPage.locator('#victory-wallet').innerText(), '100,000');
+  await walletPage.locator('[data-super-mode="roguelite"]').click();
+  assert.equal(await walletPage.locator('#victory-wallet').innerText(), '0');
+  assert.equal(await walletPage.locator('#rogue-ui').count(), 0); // Purchase only.
+  await walletPage.reload(); await walletPage.locator('#loading-screen.is-ready').waitFor();
+  assert.equal(await walletPage.locator('[data-super-mode="roguelite"]').innerText(), 'Play Super');
+  await walletPage.screenshot({path: '.qa/permanent-super-unlock.png'});
+  await walletPage.locator('[data-super-mode="roguelite"]').click();
+  await walletPage.evaluate(() => {
+    const game=window.__qaRogue; cancelAnimationFrame(game.animationFrameId);
+    game.state.tick(40,game.world.player.hp); game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+  });
+  assert.equal(await walletPage.locator('.rogue-ability:visible').count(), 30);
+  for(let i=0;i<4;i++) await walletPage.locator('[data-ability="oversized"]').click();
+  for(let i=0;i<2;i++) await walletPage.locator('[data-ability="shield"]').click();
+  await walletPage.locator('[data-ability="dividends"]').click();
+  assert.equal(await walletPage.evaluate(() => window.__qaRogue.state.points === Infinity), true);
+  await walletPage.locator('[data-upgrade="damage"]').click();
+  await walletPage.screenshot({path: '.qa/roguelite-super-all-abilities.png'});
+  await walletPage.evaluate(() => { const game=window.__qaRogue; game.state.round=16; game.renderPanel(); });
+  await walletPage.locator('#rogue-extract').click();
+  assert.match(await walletPage.locator('#rogue-title').innerText(), /Extracted after Round 15/);
+  assert.equal(await walletPage.evaluate(() => document.getElementById('bgm').paused),true);
+  await walletPage.locator('#rogue-next').click();
+  assert.equal(await walletPage.locator('#victory-wallet').innerText(),'0');
+  await walletPage.locator('[data-scenario="roguelite"]').click();
+  await walletPage.evaluate(() => {
+    const game=window.__qaRogue; cancelAnimationFrame(game.animationFrameId);
+    game.state.tick(40,game.world.player.hp); game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+    game.state.round=16; game.state.points=2345; game.renderPanel();
+  });
+  await walletPage.locator('#rogue-extract').click();
+  assert.match(await walletPage.locator('#rogue-summary').innerText(),/Victory points \+2,345/);
+  await walletPage.screenshot({path: '.qa/roguelite-extraction-reward.png'});
+  await walletPage.locator('#rogue-next').click();
+  assert.equal(await walletPage.locator('#victory-wallet').innerText(),'2,345');
+  // A team defeat, Roguelite death, and early return all leave the wallet intact.
+  await walletPage.locator('[data-scenario="siege"]').click();
+  await walletPage.evaluate(() => {
+    const game=window.__qaTeam; game.world.killcount.player=9999;
+    game.world.finishGame('red','QA defeat'); game.stateManager.handleGameOver(); window.TankGame.returnToModeSelection();
+  });
+  await walletPage.locator('[data-scenario="roguelite"]').click();
+  await walletPage.evaluate(() => {
+    const game=window.__qaRogue; cancelAnimationFrame(game.animationFrameId);
+    game.state.points=9999; game.state.tick(1,0); game.beginRoundTransition(); game.advanceRoundTransition(1.5);
+  });
+  await walletPage.locator('#rogue-next').click();
+  await walletPage.locator('[data-scenario="defense"]').click();
+  await walletPage.evaluate(() => window.TankGame.returnToModeSelection());
+  assert.equal(await walletPage.locator('#victory-wallet').innerText(),'2,345');
+  await walletPage.reload(); await walletPage.locator('#loading-screen.is-ready').waitFor();
+  assert.equal(await walletPage.locator('#victory-wallet').innerText(),'2,345');
+  await walletPage.close();
   assert.deepEqual(errors, []); assert.deepEqual(externalRequests, []);
   console.log('Offline Edge check passed: five modes, rarity and Recalibration, optional picks, oversized ricochet, six normalized series and totals, 20/80 results layout, raw values and round preparation tooltips, legend toggles, keyboard scrolling, music stop, thirty-round victory and fresh reset.');
 } finally { await browser.close(); }

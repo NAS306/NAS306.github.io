@@ -58,6 +58,7 @@ test('all modes return to a ready selector without reloading assets or leaving m
     Game: Session, RogueGame: Session, InputManager: class {}, gameResources: resources,
     setModeSelectionHandler, returnToModeSelection, resolveScenario: (_, id) => ({ id }),
     installRogueGuide() {}, isRogueGuideOpen: () => false,
+    installProgressionUI: () => () => {}, getProgression: () => ({ isUnlocked: () => false }),
     loadLevelCatalog: async () => { catalogLoads++; return {}; },
     preloadSprites: async () => { spriteLoads++; },
     setInterval: callback => { intervals.set(++nextTimer, callback); return nextTimer; },

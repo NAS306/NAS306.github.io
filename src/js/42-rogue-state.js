@@ -3,6 +3,7 @@ import { getRogueEnemyScaling } from './40-rogue-balance.js';
 import { ENEMY_DICE_FACES, createEnemyDiceBonuses, rollEnemyDice } from './21-rogue-dice.js';
 import { getAmmoPerPoint } from './20-rogue-ammo.js';
 import { healRoguePlayer } from './22-rogue-stats.js';
+import { EXTRACTION_ROUND } from './23-progression.js';
 
 // Survival rules are independent of DOM and the existing team scenarios.
 export const ROUND_SECONDS = 40;
@@ -32,11 +33,12 @@ export function getRoundConfig(round, enemyDiceBonuses = {}) {
 }
 
 export class RogueState {
-  constructor() {
+  constructor(superMode = false) {
+    this.isSuperMode = superMode;
     this.round = 1;
     this.remaining = ROUND_SECONDS;
     this.phase = 'combat';
-    this.points = 0;
+    this.points = superMode ? Infinity : 0;
     this.pointsEarned = 0;
     this.kills = 0;
     this.abilities = [];
@@ -45,6 +47,7 @@ export class RogueState {
     this.pendingRemoval = false;
     this.removedAbility = null;
     this.abilitiesBeforeChoice = null;
+    this.preparationPicks = {};
     this.enemyDiceBonuses = createEnemyDiceBonuses();
     this.diceResult = null;
     this.diceRolled = false;
@@ -57,6 +60,7 @@ export class RogueState {
     const upgrades = Object.entries(this.levels).filter(([key, level]) => level > this.roundStartLevels[key])
       .map(([key, level]) => Object.freeze({ key, count: level - this.roundStartLevels[key], level }));
     return Object.freeze({ round: this.round, upgrades: Object.freeze(upgrades), ability,
+      superPicks: this.isSuperMode ? Object.freeze({ ...this.preparationPicks }) : null,
       abilityLevel: ability ? this.abilities.filter(id => id === ability).length : 0,
       removedAbility: this.removedAbility,
       removedAbilityLevel: this.removedAbility ? this.abilities.filter(id => id === this.removedAbility).length : 0 });
@@ -64,17 +68,31 @@ export class RogueState {
   cost(key) { return Object.hasOwn(UPGRADES, key) ? 5 + this.levels[key] * 2 : Infinity; }
   applyStats(player) {
     const stats = calculateRogueStats(this.levels, this.abilities);
+    if (this.isSuperMode) stats.pointsCap = Infinity;
     Object.assign(player, stats);
     player.hp = Math.min(player.hp, player.maxHP);
     this.points = Math.min(this.points, stats.pointsCap);
   }
   chooseAbility(id, player) {
-    if (this.phase !== 'shop' || this.diceRolled || this.selectedAbility !== null || !this.abilityChoices.includes(id) || !canOfferAbility(id, this.abilities)) return false;
+    if (this.phase !== 'shop' || this.diceRolled || this.pendingRemoval || !this.canChooseAbility(id)) return false;
     this.abilitiesBeforeChoice = [...this.abilities];
     this.selectedAbility = id;
     if (ABILITIES[id].action === 'remove') { this.pendingRemoval = true; return true; }
     this.abilities.push(id);
+    this.preparationPicks[id] = (this.preparationPicks[id] ?? 0) + 1;
     this.applyStats(player);
+    return true;
+  }
+  canChooseAbility(id) {
+    if (this.isSuperMode) return Object.hasOwn(ABILITIES, id) && (!ABILITIES[id].action || this.abilities.length > 0);
+    return this.selectedAbility === null && this.abilityChoices.includes(id) && canOfferAbility(id, this.abilities);
+  }
+  get canExtract() { return this.phase === 'shop' && this.round > EXTRACTION_ROUND && !this.diceRolled; }
+  extract(hp) {
+    if (!this.canExtract || !(hp > 0)) return false;
+    this.pendingRemoval = false;
+    this.extracted = true;
+    this.phase = 'won';
     return true;
   }
   removeAbility(id, player) {
@@ -137,9 +155,10 @@ export class RogueState {
       this.pendingRemoval = false;
       this.removedAbility = null;
       this.abilitiesBeforeChoice = null;
+      this.preparationPicks = {};
       this.diceRolled = false;
       this.diceResult = null;
-      this.abilityChoices = rollAbilityChoices(Math.random, this.abilities);
+      this.abilityChoices = this.isSuperMode ? Object.keys(ABILITIES) : rollAbilityChoices(Math.random, this.abilities);
     }
   }
   awardKills(count) {
@@ -148,6 +167,7 @@ export class RogueState {
     this.awardPoints(count * KILL_POINTS);
   }
   awardPoints(amount) {
+    if (this.isSuperMode) return; // Infinite shop currency never enters reward accounting.
     const stats = calculateRogueStats(this.levels, this.abilities);
     const gained = Math.max(0, Math.min(stats.pointsCap - this.points, amount * stats.pointMultiplier, Number.MAX_SAFE_INTEGER - this.pointsEarned));
     this.points += gained;

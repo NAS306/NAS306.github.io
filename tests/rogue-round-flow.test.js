@@ -173,10 +173,10 @@ function transitionGame(outcome) {
   state.phase = outcome; state.round = outcome === 'shop' ? 2 : 10;
   const fields = new Map(), classes = new Set(), styles = new Map(), panels = [];
   const game = {
-    world, state, canvas, panels, roundTransition: null,
+    world, state, canvas, panels, roundTransition: null, rewardSession: { settle() { return 0; } },
     history: new RogueRunHistory(), historyView: { reset() {} },
     root: {
-      classList: { add(name) { classes.add(name); }, remove(name) { classes.delete(name); } },
+      classList: { add(name) { classes.add(name); }, remove(name) { classes.delete(name); }, toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); } },
       style: { setProperty(name, value) { styles.set(name, value); } },
     },
     el(id) {

@@ -148,6 +148,7 @@ test('victory and loss pause music immediately; intermediate rounds leave it pla
   for (const phase of ['won', 'lost', 'shop']) {
     let paused = 0;
     const game = { state: { phase, round: phase === 'shop' ? 2 : 30 }, world: { player: {} },
+      rewardSession: { settle() { return 0; } },
       bgm: { pause() { paused++; } }, history: { record() {} }, root: { classList: { add() {} } },
       el: () => ({ classList: { toggle() {} } }), advanceRoundTransition() {},
     };
