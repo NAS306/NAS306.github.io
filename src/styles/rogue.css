@@ -84,14 +84,20 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 .rogue-super-mode .rogue-ability-grid:has(.rogue-recalibration:not([hidden])) { overflow: hidden; }
 .rogue-super-mode .rogue-recalibration { position: sticky; top: 0; grid-column: 1 / -1; grid-row: 1; height: 260px; }
 #rogue-ui #rogue-extract { border-color: #76d9ac; color: #a6f5cd; }
-.rogue-ability[data-rarity="common"] .rogue-ability-status { color: #c4d0dc; }
-.rogue-ability[data-rarity="rare"] .rogue-ability-status, .rogue-owned-ability[data-rarity="rare"] svg { color: #85cdff; }
-.rogue-ability[data-rarity="legendary"] .rogue-ability-status, .rogue-owned-ability[data-rarity="legendary"] svg { color: #ffcf70; }
-#rogue-ui .rogue-ability[data-rarity="legendary"] { border-color: #b58b43; }
+:root { --rogue-common: #fff; --rogue-rare: #429dff; --rogue-legendary: #ffcf70; }
+[data-rarity="common"] { --ability-rarity-color: var(--rogue-common); }
+[data-rarity="rare"] { --ability-rarity-color: var(--rogue-rare); }
+[data-rarity="legendary"] { --ability-rarity-color: var(--rogue-legendary); }
+.rogue-ability[data-rarity] h2, .rogue-ability[data-rarity] .rogue-ability-icon, .rogue-ability[data-rarity] .rogue-ability-status,
+.rogue-owned-ability[data-rarity], .rogue-owned-ability[data-rarity] svg { color: var(--ability-rarity-color); }
+.rogue-owned-ability[data-rarity] { border: 1px solid var(--ability-rarity-color); border-radius: 3px; box-sizing: border-box; }
 .rogue-recalibration { position: absolute; inset: 0; z-index: 2; background: #0c1725; border: 1px solid #85cdff; border-radius: 4px; padding: 14px; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; }
 .rogue-removal-targets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; align-content: start; overflow-y: auto; }
 #rogue-ui .rogue-removal-targets button { text-align: left; font-size: 15px; }
 #rogue-ui .rogue-ability { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; text-align: left; padding: 12px; border: 1px solid #7292ac; border-radius: 4px; background: #0c1725; }
+#rogue-ui .rogue-ability[data-rarity] { border-color: var(--ability-rarity-color); border-top-width: 4px; }
+#rogue-ui .rogue-ability:disabled { opacity: 1; }
+#rogue-ui .rogue-ability:disabled:not(.selected) p, #rogue-ui .rogue-ability:disabled:not(.selected) .rogue-ability-changes { opacity: .55; }
 .rogue-ability h2 { margin: 7px 0 5px; font-size: 21px; }
 .rogue-ability-icon { align-self: center; color: #87dbef; }
 .rogue-ability-icon svg { width: 40px; height: 40px; display: block; }
@@ -101,7 +107,7 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 .rogue-ability-changes { list-style: none; margin: 6px 0 0; padding: 0; }
 .rogue-ability-changes li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; border-top: 1px solid #273e53; padding: 4px 0; font-size: 15px; line-height: 1.3; }
 .rogue-ability-changes strong { color: #a3e8f7; font-variant-numeric: tabular-nums; }
-#rogue-ui .rogue-ability.selected { border-color: #89e6c5; background: #12352f; opacity: 1; }
+#rogue-ui .rogue-ability.selected { border-color: var(--ability-rarity-color); background: #12352f; opacity: 1; }
 .rogue-panel-tools { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-height: 34px; }
 #rogue-ammo-shop { display: flex; align-items: center; gap: 10px; margin-right: auto; font-size: 16px; }
 #rogue-ammo-stock { color: #c8ffe7; font-size: 22px; }

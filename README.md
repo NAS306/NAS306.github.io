@@ -85,11 +85,11 @@
 | Reinforced Hull | Common | +100 max HP, but −35% base move speed. No instant healing. |
 | Turbo Engine | Common | +60% base move speed, but −35% base damage. Escaping costs stopping power. |
 | Autoloader | Common | +80% base fire rate, but −35% base damage. Burns ammo much faster. |
-| Overcharged Shells | Rare | +100% base damage, but −40% base fire rate. Long gaps leave you exposed. |
-| Piercing Rounds | Rare | +3 standard-shell pierce, but −30% base damage. Payloads cannot pierce. |
+| Overcharged Shells | Common | +50% base damage, but −25% base fire rate. Slower shots leave gaps. |
+| Piercing Rounds | Common | +1 standard-shell pierce, but −15% base damage. Payloads cannot pierce. |
 | Split Barrel | Rare | +3 standard shells per volley, but −40% base damage. Each shell costs 1 ammo. |
 | High Velocity | Rare | +100% base shell speed and +25% base damage, but −8 armor. Incoming hits hurt more. |
-| Wide Blast | Rare | +35% base blast radius, but −35% base damage. Radius caps: payload 150px, nova 110px. |
+| Wide Blast | Common | +20% base blast radius, but −20% base damage. Radius caps: payload 150px, nova 110px. |
 | Combat Recycler | Rare | +10 HP per credited kill, but −50 max HP. Cannot revive a destroyed tank. |
 | Heavy Plating | Common | +10 armor, but −40% base move speed. Surrounded tanks struggle to escape. |
 | Glass Reactor | Legendary | +200% base damage, but −80 max HP. One pick leaves a base hull at 45 HP. |
@@ -110,7 +110,7 @@
 | Round Dividend | Legendary | Each cleared round grants round ×100 points per level. Your points are capped at 5,000. |
 | Pulse Shield | Legendary | Block all damage for 1 second every 3 combat seconds. First shield at 3 seconds. Maximum level 1. |
 | Light Chassis | Common | +25% base move speed, but −25 max HP. No instant healing. |
-| Dense Ammunition | Rare | +80% base damage, but −25% base shell speed. |
+| Dense Ammunition | Common | +40% base damage, but −15% base shell speed. |
 | Overdrive Matrix | Legendary | +150% base fire rate and +75% base damage, but −35% base move speed. |
 
 ### 영문 모드 안내
@@ -147,3 +147,10 @@
 - Roguelite Super has infinite run points and all 30 ability cards in a scrollable preparation grid. Repeated picks are unrestricted by normal level limits, rarity, explosion prerequisites, or one-pick rule. Recalibration needs a target; stacked Pulse Shield remains one timed shield. Dice still locks preparation.
 - Saves are specific to this browser and site origin. Damaged or newer saves are protected from automatic overwrite. Failed reward saves remain in memory for retry; failed unlock saves do not spend points. Clearing browser/site data removes progression.
 - `tests/victory-wallet.test.js` covers victory-only awards, no Super awards, idempotent settlement, all five unlocks, reloads, damaged/unavailable storage, extraction boundaries, repeat abilities and unchanged normal limitations. Build with `node build.js`; verify with `npm run check` and `npm run test:browser`.
+
+
+### Rarity rebalance and visual identity
+
+Common has 11 abilities, Rare 10, and Legendary 9. Tier roll chances remain 60% / 30% / 10%, with four distinct offers and at most one normal-mode selection. Overcharged Shells, Piercing Rounds, Wide Blast, and Dense Ammunition moved to Common with smaller benefits and milder penalties; their descriptions and guide use the same ability data.
+
+Rarity colors are defined once in `src/styles/rogue.css`: Common white (`#fff`), Rare blue (`#429dff`), Legendary gold (`#ffcf70`). Borders, names, icons, rarity labels, owned badges and guide cells share these colors. Disabled/selected cards keep their rarity color; the written rarity labels remain available alongside color.

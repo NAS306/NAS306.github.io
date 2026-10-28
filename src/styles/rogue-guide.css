@@ -24,3 +24,5 @@
   .rogue-guide-content { padding: 4px 12px 20px; }
   .rogue-guide-content th, .rogue-guide-content td { padding: 7px; }
 }
+
+.rogue-guide-abilities td[data-rarity] { color: var(--ability-rarity-color); font-weight: 700; }

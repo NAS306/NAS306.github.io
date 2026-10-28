@@ -104,12 +104,12 @@ test('splitter and ballistics strengthen standard shells while blast strengthens
   const standard = bullets.filter(bullet => !bullet.explosion), payload = bullets.find(bullet => bullet.explosion);
   assert.equal(standard.length, 4); assert.equal(bullets.length, 5);
   assert.ok(Math.abs(Math.hypot(standard[0].vx, standard[0].vy) - 1500) < 1e-8);
-  assert.ok(Math.abs(standard[0].damage - 20) < 1e-8);
+  assert.ok(Math.abs(standard[0].damage - 26) < 1e-8);
   assert.ok(Math.abs(Math.hypot(payload.vx, payload.vy) - 2000) < 1e-8);
-  assert.ok(Math.abs(payload.explosion.radius - 121.5) < 1e-8); assert.equal(player.ammo, 286);
+  assert.ok(Math.abs(payload.explosion.radius - 108) < 1e-8); assert.equal(player.ammo, 286);
 });
 
-test('piercing hits four enemies but stops before the fifth; widened payload reaches beyond original radius', () => {
+test('Common piercing hits two enemies but stops before the third; widened payload reaches beyond original radius', () => {
   const { world, player } = worldWith(['piercing', 'blast']);
   player.x = 100; player.y = 400; player.turretAngle = 0;
   const fire = player.fireProjectiles.bind(player);
@@ -118,9 +118,9 @@ test('piercing hits four enemies but stops before the fifth; widened payload rea
   world.tanks.push(...targets);
   player.tryShoot(world);
   for (let i = 0; i < 60; i++) { world.bulletPool.updateAll(1 / 60); world.handleCollisions(); }
-  for (const target of targets.slice(0, 4)) assert.equal(target.hp, 111);
-  assert.equal(targets[4].hp, 125);
-  const edge = new Tank(610, 500, 'red');
+  for (const target of targets.slice(0, 2)) assert.equal(target.hp, 99);
+  for (const target of targets.slice(2)) assert.equal(target.hp, 125);
+  const edge = new Tank(600, 500, 'red');
   world.tanks = [player, edge];
   const heavy = getRogueExplosivePayload(player);
   world.causeWeaponExplosion(500, 500, 'blue', heavy.explosion, true);

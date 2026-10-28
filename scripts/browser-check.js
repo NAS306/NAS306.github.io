@@ -23,6 +23,10 @@ try {
   const guide = page.locator('.rogue-guide-dialog');
   assert.equal(await guide.isVisible(), true);
   assert.equal(await guide.locator('[data-guide-ability]').count(), 30);
+  for (const [rarity, count, color] of [['common', 11, 'rgb(255, 255, 255)'], ['rare', 10, 'rgb(66, 157, 255)'], ['legendary', 9, 'rgb(255, 207, 112)']]) {
+    assert.equal(await guide.locator(`td[data-rarity="${rarity}"]`).count(), count);
+    assert.equal(await guide.locator(`td[data-rarity="${rarity}"]`).first().evaluate(cell => getComputedStyle(cell).color), color);
+  }
   assert.match(await guide.locator('.rogue-guide-content').innerText(), /30 rounds of 30 seconds/);
   assert.match(await guide.locator('.rogue-guide-content').innerText(), /200 free ammo/);
   assert.match(await guide.locator('.rogue-guide-content').innerText(), /4 different cards/);
@@ -121,6 +125,15 @@ try {
     game.state.abilityChoices = ['ricochet', 'oversized', 'hull', 'lightHull']; game.renderPanel();
   });
   assert.equal(await runPage.locator('.rogue-ability:visible').count(), 4);
+  async function checkCardColor(rarity, expected) {
+    const colors = await runPage.locator(`.rogue-ability[data-rarity="${rarity}"]:visible`).first().evaluate(card => [
+      getComputedStyle(card).borderTopColor, getComputedStyle(card.querySelector('h2')).color,
+      getComputedStyle(card.querySelector('.rogue-ability-icon')).color, getComputedStyle(card.querySelector('.rogue-ability-status')).color,
+    ]);
+    assert.deepEqual(colors, Array(4).fill(expected));
+  }
+  await checkCardColor('common', 'rgb(255, 255, 255)');
+  await checkCardColor('rare', 'rgb(66, 157, 255)');
   assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.ammo), 500);
   assert.match(await runPage.locator('#rogue-summary').innerText(), /Survive 30s.*one of 4/);
   await runPage.screenshot({ path: '.qa/rogue-four-choices.png' });
@@ -150,6 +163,10 @@ try {
   assert.match(await runPage.locator('[data-ability="oversized"]').innerText(), /100%.*200%/s);
   await runPage.screenshot({ path: '.qa/roguelite-new-abilities.png' });
   await runPage.locator('[data-ability="oversized"]').click();
+  await checkCardColor('common', 'rgb(255, 255, 255)'); // Disabled cards retain rarity identity.
+  await checkCardColor('rare', 'rgb(66, 157, 255)'); // Selected cards keep the same border.
+  assert.equal(await runPage.locator('[data-ability="ricochet"]').evaluate(card => getComputedStyle(card).opacity), '1');
+  assert.equal(await runPage.locator('.rogue-owned-ability[data-rarity="rare"] svg').evaluate(icon => getComputedStyle(icon).color), 'rgb(66, 157, 255)');
   assert.equal(await runPage.evaluate(() => window.__qaRogue.world.player.projectileSizeMultiplier), 2);
   await runPage.evaluate(() => {
     const game = window.__qaRogue;
@@ -159,6 +176,7 @@ try {
     game.state.abilityChoices = ['ricochet', 'oversized', 'explosive']; game.renderPanel();
   });
   await runPage.locator('[data-ability="ricochet"]').click();
+  assert.equal(await runPage.locator('.rogue-owned-ability[data-rarity="common"] svg').evaluate(icon => getComputedStyle(icon).color), 'rgb(255, 255, 255)');
   assert.equal(await runPage.evaluate(() => window.__qaRogue.statValues.shellSize.textContent), '×2 / 1');
   await runPage.screenshot({ path: '.qa/roguelite-stacked-abilities.png' });
   const bounced = await runPage.evaluate(() => {
@@ -175,11 +193,13 @@ try {
     const game = window.__qaRogue;
     game.state.rollDice(() => 5.5 / 7); game.state.startRound(); game.world.startRound(3);
     game.state.tick(40, game.world.player.hp); game.beginRoundTransition(); game.advanceRoundTransition(1.5);
-    game.state.abilityChoices = ['recalibrate', 'bargain', 'shield']; game.renderPanel();
+    game.state.abilityChoices = ['recalibrate', 'bargain', 'shield', 'piercing']; game.renderPanel();
   });
   assert.match(await runPage.locator('[data-ability="recalibrate"]').innerText(), /Common/);
   assert.match(await runPage.locator('[data-ability="bargain"]').innerText(), /Rare/);
   assert.match(await runPage.locator('[data-ability="shield"]').innerText(), /Legendary/);
+  await checkCardColor('legendary', 'rgb(255, 207, 112)');
+  await runPage.screenshot({ path: '.qa/rarity-colors.png' });
   await runPage.locator('[data-ability="recalibrate"]').click();
   await runPage.screenshot({ path: '.qa/roguelite-recalibration.png' });
   await runPage.locator('[data-remove-ability="oversized"]').click();

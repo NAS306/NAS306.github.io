@@ -20,12 +20,12 @@ export const ABILITIES = Object.freeze({
     effects: { attackSpeed: 0.80, damage: -0.35 }, icon: 'M19 8a8 8 0 1 0 1 8 M19 3v5h-5 M9 9v6h6V9Z',
   },
   overcharge: {
-    name: 'Overcharged Shells', description: '+100% base damage, but −40% base fire rate. Long gaps leave you exposed.',
-    effects: { damage: 1.00, attackSpeed: -0.40 }, icon: 'M8 20V9l4-6 4 6v11Z M8 15h8 M10 23h4',
+    name: 'Overcharged Shells', description: '+50% base damage, but −25% base fire rate. Slower shots leave gaps.',
+    effects: { damage: 0.50, attackSpeed: -0.25 }, icon: 'M8 20V9l4-6 4 6v11Z M8 15h8 M10 23h4',
   },
   piercing: {
-    name: 'Piercing Rounds', description: '+3 standard-shell pierce, but −30% base damage. Payloads cannot pierce.',
-    effects: { penetrationBonus: 3, damage: -0.30 }, icon: 'M2 12h18 M15 7l5 5-5 5 M7 4v5 M7 15v5 M12 4v5 M12 15v5',
+    name: 'Piercing Rounds', description: '+1 standard-shell pierce, but −15% base damage. Payloads cannot pierce.',
+    effects: { penetrationBonus: 1, damage: -0.15 }, icon: 'M2 12h18 M15 7l5 5-5 5 M7 4v5 M7 15v5 M12 4v5 M12 15v5',
   },
   splitter: {
     name: 'Split Barrel', description: '+3 standard shells per volley, but −40% base damage. Each shell costs 1 ammo.',
@@ -36,9 +36,9 @@ export const ABILITIES = Object.freeze({
     effects: { projectileSpeed: 1.00, damage: 0.25, armor: -8 }, icon: 'M2 7h7 M1 12h6 M2 17h7 M11 8h6l5 4-5 4h-6Z',
   },
   blast: {
-    name: 'Wide Blast', description: '+35% base blast radius, but −35% base damage. Radius caps: payload 150px, nova 110px.',
+    name: 'Wide Blast', description: '+20% base blast radius, but −20% base damage. Radius caps: payload 150px, nova 110px.',
     requiresExplosion: true,
-    effects: { explosionRadius: 0.35, damage: -0.35 }, icon: 'M12 2v4 M12 18v4 M2 12h4 M18 12h4 M5 5l3 3 M16 16l3 3 M5 19l3-3 M16 8l3-3 M12 8l4 4-4 4-4-4Z',
+    effects: { explosionRadius: 0.20, damage: -0.20 }, icon: 'M12 2v4 M12 18v4 M2 12h4 M18 12h4 M5 5l3 3 M16 16l3 3 M5 19l3-3 M16 8l3-3 M12 8l4 4-4 4-4-4Z',
   },
   recycler: {
     name: 'Combat Recycler', description: '+10 HP per credited kill, but −50 max HP. Cannot revive a destroyed tank.',
@@ -122,8 +122,8 @@ export const ABILITIES = Object.freeze({
     effects: { speed: 0.25, maxHP: -25 }, icon: 'M4 17l4-10h8l4 10Z M2 12h5 M17 12h5 M9 20h6',
   },
   heavyAmmo: {
-    name: 'Dense Ammunition', description: '+80% base damage, but −25% base shell speed.',
-    effects: { damage: 0.8, projectileSpeed: -0.25 }, icon: 'M7 21V9l5-7 5 7v12Z M7 12h10 M7 17h10',
+    name: 'Dense Ammunition', description: '+40% base damage, but −15% base shell speed.',
+    effects: { damage: 0.4, projectileSpeed: -0.15 }, icon: 'M7 21V9l5-7 5 7v12Z M7 12h10 M7 17h10',
   },
   overdrive: {
     name: 'Overdrive Matrix', description: '+150% base fire rate and +75% base damage, but −35% base move speed.',
@@ -134,7 +134,7 @@ export const ABILITIES = Object.freeze({
 export const RARITIES = Object.freeze({
   common: { name: 'Common', chance: 0.6 }, rare: { name: 'Rare', chance: 0.3 }, legendary: { name: 'Legendary', chance: 0.1 },
 });
-const RARE = new Set(['overcharge', 'piercing', 'splitter', 'ballistics', 'blast', 'recycler', 'blood', 'rail', 'slowOrb', 'warhead', 'siege', 'oversized', 'bargain', 'heavyAmmo']);
+const RARE = new Set(['splitter', 'ballistics', 'recycler', 'blood', 'rail', 'slowOrb', 'warhead', 'siege', 'oversized', 'bargain']);
 const LEGENDARY = new Set(['glass', 'storm', 'reactor', 'juggernaut', 'volatile', 'explosive', 'dividends', 'shield', 'overdrive']);
 export function abilityRarity(id) { return LEGENDARY.has(id) ? 'legendary' : RARE.has(id) ? 'rare' : 'common'; }
 export function canOfferAbility(id, owned) {

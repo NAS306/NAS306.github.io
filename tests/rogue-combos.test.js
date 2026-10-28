@@ -71,13 +71,13 @@ test('multi-shell, long-lived rapid fire composes with a separate explosive payl
   assert.equal(volley.filter(shell => shell.explosion).length, 1);
   assert.equal(player.ammo, 277);
   for (const shell of volley) {
-    assert.ok(Math.abs(shell.damage - 16) < 1e-8);
+    assert.ok(Math.abs(shell.damage - 8) < 1e-8);
     assert.ok(Math.abs(Math.hypot(shell.vx, shell.vy) - (shell.explosion ? 1800 : 1350)) < 1e-8);
     assert.ok(Math.abs(shell.lifetime - 4.5) < 1e-8);
     assert.equal(shell.penRate, shell.explosion ? 1 : 9);
-    if (shell.explosion) assert.ok(Math.abs(shell.explosion.maxDamage - 32) < 1e-8);
+    if (shell.explosion) assert.ok(Math.abs(shell.explosion.maxDamage - 16) < 1e-8);
   }
-  assert.ok(Math.abs(player.fireCooldown - .125) < 1e-8);
+  assert.ok(Math.abs(player.fireCooldown - .2 / 1.75) < 1e-8);
   // Reusing the same pooled objects for an unmodified run must clear every bonus.
   world.bulletPool.reset(); state.abilities = []; state.applyStats(player);
   player.setWeapon('standard'); player.fireCooldown = 0; player.tryShoot(world);
@@ -86,22 +86,22 @@ test('multi-shell, long-lived rapid fire composes with a separate explosive payl
   assert.equal(shells[0].damage, 40); assert.equal(shells[0].penRate, 1);
 });
 
-test('Rail Accelerator plus Piercing Rounds hits twelve enemies with one shell and stops before the thirteenth', () => {
+test('Rail Accelerator plus Common Piercing Rounds hits ten enemies with one shell and stops before the eleventh', () => {
   const { world, player } = fixture(['rail', 'piercing']);
   player.x = 50; player.y = 400; player.turretAngle = 0;
   const fire = player.fireProjectiles.bind(player);
   player.fireProjectiles = (world, profile) => fire(world, { ...profile, randomSpreadRadians: 0 });
-  const targets = Array.from({ length: 13 }, (_, i) => new Tank(150 + i * 60, 400, 'red'));
+  const targets = Array.from({ length: 11 }, (_, i) => new Tank(150 + i * 60, 400, 'red'));
   world.tanks.push(...targets); player.tryShoot(world);
   for (let i = 0; i < 100; i++) { world.bulletPool.updateAll(1 / 120); world.handleCollisions(); }
-  for (const target of targets.slice(0, 12)) assert.equal(target.hp, 97);
-  assert.equal(targets[12].hp, 125);
+  for (const target of targets.slice(0, 10)) assert.equal(target.hp, 91);
+  assert.equal(targets[10].hp, 125);
 });
 
 test('death novas chain through enemies, scale with old cards, award points and healing, and never hit the player', () => {
   const { world, state, player } = fixture(['volatile', 'glass', 'blast', 'blood', 'recycler']);
   const nova = getRogueDeathBlast(player);
-  assert.equal(nova.minDamage, 0); assert.equal(nova.maxDamage, 106); assert.equal(nova.radius, 94.5);
+  assert.equal(nova.minDamage, 0); assert.equal(nova.maxDamage, 112); assert.equal(nova.radius, 84);
   player.x = 400; player.y = 400; player.hp = 5;
   const enemies = Array.from({ length: 4 }, (_, i) => new Tank(400 + i * 40, 400, 'red'));
   enemies.forEach(enemy => { enemy.hp = 30; }); world.tanks.push(...enemies);
