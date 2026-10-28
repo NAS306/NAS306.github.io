@@ -1,0 +1,18 @@
+#translation-button { position: fixed; z-index: 100; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 7px; align-items: center; max-width: min(240px, 60vw); padding: 7px 10px; color: #fff; border: 1px solid #a9c2d780; border-radius: 7px; background: #102030a6; backdrop-filter: blur(5px); font: 13px system-ui, sans-serif; cursor: pointer; }
+#translation-button:hover { background: #243f56e8; }
+#translation-button:focus-visible, #language-dialog :focus-visible { outline: 2px solid #90e1ff; outline-offset: 3px; }
+#language-dialog { box-sizing: border-box; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; color: #edf5ff; background: #142536; border: 1px solid #82adc9; border-radius: 12px; font: 16px/1.5 system-ui, sans-serif; }
+#language-dialog::backdrop { background: #020912b8; }
+#language-dialog h2 { margin: 0 0 8px; font-size: 24px; }
+#language-dialog p { color: #b8cfdf; }
+#language-dialog label { display: grid; gap: 8px; }
+#language-dialog select, #language-dialog button { font: inherit; padding: 10px; border: 1px solid #83abc6; border-radius: 5px; color: #fff; background: #234157; }
+#language-dialog > button { margin-top: 20px; width: 100%; cursor: pointer; }
+.rogue-panel-guide-button { margin-right: 165px; }
+@media (max-width: 600px) { #translation-button span:last-child { display: none; } .rogue-panel-guide-button { margin-right: 62px; } }
+
+.rogue-ability h2, .rogue-ability p, .mode-name { overflow-wrap: anywhere; }
+.rogue-preview-label, #rogue-upgrades strong { white-space: normal; overflow-wrap: anywhere; }
+.rogue-hud { top: 48px; }
+#base-health-ui, body.mobile-mode #base-health-ui { top: 48px; }
+:lang(ko) #rogue-next-label { word-break: keep-all; }

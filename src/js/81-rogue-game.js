@@ -14,9 +14,12 @@ import { RogueHistoryView } from './79-rogue-charts.js';
 import { isRogueGuideOpen } from './77-rogue-guide.js';
 
 import { ABILITIES, ABILITY_CHOICE_COUNT } from './41-rogue-abilities.js';
-import { t, getI18n, applyTranslations } from './24-i18n.js';
+import { isGamePaused, subscribeGamePause } from './14-game-pause.js';
+import { localizedRewardText } from './75-localized-game-text.js';
+import { getProgression } from './23-progression.js';
+import { tx, t, getI18n, applyTranslations } from './24-i18n.js';
 import { ARMOR_PER_UPGRADE } from './40-rogue-balance.js';
-import { createRewardSession, victoryRewardText } from './23-progression.js';
+import { createRewardSession } from './23-progression.js';
 
 const displayPoints = value => value === Infinity ? '∞' : String(value);
 const HEALTH_DISPLAY_MARKUP = '<div class="rogue-health-label"><span>HP</span><strong class="rogue-health-value"></strong></div><progress max="125" value="125" aria-label="Player health"></progress>';
@@ -69,7 +72,7 @@ export class RogueGame {
           <div class="rogue-panel-content">
           <div class="rogue-panel-heading">
             <button type="button" class="rogue-panel-guide-button" data-i18n="menu.guide" data-rogue-guide aria-haspopup="dialog">ⓘ Mode guide</button>
-            <span class="rogue-eyebrow">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
+            <span class="rogue-eyebrow" id="rogue-panel-mode">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
             <h1 id="rogue-title"></h1><p id="rogue-summary"></p>
           </div>
           <div id="rogue-layout" class="rogue-layout">
@@ -157,7 +160,7 @@ export class RogueGame {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'rogue-ability';
-      card.innerHTML = '<span class="rogue-ability-icon"></span><h2></h2><span class="rogue-ability-status"></span><p></p><small class="rogue-preview-label">Current → After selection</small><ul class="rogue-ability-changes"></ul>';
+      card.innerHTML = '<span class="rogue-ability-icon"></span><h2></h2><span class="rogue-ability-status"></span><p></p><small class="rogue-preview-label" data-i18n="ability.preview">Current → After selection</small><ul class="rogue-ability-changes"></ul>';
       card.addEventListener('click', () => {
         if (!this.roundTransition && !this.diceReveal && this.state.chooseAbility(card.dataset.ability, this.world.player)) this.renderPanel();
       });
@@ -200,7 +203,7 @@ export class RogueGame {
     });
     this.el('menu').addEventListener('click', returnToModeSelection);
     window.addEventListener('keydown', e => {
-      if (isRogueGuideOpen()) return;
+      if (isRogueGuideOpen() || isGamePaused()) return;
       if (this.diceReveal) {
         if (e.key === 'Tab' || e.code === 'Space' || e.code === 'Enter') e.preventDefault();
         if (!e.repeat && (e.code === 'Space' || e.code === 'Enter')) this.dismissDiceOverlay();
@@ -210,7 +213,7 @@ export class RogueGame {
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && this.state.phase === 'combat') e.preventDefault();
       // Keep keyboard focus within the round panel while it is open.
       if (e.key === 'Tab' && !this.el('shade').hidden) {
-        const buttons = [...this.el('shade').querySelectorAll('button:not(:disabled):not([hidden]), select:not(:disabled), input:not(:disabled), [tabindex="0"]')].filter(button => button.getClientRects().length > 0);
+        const buttons = [...this.el('shade').querySelectorAll('button:not(:disabled):not([hidden]), select:not(:disabled), input:not(:disabled), [tabindex="0"]'), document.getElementById('translation-button')].filter(button => button && button.getClientRects().length > 0);
         const first = buttons[0], last = buttons.at(-1);
         if (e.shiftKey && (document.activeElement === first || !buttons.includes(document.activeElement))) {
           e.preventDefault(); last.focus();
@@ -227,8 +230,11 @@ export class RogueGame {
     applyTranslations(this.root);
     this.unsubscribeLanguage = getI18n().subscribe(() => {
       applyTranslations(this.root);
-      if (this.state.phase !== 'combat') this.renderPanel({ focus: false });
+      if (this.state.phase !== 'combat' && !this.roundTransition) this.renderPanel({ focus: false });
+      if (this.diceReveal) { this.renderDiceOverlay(); this.advanceDiceReveal(0); }
+      this.renderHUD();
     });
+    this.unsubscribePause = subscribeGamePause(() => { this.input.reset(); this.accumulator = 0; this.lastTime = performance.now(); });
     this.resetRun();
     this.loop = this.loop.bind(this);
     this.animationFrameId = requestAnimationFrame(this.loop);
@@ -239,6 +245,7 @@ export class RogueGame {
     cancelAnimationFrame(this.animationFrameId);
     this.events.abort();
     this.unsubscribeLanguage?.();
+    this.unsubscribePause?.();
     this.input.reset();
     this.input.dispose();
     this.root.remove();
@@ -279,9 +286,9 @@ export class RogueGame {
     this.el('shade').hidden = false;
     this.el('title').textContent = state.phase === 'won' ? state.extracted ? t('rogue.extracted', { round: state.round - 1 }) : t('rogue.won', { rounds: ROUND_COUNT }) : state.phase === 'lost' ? t('rogue.lost') : t('rogue.upgrades');
     this.el('summary').textContent = ended
-      ? `${state.kills} kills · ${displayPoints(state.points)} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}`
+      ? t('rogue.ended', { kills: state.kills, points: displayPoints(state.points) })
       : t('rogue.preparation', { round: state.round, rounds: ROUND_COUNT, seconds: ROUND_SECONDS, choices: ABILITY_CHOICE_COUNT });
-    if (ended) this.el('summary').textContent += ` | ${victoryRewardText(this.reward, this.isSuperMode)}`;
+    if (ended) this.el('summary').textContent += ` | ${localizedRewardText(this.reward, this.isSuperMode, getProgression())}`;
     else if (this.isSuperMode) this.el('summary').textContent = t('rogue.super');
     this.el('extract').hidden = !state.canExtract;
     this.el('abilities').setAttribute('aria-label', this.isSuperMode ? 'All abilities: select repeatedly or continue' : 'Optional free ability: choose one or continue without choosing');
@@ -296,7 +303,7 @@ export class RogueGame {
       shellSize: `×${player.projectileSizeMultiplier} / ${player.wallBounces}`,
     };
     for (const [key, value] of Object.entries(stats)) this.statValues[key].textContent = value;
-    this.el('economy-note').textContent = `${KILL_POINTS * player.pointMultiplier} pts / kill · Damage taken ×${player.incomingDamageMultiplier}${Number.isFinite(player.pointsCap) ? ` · Max ${player.pointsCap.toLocaleString('en-US')} pts` : ''}${player.pulseShield ? ' · Shield 1s / 3s' : ''}`;
+    this.el('economy-note').textContent = t('rogue.economy', { points: KILL_POINTS * player.pointMultiplier, factor: player.incomingDamageMultiplier }) + (Number.isFinite(player.pointsCap) ? ` · ${t('rogue.cap', { points: getI18n().number(player.pointsCap) })}` : '') + (player.pulseShield ? ` · ${t('rogue.shield')}` : '');
     this.renderAmmoShop();
     this.renderRunSummary();
     if (ended) this.historyView.render();
@@ -308,7 +315,7 @@ export class RogueGame {
       button.querySelector('strong').textContent = t(`upgrade.${key}.name`, {}, UPGRADES[key].name);
       button.querySelector('small').textContent = t(`upgrade.${key}.description`, { amount: ARMOR_PER_UPGRADE }, UPGRADES[key].description);
       button.disabled = ended || state.diceRolled || state.points < state.cost(key) || (key === 'heal' && player.hp >= player.maxHP);
-      button.querySelector('.rogue-price').textContent = `${state.cost(key)} pts · Lv.${state.levels[key]}`;
+      button.querySelector('.rogue-price').textContent = t('upgrade.price', { cost: state.cost(key), level: state.levels[key] });
     }
     const nextLabel = ended ? t('menu.select') : t('rogue.startRound', { round: state.round });
     this.el('next-label').textContent = nextLabel;
@@ -323,6 +330,7 @@ export class RogueGame {
     }
     this.renderHUD();
     this.fitPanel();
+    applyTranslations(this.root);
   }
   renderRunSummary() {
     const ended = this.state.phase === 'won' || this.state.phase === 'lost';
@@ -369,13 +377,13 @@ export class RogueGame {
       maxHP: `${Number(config.enemyMaxHP.toFixed(1))} HP`,
       projectileSpeed: percent(config.enemyProjectileSpeedMultiplier),
     };
-    this.el('dice-round').textContent = `ROUND ${state.round} / ${ROUND_COUNT}`;
+    this.el('dice-round').textContent = t('rogue.roundLabel', { round: state.round, rounds: ROUND_COUNT });
     this.el('dice-symbol').textContent = result.symbol;
-    this.el('dice-title').textContent = result.bomb ? 'BOMB · All Enemy Stats' : result.key ? `Enemy ${result.name}` : 'Pass';
-    this.el('dice-result').textContent = result.bomb ? `All 5 stats +${result.bonus}% of base · Permanent this run` : result.key ? `+${result.bonus}% of base · Added this round` : 'No enemy buff this round';
+    this.el('dice-title').textContent = result.bomb ? t('dice.bomb') : result.key ? t('dice.enemy', { stat: tx(result.name) }) : tx('Pass');
+    this.el('dice-result').textContent = result.bomb ? t('dice.all', { bonus: result.bonus }) : result.key ? t('dice.one', { bonus: result.bonus }) : t('dice.none');
     for (const face of ENEMY_DICE_FACES.filter(face => face.key)) {
       const bonus = state.enemyDiceBonuses[face.key];
-      this.el(`dice-stat-${face.key}`).textContent = `${values[face.key]} · Dice +${bonus}%`;
+      this.el(`dice-stat-${face.key}`).textContent = t('dice.value', { value: values[face.key], bonus });
     }
   }
   dismissDiceOverlay() {
@@ -391,7 +399,7 @@ export class RogueGame {
     this.root.style.setProperty('--rogue-dice-scale', frame.scale);
     this.root.style.setProperty('--rogue-dice-opacity', frame.opacity);
     this.el('dice-overlay').classList.toggle('is-ready', frame.ready);
-    this.el('dice-hint').textContent = frame.ready ? 'Click anywhere or press Enter to start' : this.diceReveal.phase === 'entering' ? 'Rolling…' : 'Deploying…';
+    this.el('dice-hint').textContent = frame.ready ? t('dice.ack') : this.diceReveal.phase === 'entering' ? t('dice.rolling') : t('dice.deploying');
     if (frame.done) this.startRevealedRound();
   }
   startRevealedRound() {
@@ -415,7 +423,7 @@ export class RogueGame {
     this.roundTransition = new RogueRoundTransition(this.state.phase, round);
     this.root.classList.add('rogue-transitioning');
     const banner = this.el('round-banner');
-    banner.textContent = this.state.phase === 'won' ? 'VICTORY' : this.state.phase === 'lost' ? 'LOST' : '';
+    banner.textContent = this.state.phase === 'won' ? tx('VICTORY') : this.state.phase === 'lost' ? tx('LOST') : '';
     banner.classList.toggle('is-loss', this.state.phase === 'lost');
     banner.hidden = !banner.textContent;
     this.el('shade').inert = true;
@@ -457,16 +465,17 @@ export class RogueGame {
   }
   renderHUD() {
     const p = this.world.player;
+    this.el('panel-mode').textContent = t('rogue.eyebrow', { rounds: ROUND_COUNT });
     const weapon = getRoguePlayerWeapon(p);
     const ammo = planAmmoVolley(p.ammo, weapon.pelletCount, p.extraExplosiveProjectiles ?? 0);
-    this.el('ammo').textContent = `AMMO ${p.ammo} · ${ammo.fullCost} / volley${p.ammo === 0 ? ' · EMPTY' : ''}`;
+    this.el('ammo').textContent = t('rogue.ammoHud', { ammo: p.ammo, cost: ammo.fullCost }) + (p.ammo === 0 ? ` · ${tx('EMPTY')}` : '');
     this.el('ammo').classList.toggle('danger', p.ammo === 0);
     this.el('ammo').classList.toggle('warning', p.ammo > 0 && p.ammo <= ammo.fullCost * 10);
-    this.el('round').textContent = `ROUND ${this.roundTransition?.round ?? this.state.round} / ${ROUND_COUNT}`;
+    this.el('round').textContent = t('rogue.roundLabel', { round: this.roundTransition?.round ?? this.state.round, rounds: ROUND_COUNT });
     for (const display of this.healthDisplays) updateRogueHealthDisplay(display, p.hp, p.maxHP);
     this.el('time').textContent = `${this.state.remaining.toFixed(1)}s`;
-    this.el('points').textContent = `${displayPoints(this.state.points)} points · ${this.state.kills} kills`;
-    this.el('weapon').textContent = `${p.weapon.title} · Damage ${this.damageText()} · Reload ${(p.reloadTime / p.attackSpeedMultiplier).toFixed(2)}s`;
+    this.el('points').textContent = t('rogue.pointsKills', { points: displayPoints(this.state.points), kills: this.state.kills });
+    this.el('weapon').textContent = `${tx(p.weapon.title)} · ${tx('Damage')} ${this.damageText()} · ${t('combat.reload', { seconds: (p.reloadTime / p.attackSpeedMultiplier).toFixed(2) })}`;
     const countdown = getRogueCountdown(this.state.remaining, this.state.phase === 'combat');
     this.root.classList.toggle('rogue-countdown-active', countdown.active);
     this.root.style.setProperty('--rogue-edge-opacity', countdown.edgeOpacity);
@@ -480,6 +489,7 @@ export class RogueGame {
     if (this.disposed) return;
     const dt = document.hidden ? 0 : clampFrameDelta((now - this.lastTime) / 1000);
     this.lastTime = now;
+    if (isGamePaused()) { this.accumulator = 0; this.animationFrameId = requestAnimationFrame(this.loop); return; }
     const wasDiceReveal = !!this.diceReveal;
     if (this.diceReveal) {
       this.advanceDiceReveal(dt);

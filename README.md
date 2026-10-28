@@ -38,7 +38,9 @@
 | `src/js/50-rogue-world.js` | 공통 충돌/엔티티를 재사용하는 정사각형 경기장, 적 생성 및 솔로 AI |
 | `src/js/51-rogue-history.js` | 라운드 종료별 전투 통계 차분·실제 탱크 수치 스냅샷과 그래프 좌표 계산 |
 | `src/js/77-rogue-guide.js`, `src/styles/rogue-guide.css` | 모드 카드 상단·강화 화면에서 공유하는 영문 모드 안내와 접근 가능한 대화창 |
-| `src/js/24-i18n.js`, `src/js/83-language-ui.js`, `src/locales/` | 번역 사전·영문 대체 표시·언어 설정 저장·언어 변경 화면 갱신 기반. 현재 영문만 제공하며 확장 방법은 `src/locales/README.md` 참고 |
+| `src/js/24-i18n.js`, `src/js/83-language-ui.js`, `src/locales/` | 영어·한국어·중국어 간체·일본어·러시아어 사전, 영문 대체 표시, 저장 및 우측 상단 번역 설정. 확장 방법은 `src/locales/README.md` 참고 |
+| `src/js/14-game-pause.js`, `src/styles/language.css` | 번역 설정 중 두 게임 루프·입력·주사위·전환을 멈추는 공통 일시 정지와 반투명 번역 버튼 |
+| `src/js/75-localized-game-text.js`, `src/js/76-localized-guide.js` | 실제 능력 효과 수치로 번역 설명 생성, 다국어 모드·진행 가이드 |
 | `src/js/78-rogue-ability-ui.js` | 등급 표시·선택 카드·보유 능력·재조정 대상 선택 |
 | `src/js/79-rogue-charts.js` | 6개 정규화 추세선·범례 토글, 실제 수치 표, 라운드별 강화·능력 툴팁 |
 | `src/js/81-rogue-game.js` | 로그라이트 실행 루프, 좌표 변환, HUD, 라운드 준비 및 결과 화면 |

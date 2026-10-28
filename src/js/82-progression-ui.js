@@ -1,6 +1,6 @@
 import { getProgression, SUPER_UNLOCK_COST, VICTORY_POINTS_PER_KILL } from './23-progression.js';
 import { MODE_CARDS } from './80-mode-cards.js';
-import { t, getI18n } from './24-i18n.js';
+import { tx, t, getI18n } from './24-i18n.js';
 
 export function installProgressionUI(startSuper) {
   const store = getProgression();
@@ -9,7 +9,7 @@ export function installProgressionUI(startSuper) {
   function refresh() {
     store.reload();
     document.getElementById('victory-wallet').textContent = getI18n().number(store.data.points);
-    status.textContent = store.error || t('wallet.rules', { points: VICTORY_POINTS_PER_KILL });
+    status.textContent = tx(store.error) || t('wallet.rules', { points: VICTORY_POINTS_PER_KILL });
     retry.hidden = !store.dirty;
     for (const card of MODE_CARDS) {
       const button = document.querySelector(`[data-super-mode="${card.id}"]`);

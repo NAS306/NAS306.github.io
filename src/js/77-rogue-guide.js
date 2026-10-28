@@ -7,11 +7,15 @@ import { ROUND_COUNT, ROUND_SECONDS, KILL_POINTS, UPGRADES, getRoundConfig } fro
 
 import { renderProgressionGuide } from './23-progression.js';
 
+import { t, getI18n } from './24-i18n.js';
+import { renderLocalizedRogueGuide, renderLocalizedProgressionGuide } from './76-localized-guide.js';
+
 const escapeHTML = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 // One English manual for the selector and preparation screen. Balance values and
 // ability descriptions come from the same data that drives actual combat.
 export function renderRogueGuide() {
+  if (getI18n().locale !== 'en') return renderLocalizedRogueGuide();
   const weapon = getRoguePlayerWeapon({}), first = getRoundConfig(1), last = getRoundConfig(ROUND_COUNT);
   const tiers = Object.keys(RARITIES);
   const abilities = Object.entries(ABILITIES).sort(([a], [b]) => tiers.indexOf(abilityRarity(a)) - tiers.indexOf(abilityRarity(b)));
@@ -51,6 +55,15 @@ export function installRogueGuide() {
   let opener = null;
   guideDialog.querySelector('button').addEventListener('click', () => guideDialog.close());
   guideDialog.addEventListener('close', () => opener?.isConnected && opener.focus());
+  let progression = false;
+  const refresh = () => {
+    if (!guideDialog.open) return;
+    guideDialog.querySelector('#rogue-guide-title').textContent = t(progression ? 'guide.progression' : 'guide.title');
+    guideDialog.querySelector('header button').textContent = t('guide.close');
+    guideDialog.querySelector('header button').setAttribute('aria-label', getI18n().locale === 'en' ? 'Close mode guide' : t('guide.close'));
+    guideDialog.querySelector('.rogue-guide-content').innerHTML = progression ? getI18n().locale === 'en' ? renderProgressionGuide() : renderLocalizedProgressionGuide() : renderRogueGuide();
+  };
+  getI18n().subscribe(refresh);
   document.addEventListener('click', event => {
     const trigger = event.target.closest?.('[data-rogue-guide], [data-progression-guide]');
     if (!trigger || guideDialog.open) return;
@@ -58,6 +71,7 @@ export function installRogueGuide() {
     guideDialog.querySelector('#rogue-guide-title').textContent = trigger.hasAttribute('data-progression-guide') ? 'Progression Guide' : 'Roguelite Mode Guide';
     guideDialog.querySelector('.rogue-guide-content').innerHTML = trigger.hasAttribute('data-progression-guide') ? renderProgressionGuide() : renderRogueGuide();
     guideDialog.querySelector('.rogue-guide-content').scrollTop = 0;
-    guideDialog.showModal();
+    progression = trigger.hasAttribute('data-progression-guide');
+    guideDialog.showModal(); refresh();
   });
 }

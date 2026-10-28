@@ -54,7 +54,7 @@ test('all modes return to a ready selector without reloading assets or leaving m
   }
   let catalogLoads = 0, spriteLoads = 0;
   vm.runInNewContext(gameSource.slice(gameSource.indexOf('window.addEventListener("DOMContentLoaded"')), {
-    window: windowMock, document: documentMock, console, isMobileDevice: false,
+    isGamePaused: () => false, window: windowMock, document: documentMock, console, isMobileDevice: false,
     Game: Session, RogueGame: Session, InputManager: class {}, gameResources: resources,
     setModeSelectionHandler, returnToModeSelection, resolveScenario: (_, id) => ({ id }),
     installLanguageUI() {}, t: key => key === 'menu.ready' ? 'Choose your front.' : 'Preparing the battlefield…',
@@ -91,6 +91,7 @@ test('team-mode result scenes remain open indefinitely instead of returning on a
   const source = gameSource.slice(gameSource.indexOf('export class Game {'), gameSource.indexOf('// main.js'));
   let returns = 0, frames = 0;
   const Game = vm.runInNewContext(source.replace('export class', 'class') + '; Game;', {
+    isGamePaused: () => false, t: (_, params, fallback) => fallback, tx: value => value,
     requestAnimationFrame() { frames++; return frames; },
     clampFrameDelta: dt => Math.min(.25, dt), returnToModeSelection() { returns++; },
   });
@@ -112,6 +113,7 @@ test('disposing team input removes listeners and cancels long press before anoth
   const documentMock = new EventTarget();
   const source = gameSource.slice(gameSource.indexOf('export class EventManager'), gameSource.indexOf('// core/managers/GameStateManager'));
   const EventManager = vm.runInNewContext(source.replace('export class', 'class') + '; EventManager;', {
+    isGamePaused: () => false,
     window: windowMock, document: documentMock, AbortController,
     ITEM_BY_KEY: {}, MOBILE_LONG_PRESS_MS: 650, getLayoutDragThreshold: () => 12,
   });

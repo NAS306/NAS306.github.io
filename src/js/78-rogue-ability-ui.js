@@ -1,4 +1,7 @@
-import { ABILITIES, RARITIES, abilityRarity, abilityIcon, previewAbility } from './41-rogue-abilities.js';
+import { ABILITIES, abilityRarity, abilityIcon, previewAbility } from './41-rogue-abilities.js';
+
+import { t, tx } from './24-i18n.js';
+import { abilityName, abilityDescription, rarityName, statValue } from './75-localized-game-text.js';
 
 export function renderRogueAbilityChoices(game, ended) {
   const { state } = game;
@@ -15,21 +18,21 @@ export function renderRogueAbilityChoices(game, ended) {
     card.classList.toggle('selected', selected);
     card.setAttribute('aria-pressed', String(selected));
     card.querySelector('.rogue-ability-icon').innerHTML = abilityIcon(id);
-    card.querySelector('h2').textContent = ability.name;
-    card.querySelector('p').textContent = state.isSuperMode ? ability.description.replace(/ Maximum level \d+\./g, '').replace('Your points are capped at 5,000.', 'Run points remain unlimited in Super Mode.') : ability.description;
-    card.querySelector('.rogue-ability-status').textContent = `${RARITIES[rarity].name} · ${selected ? 'Selected' : level ? `Lv.${level} → ${level + 1}` : 'Free ability'}`;
+    card.querySelector('h2').textContent = abilityName(id);
+    card.querySelector('p').textContent = abilityDescription(id, state.isSuperMode);
+    card.querySelector('.rogue-ability-status').textContent = `${rarityName(rarity)} · ${selected ? t('ability.selected') : level ? `Lv.${level} → ${level + 1}` : t('ability.free')}`;
     const changes = ability.action ? [] : previewAbility(state.levels, before, id).filter(change => !state.isSuperMode || !['points', 'pointsCap', 'roundIncome'].includes(change.key));
-    card.title = changes.map(change => `${change.label}: ${change.before} → ${change.after}`).join('\n');
+    card.title = changes.map(change => `${tx(change.label)}: ${statValue(change.before)} → ${statValue(change.after)}`).join('\n');
     const list = card.querySelector('.rogue-ability-changes');
     list.replaceChildren();
     for (const change of changes.slice(0, 3)) {
       const row = document.createElement('li'), label = document.createElement('span'), value = document.createElement('strong');
-      label.textContent = change.label; value.textContent = `${change.before} → ${change.after}`;
+      label.textContent = tx(change.label); value.textContent = `${statValue(change.before)} → ${statValue(change.after)}`;
       row.append(label, value); list.append(row);
     }
     if (!list.children.length) {
       const row = document.createElement('li');
-      row.textContent = ability.action ? state.removedAbility ? `Removed one level: ${ABILITIES[state.removedAbility].name}` : 'Choose an owned ability after selecting this card.' : 'Stat limit reached.';
+      row.textContent = ability.action ? state.removedAbility ? t('ability.removed', { name: abilityName(state.removedAbility) }) : t('ability.pickTarget') : t('ability.limit');
       list.append(row);
     }
   }
@@ -42,7 +45,7 @@ export function renderRogueAbilityChoices(game, ended) {
     const badge = document.createElement('span'); badge.className = 'rogue-owned-ability'; badge.dataset.rarity = abilityRarity(id);
     badge.innerHTML = abilityIcon(id);
     const label = document.createElement('span'); label.className = 'rogue-owned-label'; label.textContent = `Lv.${count}`;
-    badge.append(label); badge.title = `${ABILITIES[id].name} Lv.${count}: ${ABILITIES[id].description}`;
+    badge.append(label); badge.title = `${abilityName(id)} Lv.${count}: ${abilityDescription(id, state.isSuperMode)}`;
     badge.setAttribute('aria-label', badge.title); owned.append(badge);
   }
   const panel = game.el?.('recalibration');
@@ -52,7 +55,7 @@ export function renderRogueAbilityChoices(game, ended) {
   const targets = panel.querySelector('.rogue-removal-targets'); targets.replaceChildren();
   for (const [id, level] of counts) {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.removeAbility = id;
-    button.textContent = `${ABILITIES[id].name} · ${level === 1 ? 'Remove' : `Lv.${level} → ${level - 1}`}`;
+    button.textContent = `${abilityName(id)} · ${level === 1 ? t('ability.remove') : `Lv.${level} → ${level - 1}`}`;
     button.addEventListener('click', () => { if (state.removeAbility(id, game.world.player)) game.renderPanel(); });
     targets.append(button);
   }

@@ -13,7 +13,7 @@ const catalogs = {
 };
 
 test('production keeps English; future catalogs switch without a reload and notify subscribers', () => {
-  assert.deepEqual(Object.keys(LANGUAGE_CATALOGS), ['en']);
+  assert.deepEqual(Object.keys(LANGUAGE_CATALOGS), ['en', 'ko', 'zh', 'ja', 'ru']);
   const language = createI18n({ catalogs }), changes = [];
   const unsubscribe = language.subscribe(locale => changes.push(locale));
   assert.equal(language.setLocale('ko-KR'), true);

@@ -5,10 +5,12 @@ import { clampFrameDelta } from './01-runtime.js';
 import { detectMobileDevice, getLayoutDragThreshold } from './02-mobile-support.js';
 import { getNextPlayerWeaponId } from './10-weapon-config.js';
 import { RogueGame } from './81-rogue-game.js';
-import { createRewardSession, getProgression, victoryRewardText } from './23-progression.js';
+import { createRewardSession, getProgression } from './23-progression.js';
 import { installProgressionUI } from './82-progression-ui.js';
 import { installLanguageUI } from './83-language-ui.js';
-import { t } from './24-i18n.js';
+import { isGamePaused, subscribeGamePause } from './14-game-pause.js';
+import { localizedRewardText } from './75-localized-game-text.js';
+import { tx, t, applyTranslations, getI18n } from './24-i18n.js';
 import { installRogueGuide, isRogueGuideOpen } from './77-rogue-guide.js';
 import { returnToModeSelection, setModeSelectionHandler } from './12-game-flow.js';
 import {
@@ -40,6 +42,7 @@ export class InputManager {
       rightDown: false,
     };
     this.onKeyDown = (e) => {
+      if (isGamePaused()) return;
       this.keys[e.key.toLowerCase()] = true;
     };
     this.onKeyUp = (e) => {
@@ -166,7 +169,7 @@ export class UIManager {
     if (this.orbitalStatusEl) {
       this.orbitalStatusEl.textContent = cooldown > 0
         ? `${Math.ceil(cooldown)}s`
-        : "READY";
+        : tx('READY');
     }
     if (this.specialWeaponPointEl) {
       this.specialWeaponPointEl.textContent = `${currentPoint}`;
@@ -190,8 +193,8 @@ export class UIManager {
   updateBaseHealth(blue, red, maxValue = 10e3, label = "Base") {
     const blueLabel = document.getElementById("blue-status-label");
     const redLabel = document.getElementById("red-status-label");
-    if (blueLabel) blueLabel.textContent = `Blue ${label}`;
-    if (redLabel) redLabel.textContent = `Red ${label}`;
+    if (blueLabel) blueLabel.textContent = `${tx('Blue')} ${tx(label)}`;
+    if (redLabel) redLabel.textContent = `${tx('Red')} ${tx(label)}`;
     if (this.blueBaseFillEl) {
       this.blueBaseFillEl.style.width = `${Math.max(0, Math.min(100, (blue / maxValue) * 100))}%`;
     }
@@ -218,9 +221,9 @@ export class UIManager {
   }
 
   updateScenario(scenario) {
-    if (this.scenarioNameEl) this.scenarioNameEl.textContent = scenario?.title ?? "";
+    if (this.scenarioNameEl) this.scenarioNameEl.textContent = scenario ? t(`mode.${scenario.id}.name`, {}, scenario.title) : '';
     if (this.scenarioObjectiveEl) {
-      this.scenarioObjectiveEl.textContent = scenario?.objective ?? "";
+      this.scenarioObjectiveEl.textContent = scenario ? t(`objective.${scenario.id}`, {}, scenario.objective) : '';
     }
   }
 
@@ -232,13 +235,13 @@ export class UIManager {
     if (!visible) return;
     const weapon = player.weapon;
     if (this.weaponPanelEl) this.weaponPanelEl.dataset.weaponId = weapon.id;
-    if (this.weaponNameEl) this.weaponNameEl.textContent = weapon.title;
+    if (this.weaponNameEl) this.weaponNameEl.textContent = tx(weapon.title);
     if (this.weaponDescriptionEl) {
-      this.weaponDescriptionEl.textContent = weapon.description;
+      this.weaponDescriptionEl.textContent = tx(weapon.description);
     }
-    if (this.weaponFireModeEl) this.weaponFireModeEl.textContent = weapon.fireMode;
+    if (this.weaponFireModeEl) this.weaponFireModeEl.textContent = tx(weapon.fireMode);
     if (this.weaponReloadEl) {
-      this.weaponReloadEl.textContent = `Reload ${weapon.reloadTime.toFixed(1)}s`;
+      this.weaponReloadEl.textContent = t('combat.reload', { seconds: weapon.reloadTime.toFixed(1) });
     }
     if (this.weaponTankSymbolEl) {
       this.weaponTankSymbolEl.className = `shape-${weapon.tankShape}`;
@@ -249,7 +252,7 @@ export class UIManager {
     if (this.weaponSwitchStatusEl) {
       this.weaponSwitchStatusEl.textContent = cooldown > 0
         ? `${Math.ceil(cooldown)}s`
-        : "READY";
+        : tx('READY');
     }
     if (this.weaponSwitchFillEl) {
       const progress = maxCooldown > 0
@@ -275,7 +278,7 @@ export class UIManager {
       this.barrierStatusEl.textContent = `${Math.ceil(world.deployableWallCooldown)}s`;
       this.barrierStatusEl.style.color = "#ffcf70";
     } else {
-      this.barrierStatusEl.textContent = "READY";
+      this.barrierStatusEl.textContent = tx('READY');
       this.barrierStatusEl.style.color = "#8fd8ff";
     }
     if (this.barrierCooldownFillEl) {
@@ -361,6 +364,7 @@ export class EventManager {
       this.requestFullscreen();
     }
     window.addEventListener("keydown", (e) => {
+      if (isGamePaused()) return;
       const itemId = ITEM_BY_KEY[e.key];
       if (itemId) game.selectItem(itemId);
       if (e.code === "KeyQ" && !e.repeat) game.switchPlayerWeapon();
@@ -529,7 +533,8 @@ export class GameStateManager {
       for (const audio of audioPool.pool) audio.volume = 0;
     }
     const reward = game.rewardSession.settle({ won: game.world.winner === game.world.level.playerTeam, kills: game.world.killcount.player });
-    game.rewardMessage = victoryRewardText(reward, game.isSuperMode);
+    game.reward = reward;
+    game.rewardMessage = localizedRewardText(reward, game.isSuperMode, getProgression());
     game.endingExplosions = {
       nextIdx: 0,
       explosions: [],
@@ -612,6 +617,11 @@ export class Game {
     this.ui.updateScenario(this.levelDefinition);
     this.stateManager = new GameStateManager(this);
     this.eventManager = new EventManager(this);
+    this.unsubscribePause = subscribeGamePause(() => { this.input.reset(); this.accumulator = 0; this.lastTime = performance.now(); this.eventManager?.cancelLongPress(); });
+    this.unsubscribeLanguage = getI18n().subscribe(() => {
+      this.ui.updateScenario(this.world.level);
+      if (this.endingExplosions) this.rewardMessage = localizedRewardText(this.reward, this.isSuperMode, getProgression());
+    });
     this.endingExplosions = null;
     this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode);
     const playerSpawn = this.getPlayerSpawn();
@@ -781,6 +791,7 @@ export class Game {
     const dtMs = Math.max(0, now - this.lastTime);
     this.lastTime = now;
     const dt = clampFrameDelta(dtMs / 1e3, this.maxFrameDelta);
+    if (isGamePaused()) { this.accumulator = 0; this.animationFrameId = requestAnimationFrame(this.boundLoop); return; }
     
     if (this.running) {
       this.accumulator += dt;
@@ -812,13 +823,13 @@ export class Game {
       ctx.font = "bold 64px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const msg = this.endingExplosions.message;
+      const msg = t(`combat.result.${this.world.winner}`, {}, this.endingExplosions.message);
       const centerX = this.canvas.width / 2;
       const centerY = this.canvas.height / 2;
       ctx.fillText(msg, centerX, centerY - 100);
       ctx.fillStyle = "#7fd6ff";
       ctx.font = "bold 30px sans-serif";
-      ctx.fillText(this.rewardMessage || "Battle complete", centerX, centerY, this.canvas.width - 40);
+      ctx.fillText(this.rewardMessage || tx('Battle complete'), centerX, centerY, this.canvas.width - 40);
       ctx.restore();
       this.animationFrameId = requestAnimationFrame(this.boundLoop);
       return;
@@ -901,8 +912,8 @@ export class Game {
       this.playerRespawnTimer > 0
     ) {
       this.ui.showOverlay(
-        `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
-        "Stay patient. Your tank will return soon.",
+        t('combat.respawn', { seconds: Math.ceil(this.playerRespawnTimer) }),
+        t('combat.respawnHint'),
       );
     } else {
       this.ui.hideOverlay();
@@ -915,6 +926,8 @@ export class Game {
     this.running = false;
     cancelAnimationFrame(this.animationFrameId);
     this.animationFrameId = null;
+    this.unsubscribePause?.();
+    this.unsubscribeLanguage?.();
     this.eventManager?.dispose();
     this.input?.reset();
     this.input?.dispose();
@@ -1020,7 +1033,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   function startGame(scenarioId = "frontline", useSuper = false) {
-    if (gameStarted || !gameReady || isRogueGuideOpen()) return;
+    if (gameStarted || !gameReady || isRogueGuideOpen() || isGamePaused()) return;
     if (useSuper && !getProgression().isUnlocked(scenarioId)) return;
     gameStarted = true;
     const bottomHudEl = document.getElementById("bottom-hud");

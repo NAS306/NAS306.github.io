@@ -1,3 +1,4 @@
+import { tx } from './24-i18n.js';
 // systems.js
 import { Bullet, Explosion, Tank, Turret } from './30-entities.js';
 import { clamp, distance, getLeadAngle } from './00-math.js';
@@ -1436,7 +1437,7 @@ export class World {
       ctx.font = "bold 20px sans-serif";
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
-      ctx.fillText("BASE", screenX, screenY - 48);
+      ctx.fillText(tx("BASE"), screenX, screenY - 48);
       ctx.restore();
     }
     for (const stronghold of this.strongholds) {
@@ -1477,8 +1478,8 @@ export class World {
       ctx.textAlign = "center";
       ctx.fillText(
         stronghold.owner
-          ? `${stronghold.owner.toUpperCase()} Stronghold`
-          : "Neutral Stronghold",
+          ? tx(`${stronghold.owner.toUpperCase()} Stronghold`)
+          : tx("Neutral Stronghold"),
         screenX,
         screenY - 44,
       );

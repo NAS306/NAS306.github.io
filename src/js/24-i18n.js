@@ -1,8 +1,14 @@
 import english from '../locales/en.json' with { type: 'json' };
+import korean from '../locales/ko.json' with { type: 'json' };
+import chinese from '../locales/zh.json' with { type: 'json' };
+import japanese from '../locales/ja.json' with { type: 'json' };
+import russian from '../locales/ru.json' with { type: 'json' };
 
 export const LANGUAGE_KEY = 'tank-battle.language.v1';
 // Register complete, reviewed translations here. All catalogs are bundled offline.
-export const LANGUAGE_CATALOGS = Object.freeze({ en: Object.freeze({ name: 'English', messages: Object.freeze(english) }) });
+export const LANGUAGE_CATALOGS = Object.freeze(Object.fromEntries([
+  ['en', 'English', english], ['ko', '한국어', korean], ['zh', '简体中文', chinese], ['ja', '日本語', japanese], ['ru', 'Русский', russian],
+].map(([code, name, messages]) => [code, Object.freeze({ name, messages: Object.freeze(messages) })])));
 
 export function createI18n({ catalogs = LANGUAGE_CATALOGS, storage, locale = 'en' } = {}) {
   const listeners = new Set();
@@ -46,9 +52,11 @@ export function getI18n() {
   return instance;
 }
 export const t = (key, params, fallback) => getI18n().t(key, params, fallback);
+export const tx = value => t(`text.${value}`, {}, value);
 
 // Text and accessible attributes only: translations are never evaluated as HTML.
 const originalText = new WeakMap();
+const originalNodes = new WeakMap();
 export function applyTranslations(root = document, language = getI18n()) {
   const elements = [...root.querySelectorAll('[data-i18n], [data-i18n-title], [data-i18n-aria-label]')];
   if (root.matches?.('[data-i18n], [data-i18n-title], [data-i18n-aria-label]')) elements.unshift(root);
@@ -63,5 +71,17 @@ export function applyTranslations(root = document, language = getI18n()) {
       const translated = language.t(key, {}, fallback);
       if (target) element.setAttribute(target, translated); else element.textContent = translated;
     }
+  }
+  // Legacy static text nodes are translated without replacing nested markup.
+  const walker = root.ownerDocument?.createTreeWalker?.(root, 4) ?? root.createTreeWalker?.(root, 4);
+  if (!walker) return;
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.parentElement?.closest('script, style, option, [data-i18n], [data-no-translate]')) continue;
+    const source = originalNodes.get(node) ?? node.nodeValue;
+    const key = `text.${source.trim()}`;
+    if (!Object.hasOwn(english, key)) continue;
+    originalNodes.set(node, source);
+    node.nodeValue = source.replace(source.trim(), () => language.t(key, {}, source.trim()));
   }
 }

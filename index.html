@@ -798,6 +798,25 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
 
 .rogue-guide-abilities td[data-rarity] { color: var(--ability-rarity-color); font-weight: 700; }
 
+#translation-button { position: fixed; z-index: 100; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 7px; align-items: center; max-width: min(240px, 60vw); padding: 7px 10px; color: #fff; border: 1px solid #a9c2d780; border-radius: 7px; background: #102030a6; backdrop-filter: blur(5px); font: 13px system-ui, sans-serif; cursor: pointer; }
+#translation-button:hover { background: #243f56e8; }
+#translation-button:focus-visible, #language-dialog :focus-visible { outline: 2px solid #90e1ff; outline-offset: 3px; }
+#language-dialog { box-sizing: border-box; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; color: #edf5ff; background: #142536; border: 1px solid #82adc9; border-radius: 12px; font: 16px/1.5 system-ui, sans-serif; }
+#language-dialog::backdrop { background: #020912b8; }
+#language-dialog h2 { margin: 0 0 8px; font-size: 24px; }
+#language-dialog p { color: #b8cfdf; }
+#language-dialog label { display: grid; gap: 8px; }
+#language-dialog select, #language-dialog button { font: inherit; padding: 10px; border: 1px solid #83abc6; border-radius: 5px; color: #fff; background: #234157; }
+#language-dialog > button { margin-top: 20px; width: 100%; cursor: pointer; }
+.rogue-panel-guide-button { margin-right: 165px; }
+@media (max-width: 600px) { #translation-button span:last-child { display: none; } .rogue-panel-guide-button { margin-right: 62px; } }
+
+.rogue-ability h2, .rogue-ability p, .mode-name { overflow-wrap: anywhere; }
+.rogue-preview-label, #rogue-upgrades strong { white-space: normal; overflow-wrap: anywhere; }
+.rogue-hud { top: 48px; }
+#base-health-ui, body.mobile-mode #base-health-ui { top: 48px; }
+:lang(ko) #rogue-next-label { word-break: keep-all; }
+
 /* Selector styles are isolated from the combat HUD and upgrade panel. */
 #loading-screen { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; pointer-events: auto; overflow-y: auto; overscroll-behavior: contain; background: #0b1015; background-image: radial-gradient(ellipse at 80% 5%, #24312d66, transparent 60%), linear-gradient(120deg, #111a2144, transparent); }
 #loading-hint.hidden { display: none; }
@@ -886,10 +905,6 @@ body.rogue-mode #gameCanvas { cursor: crosshair; }
   #loading-screen *, #loading-screen *::before, #loading-screen *::after { animation: none !important; transition: none !important; }
   .scenario-button:hover, .scenario-button:focus-visible, .scenario-button:hover .mode-art svg { transform: none; }
 }
-
-.selector-topline:has(.language-picker) { flex-wrap: wrap; }
-.language-picker { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: normal; }
-.language-picker select { max-width: 160px; color: #e8eee7; background: #111920; border: 1px solid #65766b; padding: 6px; }
 
 </style>
 </head>
@@ -1702,6 +1717,27 @@ var TankGame = (() => {
     modeSelectionHandler?.();
   }
 
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\14-game-pause.js
+  var tokens = /* @__PURE__ */ new Set();
+  var listeners = /* @__PURE__ */ new Set();
+  var isGamePaused = () => tokens.size > 0;
+  function subscribeGamePause(listener) {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  }
+  function acquireGamePause() {
+    const token = {};
+    tokens.add(token);
+    if (tokens.size === 1) for (const listener of listeners) listener(true);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      tokens.delete(token);
+      if (!tokens.size) for (const listener of listeners) listener(false);
+    };
+  }
+
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\20-rogue-ammo.js
   var STARTING_AMMO = 300;
   var ROUND_AMMO_SUPPLY = 200;
@@ -1916,10 +1952,6 @@ var TankGame = (() => {
       }
     };
   }
-  function victoryRewardText(reward, superMode = false) {
-    const store = getProgression();
-    return `${superMode ? "SUPER MODE: no victory points" : `Victory points +${reward.toLocaleString("en-US")}`} | Wallet ${store.data.points.toLocaleString("en-US")}${store.error ? ` | ${store.error}` : ""}`;
-  }
   function renderProgressionGuide() {
     return `<section><h3>Victory points and permanent Super Modes</h3><p>Normal-mode victories add to one shared wallet. In Frontline, Siege Attack, Siege Defense, and Breakthrough, each personal kill is worth ${VICTORY_POINTS_PER_KILL} victory points, paid only if your team wins. Combat item points are separate. Defeat or leaving a match pays nothing.</p><p>In Roguelite, complete Round ${EXTRACTION_ROUND} to unlock Extract &amp; Win in preparation for Round ${EXTRACTION_ROUND + 1} and later. Extraction or surviving Round 30 counts as victory and banks only the run points remaining at the end, with no extra kill-based reward. Death is defeat and pays nothing. Spending run points lowers the possible payout.</p><p>Spend ${SUPER_UNLOCK_COST.toLocaleString("en-US")} shared victory points to permanently unlock Super Mode for one chosen mode; all five cost 500,000 total. Unlocking does not start a match. Use that mode's Play Super button afterward. Enter no longer bypasses locks. Every Super Mode awards zero victory points.</p><p>Roguelite Super Mode has unlimited run points and shows every ability during preparation. Select any ability repeatedly without the normal one-pick, rarity, prerequisite, or level restrictions. Recalibration still needs an owned ability; Pulse Shield remains a single timed shield when stacked. Ability tradeoffs and combat survival still apply.</p><p>The wallet and unlocks are saved in this browser on this site, independently of each run. Clearing site data removes them; another browser or the offline HTML has its own save. If saving fails, a visible status and Retry Save button appear.</p></section>`;
   }
@@ -1978,14 +2010,1403 @@ var TankGame = (() => {
     "mode.breakthrough.description": "Outfight the enemy and drain their reinforcements.",
     "mode.roguelite.name": "Roguelite",
     "mode.roguelite.tag": "ONE TANK. THIRTY ROUNDS.",
-    "mode.roguelite.description": "Survive 30 rounds. Choose your powers. Balance the risk."
+    "mode.roguelite.description": "Survive 30 rounds. Choose your powers. Balance the risk.",
+    "language.title": "Translation / Language",
+    "language.paused": "The game is paused while language settings are open.",
+    "language.close": "Close and resume",
+    "rarity.common": "Common",
+    "rarity.rare": "Rare",
+    "rarity.legendary": "Legendary",
+    "ability.level": "Lv.{level}",
+    "ability.selected": "Selected",
+    "ability.free": "Free ability",
+    "ability.preview": "Current → After selection",
+    "ability.limit": "Stat limit reached.",
+    "ability.pickTarget": "Choose an owned ability to reduce by one level.",
+    "ability.max": "Maximum level {level}.",
+    "ability.requires": "Requires Explosive Payload or Death Cascade.",
+    "ability.remove": "Remove",
+    "effect.roundIncome": "Round ×{amount} points per level after each clear",
+    "effect.cap": "Held points capped at {amount}",
+    "effect.shield": "Block damage for 1 second every 3 combat seconds",
+    "effect.payload": "Extra explosive shells {amount} ({cost} ammo each)",
+    "rogue.roundLabel": "ROUND {round} / {rounds}",
+    "rogue.pointsKills": "{points} points · {kills} kills",
+    "rogue.ammoHud": "AMMO {ammo} · {cost} / volley",
+    "rogue.ended": "{kills} kills · {points} points left",
+    "wallet.reward": "Victory points +{points} | Wallet {wallet}",
+    "wallet.noReward": "SUPER MODE: no victory points | Wallet {wallet}",
+    "guide.title": "Roguelite Mode Guide",
+    "guide.progression": "Progression Guide",
+    "guide.close": "Close ×",
+    "guide.progressionText": "Normal team victories bank {killPoints} points per personal kill. Roguelite banks remaining run points on victory, not an extra kill reward. Defeat or leaving pays nothing.",
+    "guide.unlockText": "Each mode permanently unlocks Super Mode for {cost} shared points (five modes: {total}). Super victories give no points. Roguelite Super has infinite run points and unrestricted repeat ability picks. Tradeoffs still apply. Saves belong to this browser/site; clearing site data deletes them.",
+    "guide.survival": "Survival and preparation",
+    "guide.survivalText": "Survive {rounds} rounds of {seconds}s. Start with {hp} HP and {ammo} ammo. After clearing round {extract}, Extract & Win becomes available before the next enemy die. Death means defeat. HP, ammo and upgrades carry over; no automatic healing. Music stops on victory or defeat.",
+    "guide.economy": "Points, upgrades and ammunition",
+    "guide.economyText": "Each kill gives {points} run points. Before rounds 2–{rounds}, receive {supply} ammo and choose at most one of {choices} abilities, or skip. Upgrade prices start at 5 and rise by 2 per purchase of that item. Repair fully heals; increasing max HP does not heal. Armor reduces each hit, minimum 1; negative armor adds damage. Ammo per point = max(1, 21 − round): 20 at R1, 1 from R20 onward. Standard shells cost 1 ammo; explosive payloads cost {payload}.",
+    "guide.abilities": "Abilities and tradeoffs",
+    "guide.abilityText": "Common (white) 60%, Rare (blue) 30%, Legendary (gold) 10% per slot; offers have no duplicates. Repeated picks stack benefits and penalties. Recalibration removes one level and restores both effects. Normal level caps: Oversized/Bargain 3, Shield 1. Blast-only abilities require an explosion source. Pulse Shield starts at 3s each round, blocking [3,4), [6,7)… HP floor 25, base damage/shell speed floor 20%, movement/fire rate floor 25%. Oversized multiplies speed after that floor.",
+    "guide.enemies": "Enemies, dice and combat",
+    "guide.enemyText": "Enemy count grows from 6 to 180, HP from 90 by +3 per round; movement/fire rate start at half team-mode values. Replacements accelerate from 0.3s to 0.06s. Enemy dice have seven equal outcomes: five stats +20–60% of base, Pass, or Bomb (all five). Buffs persist; rolling locks preparation. Standard multishot and piercing do not multiply payloads. Wall bounces preserve lifetime; corners count once. Payload radius cap 150px, death nova 110px. Explosions weaken with distance. Player blasts hit enemies only; healing never revives or exceeds max HP.",
+    "guide.results": "Controls and results",
+    "guide.resultsText": "WASD/arrows: move; mouse: aim; left click: fire. Roguelite uses Standard Cannon only: base damage 40, 5 shots/s, shell speed 750, life 1.5s. Results show six actual totals and round trends normalized to each metric’s own peak. Zero-kill ammo efficiency is unavailable. Hover for upgrades, ability picks and Recalibration. Shop repairs count toward the next round. New runs reset run progress, not the wallet. The translation button pauses combat, timers and transitions while settings are open.",
+    "ability.hull.name": "Reinforced Hull",
+    "ability.turbo.name": "Turbo Engine",
+    "ability.loader.name": "Autoloader",
+    "ability.overcharge.name": "Overcharged Shells",
+    "ability.piercing.name": "Piercing Rounds",
+    "ability.splitter.name": "Split Barrel",
+    "ability.ballistics.name": "High Velocity",
+    "ability.blast.name": "Wide Blast",
+    "ability.recycler.name": "Combat Recycler",
+    "ability.plating.name": "Heavy Plating",
+    "ability.glass.name": "Glass Reactor",
+    "ability.storm.name": "Bullet Storm",
+    "ability.siege.name": "Siege Battery",
+    "ability.blood.name": "Blood Engine",
+    "ability.rail.name": "Rail Accelerator",
+    "ability.reactor.name": "Redline Reactor",
+    "ability.slowOrb.name": "Orbital Magazine",
+    "ability.warhead.name": "Unstable Warheads",
+    "ability.juggernaut.name": "Iron Fortress",
+    "ability.volatile.name": "Death Cascade",
+    "ability.explosive.name": "Explosive Payload",
+    "ability.ricochet.name": "Ricochet Rounds",
+    "ability.oversized.name": "Oversized Rounds",
+    "ability.recalibrate.name": "Recalibration",
+    "ability.bargain.name": "Devil’s Bargain",
+    "ability.dividends.name": "Round Dividend",
+    "ability.shield.name": "Pulse Shield",
+    "ability.lightHull.name": "Light Chassis",
+    "ability.heavyAmmo.name": "Dense Ammunition",
+    "ability.overdrive.name": "Overdrive Matrix",
+    "effect.maxHP": "Max HP",
+    "effect.speed": "Move speed",
+    "effect.damage": "Damage",
+    "effect.attackSpeed": "Fire rate",
+    "effect.armor": "Armor",
+    "effect.projectileSpeed": "Shell speed",
+    "effect.projectileLifetime": "Shell flight time",
+    "effect.projectileSize": "Shell size",
+    "effect.shellSpeedFactor": "Shell speed",
+    "effect.pointFactor": "Points earned",
+    "effect.incomingDamageFactor": "Damage taken",
+    "effect.wallBounces": "Wall bounces",
+    "effect.explosionRadius": "Explosion radius",
+    "effect.extraProjectiles": "Extra standard shells",
+    "effect.penetrationBonus": "Extra standard pierce",
+    "effect.killHeal": "HP per kill",
+    "effect.deathBlastDamage": "Death nova base damage",
+    "text.Kills": "Kills",
+    "text.Damage dealt": "Damage dealt",
+    "text.Damage taken": "Damage taken",
+    "text.HP restored": "HP restored",
+    "text.Ammo spent": "Ammo spent",
+    "text.Ammo per kill": "Ammo per kill",
+    "text.Points": "Points",
+    "text.Move speed": "Move speed",
+    "text.Damage": "Damage",
+    "text.Shots / second": "Shots / second",
+    "text.Armor": "Armor",
+    "text.Ammo / volley": "Ammo / volley",
+    "text.Shell speed": "Shell speed",
+    "text.Shell size / bounces": "Shell size / bounces",
+    "text.Ammo": "Ammo",
+    "text.Round": "Round",
+    "text.Lost": "Lost",
+    "text.VICTORY": "VICTORY",
+    "text.LOST": "LOST",
+    "text.READY": "READY",
+    "text.EMPTY": "EMPTY",
+    "text.Standard Cannon": "Standard Cannon",
+    "text.Heavy Cannon": "Heavy Cannon",
+    "text.Scatter Cannon": "Scatter Cannon",
+    "text.Explosive Payload": "Explosive Payload",
+    "text.Single shot": "Single shot",
+    "text.Explosive shell": "Explosive shell",
+    "text.3-shot / 30° spread": "3-shot / 30° spread",
+    "text.Balanced cannon for accurate sustained fire.": "Balanced cannon for accurate sustained fire.",
+    "text.Explosive shell with splash damage and strong knockback.": "Explosive shell with splash damage and strong knockback.",
+    "text.Three standard shells cover a wide frontal arc.": "Three standard shells cover a wide frontal arc.",
+    "text.Totals & round trends": "Totals & round trends",
+    "text.Recalibration": "Recalibration",
+    "text.Lose one level. Both its benefit and penalty are removed.": "Lose one level. Both its benefit and penalty are removed.",
+    "text.Back to choices": "Back to choices",
+    "text.Enemy Dice": "Enemy Dice",
+    "text.Enemy stats this round": "Enemy stats this round",
+    "text.Pass": "Pass",
+    "text.Speed": "Speed",
+    "text.Fire Rate": "Fire Rate",
+    "text.Max HP": "Max HP",
+    "text.Projectile Speed": "Projectile Speed",
+    "text.WASD: Move": "WASD: Move",
+    "text.Mouse: Aim": "Mouse: Aim",
+    "text.Left Click: Shoot": "Left Click: Shoot",
+    "text.1/2: Select Item": "1/2: Select Item",
+    "text.Right Click: Use Selected Item": "Right Click: Use Selected Item",
+    "text.Space + Scroll: FreeCamera": "Space + Scroll: FreeCamera",
+    "text.My kill score:": "My kill score:",
+    "text.Blue Score:": "Blue Score:",
+    "text.Red Score:": "Red Score:",
+    "text.CURRENT WEAPON": "CURRENT WEAPON",
+    "text.[Q] SWITCH": "[Q] SWITCH",
+    "text.SWITCH COOLDOWN": "SWITCH COOLDOWN",
+    "text.Item Cost": "Item Cost",
+    "text.[1] Orbital Strike": "[1] Orbital Strike",
+    "text.[2] Barrier": "[2] Barrier",
+    "text.SELECT OPERATION": "SELECT OPERATION",
+    "text.05 MISSION PROFILES": "05 MISSION PROFILES",
+    "text.SYSTEMS ONLINE": "SYSTEMS ONLINE",
+    "text.DEPLOY": "DEPLOY",
+    "text.QUICK SELECT": "QUICK SELECT",
+    "text.WASD + MOUSE TO PLAY": "WASD + MOUSE TO PLAY",
+    "text.Win normal matches. Unlock each Super Mode for 100,000 points.": "Win normal matches. Unlock each Super Mode for 100,000 points.",
+    "text.none": "none",
+    "text.None": "None",
+    "text.skipped": "skipped",
+    "text.Base": "Base",
+    "text.Tickets": "Tickets",
+    "text.Blue": "Blue",
+    "text.Red": "Red",
+    "text.Battle complete": "Battle complete",
+    "text.Shell damage": "Shell damage",
+    "text.Fire rate / reload": "Fire rate / reload",
+    "text.Shell flight time": "Shell flight time",
+    "text.Shell size": "Shell size",
+    "text.Wall bounces": "Wall bounces",
+    "text.Standard pierce": "Standard pierce",
+    "text.Shells / ammo per volley": "Shells / ammo per volley",
+    "text.Explosion radius": "Explosion radius",
+    "text.HP per kill": "HP per kill",
+    "text.Death nova damage / radius": "Death nova damage / radius",
+    "text.Points earned": "Points earned",
+    "text.Round income": "Round income",
+    "text.Point limit": "Point limit",
+    "text.Pulse shield": "Pulse shield",
+    "text.Unlimited": "Unlimited",
+    "combat.reload": "Reload {seconds}s",
+    "combat.respawn": "Respawning in {seconds}...",
+    "combat.respawnHint": "Stay patient. Your tank will return soon.",
+    "combat.result.blue": "BLUE TEAM WINS",
+    "combat.result.red": "RED TEAM WINS",
+    "objective.frontline": "Capture Strongholds and destroy the Red Base.",
+    "objective.siege": "Break all three walls and destroy the final Red Base.",
+    "objective.defense": "Keep the Blue Base alive for 7 minutes.",
+    "objective.breakthrough": "Drain all Red tickets before Blue runs out of reinforcements.",
+    "dice.bomb": "BOMB · All Enemy Stats",
+    "dice.enemy": "Enemy {stat}",
+    "dice.all": "All 5 stats +{bonus}% of base · Permanent this run",
+    "dice.one": "+{bonus}% of base · Added this round",
+    "dice.none": "No enemy buff this round",
+    "dice.value": "{value} · Dice +{bonus}%",
+    "dice.ack": "Click anywhere or press Enter to start",
+    "dice.rolling": "Rolling…",
+    "dice.deploying": "Deploying…",
+    "ability.removed": "Removed one level: {name}",
+    "chart.note": "Each line’s own peak = 100%; actual values below. — = no kills. Hover a round for upgrades and ability picks. Repairs count toward the next round.",
+    "chart.hidden": "Use the legend to show a line. The table always shows all actual values.",
+    "chart.aria": "Six combat trends by round, normalized to each metric’s own peak of 100%. Actual values are in the table below.",
+    "history.upgrades": "Upgrades: {items}",
+    "history.ability": "Ability: {items}",
+    "history.start": "none (starting round)",
+    "history.missing": "Preparation: not recorded",
+    "rogue.economy": "{points} pts / kill · Damage taken ×{factor}",
+    "rogue.cap": "Max {points} pts",
+    "rogue.shield": "Shield 1s / 3s",
+    "text.SOLO SURVIVAL": "SOLO SURVIVAL",
+    "text.Standard-shell multishot": "Standard-shell multishot",
+    "text.Percentages use Round 1 before dice buffs.": "Percentages use Round 1 before dice buffs.",
+    "text.Dice upgrades persist for the rest of this run.": "Dice upgrades persist for the rest of this run.",
+    "text.Each item: 5 → 7 → 9… points": "Each item: 5 → 7 → 9… points",
+    "text.WASD / Arrows: Move · Mouse: Aim · Left click: Fire": "WASD / Arrows: Move · Mouse: Aim · Left click: Fire",
+    "text.1s every 3s": "1s every 3s",
+    "text.Progress could not be loaded. Existing saves will not be overwritten.": "Progress could not be loaded. Existing saves will not be overwritten.",
+    "text.Progress is in memory only. Enable browser storage and retry saving before closing.": "Progress is in memory only. Enable browser storage and retry saving before closing.",
+    "chart.peak": "{label}: peak per round {value} = 100%",
+    "chart.zero": "0 in recorded rounds",
+    "chart.noValue": "no value recorded",
+    "chart.point": "Round {round}{lost} · {label}: {value} · {percent}% of peak",
+    "history.reduced": "Reduced: {name} Lv.{before} → {after}",
+    "rogue.eyebrow": "SOLO SURVIVAL · {rounds} ROUNDS",
+    "text.Shell": "Shell",
+    "text.Nova": "Nova",
+    "text.blast": "blast",
+    "text.Move Speed": "Move Speed",
+    "text.Shell Speed": "Shell Speed",
+    "text.BASE": "BASE",
+    "text.Blue Stronghold": "Blue Stronghold",
+    "text.Red Stronghold": "Red Stronghold",
+    "text.Neutral Stronghold": "Neutral Stronghold",
+    "text.BLUE Stronghold": "BLUE Stronghold",
+    "text.RED Stronghold": "RED Stronghold",
+    "upgrade.price": "{cost} pts · Lv.{level}",
+    "text.FIELD MANUAL": "FIELD MANUAL"
+  };
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\locales\ko.json
+  var ko_default = {
+    "language.label": "언어",
+    "menu.select": "모드 선택",
+    "menu.guide": "ⓘ 모드 설명",
+    "menu.progressionGuide": "진행 및 해금 안내",
+    "menu.retrySave": "저장 재시도",
+    "menu.ready": "전장을 선택하세요.",
+    "menu.loading": "전장을 준비하는 중…",
+    "menu.intro": "다섯 가지 전투 방식. 임무를 선택하고 전장을 지휘하세요.",
+    "wallet.unit": "누적 승리 포인트",
+    "wallet.rules": "승리 시 개인 킬당 +{points}. 로그라이트는 남은 런 포인트 정산. 슈퍼모드는 보상 없음.",
+    "wallet.playSuper": "슈퍼모드 시작",
+    "wallet.unlockSuper": "슈퍼모드 해금 · {cost}점",
+    "wallet.modeAction": "{mode}: {action}",
+    "rogue.upgrades": "로그라이트 강화",
+    "rogue.lost": "생존 실패",
+    "rogue.won": "{rounds}라운드 생존 완료!",
+    "rogue.extracted": "{round}라운드 후 철수 완료!",
+    "rogue.preparation": "라운드 {round}/{rounds} · {seconds}초 생존 · 능력 {choices}개 중 1개 선택 또는 생략 · 일반 60% / 희귀 30% / 전설 10%",
+    "rogue.super": "슈퍼모드 · 무한 런 포인트 · 모든 능력 반복 선택 · 승리 보상 없음",
+    "rogue.extract": "철수하여 승리",
+    "rogue.startRound": "{round}라운드 시작",
+    "rogue.buyAmmo": "탄약 {ammo}발 구매 ({points}점)",
+    "rogue.enterPoints": "포인트 입력",
+    "rogue.ammoRate": "{round}라운드: 1점 = 탄약 {ammo}발",
+    "rogue.stats": "스탯",
+    "rogue.owned": "보유 능력",
+    "rogue.results": "플레이 결과",
+    "rogue.upgradeHeading": "업그레이드",
+    "upgrade.heal.name": "수리",
+    "upgrade.heal.description": "체력 전량 회복",
+    "upgrade.speed.name": "이동속도",
+    "upgrade.speed.description": "기본 이동속도 +3%",
+    "upgrade.damage.name": "공격력",
+    "upgrade.damage.description": "기본 피해 +3%",
+    "upgrade.attackSpeed.name": "연사속도",
+    "upgrade.attackSpeed.description": "기본 연사속도 +3%",
+    "upgrade.armor.name": "방어력",
+    "upgrade.armor.description": "피격당 피해 −{amount}, 최소 1",
+    "mode.frontline.name": "전선",
+    "mode.frontline.tag": "영토 전쟁",
+    "mode.frontline.description": "거점을 점령하고 전선을 밀어 적 기지를 파괴하세요.",
+    "mode.siege.name": "공성 공격",
+    "mode.siege.tag": "방어선 돌파",
+    "mode.siege.description": "세 겹의 방어선을 돌파하는 공격을 이끄세요.",
+    "mode.defense.name": "공성 방어",
+    "mode.defense.tag": "진지 사수",
+    "mode.defense.description": "거점을 지키며 밀려오는 적군을 저지하세요.",
+    "mode.breakthrough.name": "돌파전",
+    "mode.breakthrough.tag": "총력 소모전",
+    "mode.breakthrough.description": "적을 격파해 증원 티켓을 모두 소모시키세요.",
+    "mode.roguelite.name": "로그라이트",
+    "mode.roguelite.tag": "전차 한 대, 30라운드",
+    "mode.roguelite.description": "30라운드를 생존하며 능력과 반작용의 균형을 맞추세요.",
+    "language.title": "번역 / 언어 설정",
+    "language.paused": "언어 설정을 열어 둔 동안 게임이 일시 정지됩니다.",
+    "language.close": "닫고 계속하기",
+    "rarity.common": "일반",
+    "rarity.rare": "희귀",
+    "rarity.legendary": "전설",
+    "ability.level": "Lv.{level}",
+    "ability.selected": "선택됨",
+    "ability.free": "무료 능력",
+    "ability.preview": "현재 → 선택 후",
+    "ability.limit": "스탯 한도 도달.",
+    "ability.pickTarget": "보유 능력을 골라 1레벨 낮추세요.",
+    "ability.max": "최대 {level}레벨.",
+    "ability.requires": "폭발 탄두 또는 연쇄 폭발 필요.",
+    "ability.remove": "제거",
+    "effect.roundIncome": "클리어 시 라운드 ×{amount}점/레벨",
+    "effect.cap": "보유 포인트 상한 {amount}",
+    "effect.shield": "전투 3초마다 1초간 피해 차단",
+    "effect.payload": "추가 폭발탄 {amount}발 (발당 탄약 {cost})",
+    "rogue.roundLabel": "라운드 {round}/{rounds}",
+    "rogue.pointsKills": "{points}점 · {kills}킬",
+    "rogue.ammoHud": "탄약 {ammo} · 일제 사격당 {cost}",
+    "rogue.ended": "{kills}킬 · 남은 포인트 {points}",
+    "wallet.reward": "승리 포인트 +{points} | 지갑 {wallet}",
+    "wallet.noReward": "슈퍼모드: 승리 보상 없음 | 지갑 {wallet}",
+    "guide.title": "로그라이트 모드 설명",
+    "guide.progression": "진행 및 해금 안내",
+    "guide.close": "닫기 ×",
+    "guide.progressionText": "일반 팀전은 승리 시 개인 킬당 {killPoints}점을 지갑에 적립합니다. 로그라이트는 승리 시 남은 런 포인트만 정산하며 추가 킬 보상은 없습니다. 패배하거나 중도 이탈하면 보상은 없습니다.",
+    "guide.unlockText": "공용 포인트 {cost}점으로 모드 하나의 슈퍼모드를 영구 해금합니다(5개 총 {total}점). 모든 슈퍼모드는 승리 보상이 없습니다. 로그라이트 슈퍼는 런 포인트 무한 및 능력 무제한 반복 선택이며 반작용은 그대로 적용됩니다. 저장은 이 브라우저·사이트에 귀속되고 사이트 데이터를 지우면 삭제됩니다.",
+    "guide.survival": "생존과 라운드 준비",
+    "guide.survivalText": "{seconds}초씩 {rounds}라운드를 생존합니다. 체력 {hp}, 탄약 {ammo}으로 시작합니다. {extract}라운드 완료 후 다음 적 주사위를 굴리기 전 철수하여 승리할 수 있습니다. 사망은 패배입니다. 체력·탄약·강화는 유지되며 자동 회복은 없습니다. 승패가 결정되면 음악이 멈춥니다.",
+    "guide.economy": "포인트·강화·탄약",
+    "guide.economyText": "킬당 런 포인트 {points}점을 얻습니다. 2~{rounds}라운드 준비에서 탄약 {supply}발을 받고 {choices}개 능력 중 하나를 고르거나 생략합니다. 강화 비용은 항목별 5점부터 시작해 구매마다 2점 증가합니다. 수리는 전량 회복하며 최대 체력 증가 자체는 회복하지 않습니다. 방어력은 피격당 피해를 줄이되 최소 1이고 음수 방어력은 피해를 늘립니다. 1점당 탄약은 max(1, 21−라운드): 1라운드 20발, 20라운드 이후 1발입니다. 일반탄은 1발, 추가 폭발탄은 {payload}발을 소비합니다.",
+    "guide.abilities": "능력과 반작용",
+    "guide.abilityText": "슬롯별 일반(흰색) 60%, 희귀(파란색) 30%, 전설(금색) 10%로 추첨하며 같은 제안 안에서는 중복되지 않습니다. 반복 획득은 이점·반작용 모두 누적됩니다. 재조정은 1레벨을 낮추며 양쪽 효과를 복구합니다. 일반 모드 최대 레벨은 거대탄·악마의 거래 3, 방어막 1입니다. 폭발 전용 능력은 폭발 원천이 필요합니다. 방어막은 매 라운드 3초부터 [3,4), [6,7)…에 피해를 막습니다. 체력 하한 25, 기본 피해·탄속 하한 20%, 이동·연사속도 하한 25%이며 거대탄의 탄속 배율은 그 뒤에 적용합니다.",
+    "guide.enemies": "적·주사위·전투",
+    "guide.enemyText": "동시 적은 6대에서 180대, 체력은 90부터 라운드마다 +3입니다. 이동·연사속도는 팀전 기본의 절반이며 보충 간격은 0.3초에서 0.06초로 줄어듭니다. 주사위는 7종 균등 확률로 5개 스탯 중 하나를 기본의 +20~60% 강화하거나 통과, 폭탄(5개 모두 강화)이 나옵니다. 강화는 누적되고 주사위를 굴리면 준비 선택이 잠깁니다. 일반탄 다중 사격·관통은 폭발탄을 증폭하지 않습니다. 튕김은 수명을 늘리지 않고 모서리는 1회로 셉니다. 폭발탄 반경 상한은 150px, 격파 폭발은 110px이며 거리에 따라 피해가 줄어듭니다. 플레이어 폭발은 적에게만 적용되고 회복은 부활하거나 최대 체력을 넘지 않습니다.",
+    "guide.results": "조작과 결과",
+    "guide.resultsText": "WASD/방향키 이동, 마우스 조준, 좌클릭 발사입니다. 로그라이트는 일반포만 사용하며 기본 피해 40, 초당 5발, 탄속 750, 수명 1.5초입니다. 결과에는 6개 실제 합계와 항목별 최고값을 100%로 정규화한 라운드 추세를 표시합니다. 0킬의 탄약 효율은 계산하지 않습니다. 툴팁에서 강화·선택 능력·재조정을 확인합니다. 준비 중 수리는 다음 라운드 회복량에 포함됩니다. 새 런은 런 진행만 초기화하며 지갑은 유지합니다. 번역 설정을 열면 전투·타이머·전환 연출이 일시 정지됩니다.",
+    "ability.hull.name": "강화 차체",
+    "ability.turbo.name": "터보 엔진",
+    "ability.loader.name": "자동 장전기",
+    "ability.overcharge.name": "과충전 포탄",
+    "ability.piercing.name": "관통탄",
+    "ability.splitter.name": "분할 포신",
+    "ability.ballistics.name": "고속 포탄",
+    "ability.blast.name": "광역 폭발",
+    "ability.recycler.name": "전투 재활용기",
+    "ability.plating.name": "중장갑",
+    "ability.glass.name": "유리 원자로",
+    "ability.storm.name": "탄막 폭풍",
+    "ability.siege.name": "공성 포대",
+    "ability.blood.name": "혈액 엔진",
+    "ability.rail.name": "레일 가속기",
+    "ability.reactor.name": "한계 원자로",
+    "ability.slowOrb.name": "궤도 탄창",
+    "ability.warhead.name": "불안정 탄두",
+    "ability.juggernaut.name": "철의 요새",
+    "ability.volatile.name": "연쇄 폭발",
+    "ability.explosive.name": "폭발 탄두",
+    "ability.ricochet.name": "도탄",
+    "ability.oversized.name": "거대 포탄",
+    "ability.recalibrate.name": "재조정",
+    "ability.bargain.name": "악마의 거래",
+    "ability.dividends.name": "라운드 배당",
+    "ability.shield.name": "주기 방어막",
+    "ability.lightHull.name": "경량 차체",
+    "ability.heavyAmmo.name": "고밀도 탄약",
+    "ability.overdrive.name": "오버드라이브 매트릭스",
+    "effect.maxHP": "최대 체력",
+    "effect.speed": "이동속도",
+    "effect.damage": "피해",
+    "effect.attackSpeed": "연사속도",
+    "effect.armor": "방어력",
+    "effect.projectileSpeed": "탄속",
+    "effect.projectileLifetime": "포탄 수명",
+    "effect.projectileSize": "포탄 크기",
+    "effect.shellSpeedFactor": "탄속",
+    "effect.pointFactor": "획득 포인트",
+    "effect.incomingDamageFactor": "받는 피해",
+    "effect.wallBounces": "벽 튕김",
+    "effect.explosionRadius": "폭발 반경",
+    "effect.extraProjectiles": "추가 일반탄",
+    "effect.penetrationBonus": "추가 일반탄 관통",
+    "effect.killHeal": "킬당 회복",
+    "effect.deathBlastDamage": "격파 폭발 기본 피해",
+    "text.Kills": "킬",
+    "text.Damage dealt": "가한 피해",
+    "text.Damage taken": "받은 피해",
+    "text.HP restored": "회복량",
+    "text.Ammo spent": "탄 소모량",
+    "text.Ammo per kill": "킬당 소모 탄",
+    "text.Points": "포인트",
+    "text.Move speed": "이동속도",
+    "text.Damage": "피해",
+    "text.Shots / second": "초당 발사",
+    "text.Armor": "방어력",
+    "text.Ammo / volley": "일제 사격 탄약",
+    "text.Shell speed": "탄속",
+    "text.Shell size / bounces": "포탄 크기 / 튕김",
+    "text.Ammo": "탄약",
+    "text.Round": "라운드",
+    "text.Lost": "패배",
+    "text.VICTORY": "승리",
+    "text.LOST": "패배",
+    "text.READY": "준비됨",
+    "text.EMPTY": "탄약 없음",
+    "text.Standard Cannon": "일반포",
+    "text.Heavy Cannon": "중포",
+    "text.Scatter Cannon": "산탄포",
+    "text.Explosive Payload": "폭발 탄두",
+    "text.Single shot": "단발",
+    "text.Explosive shell": "폭발탄",
+    "text.3-shot / 30° spread": "3발 / 30° 산탄",
+    "text.Balanced cannon for accurate sustained fire.": "정확한 지속 사격에 적합한 균형 잡힌 포입니다.",
+    "text.Explosive shell with splash damage and strong knockback.": "범위 피해와 강한 밀치기를 주는 폭발탄입니다.",
+    "text.Three standard shells cover a wide frontal arc.": "일반탄 3발로 전방 넓은 범위를 공격합니다.",
+    "text.Totals & round trends": "합계 및 라운드 추세",
+    "text.Recalibration": "재조정",
+    "text.Lose one level. Both its benefit and penalty are removed.": "1레벨을 낮추고 이점과 반작용을 모두 제거합니다.",
+    "text.Back to choices": "선택지로 돌아가기",
+    "text.Enemy Dice": "적 강화 주사위",
+    "text.Enemy stats this round": "이번 라운드 적 스탯",
+    "text.Pass": "통과",
+    "text.Speed": "이동속도",
+    "text.Fire Rate": "연사속도",
+    "text.Max HP": "최대 체력",
+    "text.Projectile Speed": "탄속",
+    "text.WASD: Move": "WASD: 이동",
+    "text.Mouse: Aim": "마우스: 조준",
+    "text.Left Click: Shoot": "좌클릭: 발사",
+    "text.1/2: Select Item": "1/2: 아이템 선택",
+    "text.Right Click: Use Selected Item": "우클릭: 선택 아이템 사용",
+    "text.Space + Scroll: FreeCamera": "스페이스+휠: 자유 카메라",
+    "text.My kill score:": "내 킬 수:",
+    "text.Blue Score:": "아군 점수:",
+    "text.Red Score:": "적군 점수:",
+    "text.CURRENT WEAPON": "현재 무기",
+    "text.[Q] SWITCH": "[Q] 무기 교체",
+    "text.SWITCH COOLDOWN": "교체 대기시간",
+    "text.Item Cost": "아이템 비용",
+    "text.[1] Orbital Strike": "[1] 궤도 폭격",
+    "text.[2] Barrier": "[2] 방벽",
+    "text.SELECT OPERATION": "작전 선택",
+    "text.05 MISSION PROFILES": "05 작전 유형",
+    "text.SYSTEMS ONLINE": "시스템 준비 완료",
+    "text.DEPLOY": "출격",
+    "text.QUICK SELECT": "빠른 선택",
+    "text.WASD + MOUSE TO PLAY": "WASD + 마우스로 조작",
+    "text.Win normal matches. Unlock each Super Mode for 100,000 points.": "일반 모드에서 승리하고 모드별 100,000점으로 슈퍼모드를 해금하세요.",
+    "text.none": "없음",
+    "text.None": "없음",
+    "text.skipped": "생략",
+    "text.Base": "기지",
+    "text.Tickets": "증원 티켓",
+    "text.Blue": "아군",
+    "text.Red": "적군",
+    "text.Battle complete": "전투 종료",
+    "text.Shell damage": "포탄 피해",
+    "text.Fire rate / reload": "연사 / 재장전",
+    "text.Shell flight time": "포탄 수명",
+    "text.Shell size": "포탄 크기",
+    "text.Wall bounces": "벽 튕김",
+    "text.Standard pierce": "일반탄 관통",
+    "text.Shells / ammo per volley": "일제 사격 / 소모 탄약",
+    "text.Explosion radius": "폭발 반경",
+    "text.HP per kill": "킬당 회복",
+    "text.Death nova damage / radius": "격파 폭발 피해 / 범위",
+    "text.Points earned": "획득 포인트",
+    "text.Round income": "라운드 수입",
+    "text.Point limit": "포인트 상한",
+    "text.Pulse shield": "주기 방어막",
+    "text.Unlimited": "무제한",
+    "combat.reload": "재장전 {seconds}초",
+    "combat.respawn": "{seconds}초 후 재출격…",
+    "combat.respawnHint": "잠시 기다리면 전차가 다시 출격합니다.",
+    "combat.result.blue": "아군 승리",
+    "combat.result.red": "적군 승리",
+    "objective.frontline": "거점을 점령하고 적 기지를 파괴하세요.",
+    "objective.siege": "세 방어벽을 돌파하고 최종 적 기지를 파괴하세요.",
+    "objective.defense": "7분 동안 아군 기지를 지키세요.",
+    "objective.breakthrough": "아군 증원이 소진되기 전에 적 티켓을 모두 소모시키세요.",
+    "dice.bomb": "폭탄 · 적 전체 스탯",
+    "dice.enemy": "적 {stat}",
+    "dice.all": "5개 스탯 모두 기본의 +{bonus}% · 이번 런 동안 지속",
+    "dice.one": "기본의 +{bonus}% · 이번 라운드에 추가",
+    "dice.none": "이번 라운드는 적 강화 없음",
+    "dice.value": "{value} · 주사위 +{bonus}%",
+    "dice.ack": "아무 곳이나 클릭하거나 Enter를 눌러 시작",
+    "dice.rolling": "주사위 굴리는 중…",
+    "dice.deploying": "출격 중…",
+    "ability.removed": "1레벨 감소: {name}",
+    "chart.note": "각 선의 최고값=100%, 실제 값은 아래 표에 표시합니다. —=킬 없음. 툴팁에 강화와 능력을 표시하며 수리는 다음 라운드에 반영합니다.",
+    "chart.hidden": "범례를 눌러 선을 표시하세요. 표에는 모든 실제 값이 유지됩니다.",
+    "chart.aria": "항목별 최고값을 100%로 정규화한 6개 라운드 추세. 실제 값은 아래 표에 있습니다.",
+    "history.upgrades": "강화: {items}",
+    "history.ability": "능력: {items}",
+    "history.start": "없음 (시작 라운드)",
+    "history.missing": "준비: 기록 없음",
+    "rogue.economy": "킬당 {points}점 · 받는 피해 ×{factor}",
+    "rogue.cap": "최대 {points}점",
+    "rogue.shield": "방어막 3초마다 1초",
+    "text.SOLO SURVIVAL": "단독 생존",
+    "text.Standard-shell multishot": "일반탄 다중 발사",
+    "text.Percentages use Round 1 before dice buffs.": "백분율은 주사위 강화 전 1라운드 기준입니다.",
+    "text.Dice upgrades persist for the rest of this run.": "주사위 강화는 이번 런 동안 유지됩니다.",
+    "text.Each item: 5 → 7 → 9… points": "항목별 5 → 7 → 9…점",
+    "text.WASD / Arrows: Move · Mouse: Aim · Left click: Fire": "WASD/방향키: 이동 · 마우스: 조준 · 좌클릭: 발사",
+    "text.1s every 3s": "3초마다 1초",
+    "text.Progress could not be loaded. Existing saves will not be overwritten.": "진행 내역을 불러오지 못했습니다. 기존 저장은 덮어쓰지 않습니다.",
+    "text.Progress is in memory only. Enable browser storage and retry saving before closing.": "진행 내역이 메모리에만 있습니다. 닫기 전에 브라우저 저장을 허용하고 재시도하세요.",
+    "chart.peak": "{label}: 라운드 최고 {value} = 100%",
+    "chart.zero": "기록된 라운드에서 0",
+    "chart.noValue": "기록된 값 없음",
+    "chart.point": "라운드 {round}{lost} · {label}: {value} · 최고값의 {percent}%",
+    "history.reduced": "감소: {name} Lv.{before} → {after}",
+    "rogue.eyebrow": "단독 생존 · {rounds}라운드",
+    "text.Shell": "폭발탄",
+    "text.Nova": "격파 폭발",
+    "text.blast": "폭발",
+    "text.Move Speed": "이동속도",
+    "text.Shell Speed": "탄속",
+    "text.BASE": "기지",
+    "text.Blue Stronghold": "아군 거점",
+    "text.Red Stronghold": "적군 거점",
+    "text.Neutral Stronghold": "중립 거점",
+    "text.BLUE Stronghold": "아군 거점",
+    "text.RED Stronghold": "적군 거점",
+    "upgrade.price": "{cost}점 · Lv.{level}",
+    "text.FIELD MANUAL": "전투 매뉴얼"
+  };
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\locales\zh.json
+  var zh_default = {
+    "language.label": "语言",
+    "menu.select": "选择模式",
+    "menu.guide": "ⓘ 模式说明",
+    "menu.progressionGuide": "进度与解锁说明",
+    "menu.retrySave": "重试保存",
+    "menu.ready": "选择你的战场。",
+    "menu.loading": "正在准备战场…",
+    "menu.intro": "五种战斗方式。选择任务，指挥战场。",
+    "wallet.unit": "累计胜利点数",
+    "wallet.rules": "胜利时每次个人击杀 +{points}。轻度肉鸽结算剩余局内点数。超级模式无奖励。",
+    "wallet.playSuper": "开始超级模式",
+    "wallet.unlockSuper": "解锁超级模式 · {cost} 点",
+    "wallet.modeAction": "{mode}：{action}",
+    "rogue.upgrades": "轻度肉鸽强化",
+    "rogue.lost": "生存失败",
+    "rogue.won": "成功生存 {rounds} 回合！",
+    "rogue.extracted": "第 {round} 回合后撤离成功！",
+    "rogue.preparation": "回合 {round}/{rounds} · 生存 {seconds} 秒 · 从 {choices} 项能力中选一项或跳过 · 普通 60% / 稀有 30% / 传说 10%",
+    "rogue.super": "超级模式 · 无限局内点数 · 所有能力可重复选择 · 无胜利奖励",
+    "rogue.extract": "撤离并获胜",
+    "rogue.startRound": "开始第 {round} 回合",
+    "rogue.buyAmmo": "购买 {ammo} 发（{points} 点）",
+    "rogue.enterPoints": "输入点数",
+    "rogue.ammoRate": "第 {round} 回合：1 点 = {ammo} 发",
+    "rogue.stats": "属性",
+    "rogue.owned": "已获能力",
+    "rogue.results": "本局结果",
+    "rogue.upgradeHeading": "升级",
+    "upgrade.heal.name": "修理",
+    "upgrade.heal.description": "恢复全部生命",
+    "upgrade.speed.name": "移速",
+    "upgrade.speed.description": "基础移速 +3%",
+    "upgrade.damage.name": "伤害",
+    "upgrade.damage.description": "基础伤害 +3%",
+    "upgrade.attackSpeed.name": "射速",
+    "upgrade.attackSpeed.description": "基础射速 +3%",
+    "upgrade.armor.name": "护甲",
+    "upgrade.armor.description": "每次受伤 −{amount}，最低为 1",
+    "mode.frontline.name": "前线",
+    "mode.frontline.tag": "领土战争",
+    "mode.frontline.description": "占领据点，推进战线，摧毁敌方基地。",
+    "mode.siege.name": "攻城进攻",
+    "mode.siege.tag": "突破防线",
+    "mode.siege.description": "率军突破三道坚固防线。",
+    "mode.defense.name": "攻城防守",
+    "mode.defense.tag": "坚守阵地",
+    "mode.defense.description": "保护据点，阻止敌军推进。",
+    "mode.breakthrough.name": "突破战",
+    "mode.breakthrough.tag": "全面消耗战",
+    "mode.breakthrough.description": "击败敌军，耗尽其增援票。",
+    "mode.roguelite.name": "轻度肉鸽",
+    "mode.roguelite.tag": "一辆坦克，三十回合",
+    "mode.roguelite.description": "生存三十回合，选择能力，权衡风险。",
+    "language.title": "翻译 / 语言设置",
+    "language.paused": "语言设置打开时，游戏将暂停。",
+    "language.close": "关闭并继续",
+    "rarity.common": "普通",
+    "rarity.rare": "稀有",
+    "rarity.legendary": "传说",
+    "ability.level": "等级 {level}",
+    "ability.selected": "已选择",
+    "ability.free": "免费能力",
+    "ability.preview": "当前 → 选择后",
+    "ability.limit": "已达属性上限。",
+    "ability.pickTarget": "选择已拥有的能力，使其降低一级。",
+    "ability.max": "最高 {level} 级。",
+    "ability.requires": "需要爆炸载荷或死亡连锁。",
+    "ability.remove": "移除",
+    "effect.roundIncome": "每次通关获得回合数 ×{amount} 点/级",
+    "effect.cap": "持有点数上限 {amount}",
+    "effect.shield": "每战斗 3 秒阻挡伤害 1 秒",
+    "effect.payload": "额外爆炸弹 {amount} 发（每发 {cost} 弹药）",
+    "rogue.roundLabel": "回合 {round}/{rounds}",
+    "rogue.pointsKills": "{points} 点 · {kills} 击杀",
+    "rogue.ammoHud": "弹药 {ammo} · 每轮射击 {cost}",
+    "rogue.ended": "{kills} 击杀 · 剩余 {points} 点",
+    "wallet.reward": "胜利点数 +{points} | 钱包 {wallet}",
+    "wallet.noReward": "超级模式：无胜利点数 | 钱包 {wallet}",
+    "guide.title": "轻度肉鸽模式说明",
+    "guide.progression": "进度与解锁说明",
+    "guide.close": "关闭 ×",
+    "guide.progressionText": "普通团队模式获胜后，每次个人击杀向钱包存入 {killPoints} 点。轻度肉鸽获胜时仅结算剩余局内点数，无额外击杀奖励。失败或中途退出无奖励。",
+    "guide.unlockText": "消耗共享点数 {cost} 可永久解锁一个模式的超级模式（五个共 {total}）。超级模式均无胜利奖励。轻度肉鸽超级模式拥有无限局内点数，能力可无限重复选择，副作用仍然生效。存档仅保存在此浏览器和网站，清除网站数据会删除存档。",
+    "guide.survival": "生存与回合准备",
+    "guide.survivalText": "生存 {rounds} 回合，每回合 {seconds} 秒。初始生命 {hp}、弹药 {ammo}。完成第 {extract} 回合后，可在投掷下一次敌人骰子前撤离获胜。死亡即失败。生命、弹药与升级保留，不自动回血。胜负确定后音乐停止。",
+    "guide.economy": "点数、升级与弹药",
+    "guide.economyText": "每次击杀获得 {points} 局内点数。第 2–{rounds} 回合准备时获得 {supply} 发弹药，并从 {choices} 项能力中选一项或跳过。各升级从 5 点起，每次购买同一项增加 2 点。修理回满生命，提高最大生命不回血。护甲降低单次伤害，最低为 1；负护甲增加伤害。每点购买弹药数为 max(1, 21−回合)：第 1 回合 20 发，第 20 回合起 1 发。普通弹消耗 1 发弹药，额外爆炸弹消耗 {payload}。",
+    "guide.abilities": "能力与副作用",
+    "guide.abilityText": "每个槽位独立抽取：普通（白）60%、稀有（蓝）30%、传说（金）10%，同次选项不重复。重复获得会叠加增益和副作用。重新校准降低一级并撤销该级双方效果。普通模式等级上限：巨型弹/恶魔交易 3，护盾 1。爆炸专用能力需要爆炸来源。护盾每回合从第 3 秒开始，在 [3,4)、[6,7)…阻挡伤害。生命最低 25，基础伤害/弹速最低 20%，移速/射速最低 25%。巨型弹的弹速倍率在此下限之后计算。",
+    "guide.enemies": "敌人、骰子与战斗",
+    "guide.enemyText": "同时在场敌人数从 6 增至 180，生命从 90 起每回合 +3；移速和射速初始为团队模式的一半。补充间隔从 0.3 秒缩短至 0.06 秒。敌人骰子有七种等概率结果：五项属性之一增加基础值的 20–60%、跳过、炸弹（五项全加）。增益持续，投骰后锁定准备操作。普通多弹和穿透不增加爆炸载荷。反弹不延长寿命，墙角算一次。爆炸弹半径上限 150px，死亡爆炸 110px，伤害随距离衰减。玩家爆炸仅伤敌，治疗不能复活或超过生命上限。",
+    "guide.results": "操作与结果",
+    "guide.resultsText": "WASD/方向键移动，鼠标瞄准，左键开火。轻度肉鸽仅使用标准炮：基础伤害 40、每秒 5 发、弹速 750、寿命 1.5 秒。结果显示六项实际总数及各自峰值归一化为 100% 的回合趋势。零击杀时不计算弹药效率。悬停查看升级、能力选择与重新校准。准备阶段修理计入下一回合。新局重置局内进度，钱包保留。打开翻译设置时，战斗、计时器和过渡动画暂停。",
+    "ability.hull.name": "强化车体",
+    "ability.turbo.name": "涡轮引擎",
+    "ability.loader.name": "自动装填器",
+    "ability.overcharge.name": "过充炮弹",
+    "ability.piercing.name": "穿甲弹",
+    "ability.splitter.name": "分裂炮管",
+    "ability.ballistics.name": "高速弹",
+    "ability.blast.name": "广域爆炸",
+    "ability.recycler.name": "战斗回收器",
+    "ability.plating.name": "重型装甲",
+    "ability.glass.name": "玻璃反应堆",
+    "ability.storm.name": "弹幕风暴",
+    "ability.siege.name": "攻城炮组",
+    "ability.blood.name": "鲜血引擎",
+    "ability.rail.name": "轨道加速器",
+    "ability.reactor.name": "极限反应堆",
+    "ability.slowOrb.name": "轨道弹匣",
+    "ability.warhead.name": "不稳定弹头",
+    "ability.juggernaut.name": "钢铁堡垒",
+    "ability.volatile.name": "死亡连锁",
+    "ability.explosive.name": "爆炸载荷",
+    "ability.ricochet.name": "跳弹",
+    "ability.oversized.name": "巨型炮弹",
+    "ability.recalibrate.name": "重新校准",
+    "ability.bargain.name": "恶魔交易",
+    "ability.dividends.name": "回合红利",
+    "ability.shield.name": "脉冲护盾",
+    "ability.lightHull.name": "轻型底盘",
+    "ability.heavyAmmo.name": "高密度弹药",
+    "ability.overdrive.name": "超载矩阵",
+    "effect.maxHP": "最大生命",
+    "effect.speed": "移速",
+    "effect.damage": "伤害",
+    "effect.attackSpeed": "射速",
+    "effect.armor": "护甲",
+    "effect.projectileSpeed": "弹速",
+    "effect.projectileLifetime": "炮弹寿命",
+    "effect.projectileSize": "炮弹尺寸",
+    "effect.shellSpeedFactor": "弹速",
+    "effect.pointFactor": "获得点数",
+    "effect.incomingDamageFactor": "承受伤害",
+    "effect.wallBounces": "墙壁反弹",
+    "effect.explosionRadius": "爆炸半径",
+    "effect.extraProjectiles": "额外普通弹",
+    "effect.penetrationBonus": "额外普通弹穿透",
+    "effect.killHeal": "击杀回血",
+    "effect.deathBlastDamage": "死亡爆炸基础伤害",
+    "text.Kills": "击杀",
+    "text.Damage dealt": "造成伤害",
+    "text.Damage taken": "受到伤害",
+    "text.HP restored": "恢复生命",
+    "text.Ammo spent": "弹药消耗",
+    "text.Ammo per kill": "每次击杀耗弹",
+    "text.Points": "点数",
+    "text.Move speed": "移速",
+    "text.Damage": "伤害",
+    "text.Shots / second": "每秒发射",
+    "text.Armor": "护甲",
+    "text.Ammo / volley": "每轮射击耗弹",
+    "text.Shell speed": "弹速",
+    "text.Shell size / bounces": "尺寸 / 反弹",
+    "text.Ammo": "弹药",
+    "text.Round": "回合",
+    "text.Lost": "失败",
+    "text.VICTORY": "胜利",
+    "text.LOST": "失败",
+    "text.READY": "就绪",
+    "text.EMPTY": "弹药耗尽",
+    "text.Standard Cannon": "标准炮",
+    "text.Heavy Cannon": "重炮",
+    "text.Scatter Cannon": "散射炮",
+    "text.Explosive Payload": "爆炸载荷",
+    "text.Single shot": "单发",
+    "text.Explosive shell": "爆炸弹",
+    "text.3-shot / 30° spread": "3 发 / 30° 散射",
+    "text.Balanced cannon for accurate sustained fire.": "适合精确持续射击的均衡火炮。",
+    "text.Explosive shell with splash damage and strong knockback.": "造成范围伤害并强力击退的爆炸弹。",
+    "text.Three standard shells cover a wide frontal arc.": "三发普通弹覆盖前方扇形范围。",
+    "text.Totals & round trends": "总计与回合趋势",
+    "text.Recalibration": "重新校准",
+    "text.Lose one level. Both its benefit and penalty are removed.": "降低一级，同时移除该级增益与副作用。",
+    "text.Back to choices": "返回选项",
+    "text.Enemy Dice": "敌人强化骰子",
+    "text.Enemy stats this round": "本回合敌人属性",
+    "text.Pass": "跳过",
+    "text.Speed": "移速",
+    "text.Fire Rate": "射速",
+    "text.Max HP": "最大生命",
+    "text.Projectile Speed": "弹速",
+    "text.WASD: Move": "WASD：移动",
+    "text.Mouse: Aim": "鼠标：瞄准",
+    "text.Left Click: Shoot": "左键：开火",
+    "text.1/2: Select Item": "1/2：选择道具",
+    "text.Right Click: Use Selected Item": "右键：使用所选道具",
+    "text.Space + Scroll: FreeCamera": "空格+滚轮：自由镜头",
+    "text.My kill score:": "我的击杀：",
+    "text.Blue Score:": "蓝方得分：",
+    "text.Red Score:": "红方得分：",
+    "text.CURRENT WEAPON": "当前武器",
+    "text.[Q] SWITCH": "[Q] 切换",
+    "text.SWITCH COOLDOWN": "切换冷却",
+    "text.Item Cost": "道具费用",
+    "text.[1] Orbital Strike": "[1] 轨道打击",
+    "text.[2] Barrier": "[2] 屏障",
+    "text.SELECT OPERATION": "选择作战",
+    "text.05 MISSION PROFILES": "05 种任务",
+    "text.SYSTEMS ONLINE": "系统就绪",
+    "text.DEPLOY": "出击",
+    "text.QUICK SELECT": "快速选择",
+    "text.WASD + MOUSE TO PLAY": "WASD + 鼠标操作",
+    "text.Win normal matches. Unlock each Super Mode for 100,000 points.": "赢得普通模式，每个超级模式需 100,000 点解锁。",
+    "text.none": "无",
+    "text.None": "无",
+    "text.skipped": "已跳过",
+    "text.Base": "基地",
+    "text.Tickets": "增援票",
+    "text.Blue": "蓝方",
+    "text.Red": "红方",
+    "text.Battle complete": "战斗结束",
+    "text.Shell damage": "炮弹伤害",
+    "text.Fire rate / reload": "射速 / 装填",
+    "text.Shell flight time": "炮弹寿命",
+    "text.Shell size": "炮弹尺寸",
+    "text.Wall bounces": "墙壁反弹",
+    "text.Standard pierce": "普通弹穿透",
+    "text.Shells / ammo per volley": "每轮弹数 / 耗弹",
+    "text.Explosion radius": "爆炸半径",
+    "text.HP per kill": "击杀回血",
+    "text.Death nova damage / radius": "死亡爆炸伤害 / 半径",
+    "text.Points earned": "获得点数",
+    "text.Round income": "回合收入",
+    "text.Point limit": "点数上限",
+    "text.Pulse shield": "脉冲护盾",
+    "text.Unlimited": "无限",
+    "combat.reload": "装填 {seconds}秒",
+    "combat.respawn": "{seconds}秒后重生…",
+    "combat.respawnHint": "请稍候，你的坦克即将重生。",
+    "combat.result.blue": "蓝方获胜",
+    "combat.result.red": "红方获胜",
+    "objective.frontline": "占领据点并摧毁红方基地。",
+    "objective.siege": "突破三道墙并摧毁最终红方基地。",
+    "objective.defense": "保护蓝方基地 7 分钟。",
+    "objective.breakthrough": "在蓝方增援耗尽前耗尽红方增援票。",
+    "dice.bomb": "炸弹 · 敌人全部属性",
+    "dice.enemy": "敌人{stat}",
+    "dice.all": "全部五项属性 +基础值{bonus}% · 本局永久",
+    "dice.one": "+基础值{bonus}% · 本回合叠加",
+    "dice.none": "本回合无敌人强化",
+    "dice.value": "{value} · 骰子 +{bonus}%",
+    "dice.ack": "点击任意位置或按 Enter 开始",
+    "dice.rolling": "投骰中…",
+    "dice.deploying": "出击中…",
+    "ability.removed": "已降低一级：{name}",
+    "chart.note": "各线自身峰值=100%，实际值见下表。—表示无击杀。悬停查看升级与能力；修理计入下一回合。",
+    "chart.hidden": "点击图例显示曲线。表格始终显示全部实际数值。",
+    "chart.aria": "六项按自身峰值归一化为100%的回合趋势。实际值见下表。",
+    "history.upgrades": "升级：{items}",
+    "history.ability": "能力：{items}",
+    "history.start": "无（起始回合）",
+    "history.missing": "准备：未记录",
+    "rogue.economy": "每次击杀 {points} 点 · 承受伤害 ×{factor}",
+    "rogue.cap": "上限 {points} 点",
+    "rogue.shield": "护盾每3秒持续1秒",
+    "text.SOLO SURVIVAL": "单人生存",
+    "text.Standard-shell multishot": "普通弹多重射击",
+    "text.Percentages use Round 1 before dice buffs.": "百分比以骰子强化前的第一回合为基准。",
+    "text.Dice upgrades persist for the rest of this run.": "骰子强化在本局剩余时间内持续。",
+    "text.Each item: 5 → 7 → 9… points": "每项 5 → 7 → 9…点",
+    "text.WASD / Arrows: Move · Mouse: Aim · Left click: Fire": "WASD/方向键：移动 · 鼠标：瞄准 · 左键：开火",
+    "text.1s every 3s": "每3秒持续1秒",
+    "text.Progress could not be loaded. Existing saves will not be overwritten.": "无法读取进度。不会覆盖已有存档。",
+    "text.Progress is in memory only. Enable browser storage and retry saving before closing.": "进度仅保存在内存中。关闭前请启用浏览器存储并重试保存。",
+    "chart.peak": "{label}：回合峰值 {value} = 100%",
+    "chart.zero": "已记录回合为0",
+    "chart.noValue": "无记录值",
+    "chart.point": "回合 {round}{lost} · {label}：{value} · 峰值的{percent}%",
+    "history.reduced": "降低：{name} 等级{before} → {after}",
+    "rogue.eyebrow": "单人生存 · {rounds}回合",
+    "text.Shell": "爆炸弹",
+    "text.Nova": "死亡爆炸",
+    "text.blast": "爆炸",
+    "text.Move Speed": "移速",
+    "text.Shell Speed": "弹速",
+    "text.BASE": "基地",
+    "text.Blue Stronghold": "蓝方据点",
+    "text.Red Stronghold": "红方据点",
+    "text.Neutral Stronghold": "中立据点",
+    "text.BLUE Stronghold": "蓝方据点",
+    "text.RED Stronghold": "红方据点",
+    "upgrade.price": "{cost}点 · Lv.{level}",
+    "text.FIELD MANUAL": "作战手册"
+  };
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\locales\ja.json
+  var ja_default = {
+    "language.label": "言語",
+    "menu.select": "モード選択",
+    "menu.guide": "ⓘ モードガイド",
+    "menu.progressionGuide": "進行・解放ガイド",
+    "menu.retrySave": "保存を再試行",
+    "menu.ready": "戦場を選ぼう。",
+    "menu.loading": "戦場を準備中…",
+    "menu.intro": "5つの戦い方。任務を選び、戦場を指揮しよう。",
+    "wallet.unit": "累積勝利ポイント",
+    "wallet.rules": "勝利時に個人撃破ごとに+{points}。ローグライトは残りのラン内ポイントを精算。スーパーモードは報酬なし。",
+    "wallet.playSuper": "スーパーモード開始",
+    "wallet.unlockSuper": "スーパー解放 · {cost} pt",
+    "wallet.modeAction": "{mode}：{action}",
+    "rogue.upgrades": "ローグライト強化",
+    "rogue.lost": "生存失敗",
+    "rogue.won": "全{rounds}ラウンド生存！",
+    "rogue.extracted": "ラウンド{round}終了後に撤退成功！",
+    "rogue.preparation": "ラウンド{round}/{rounds} · {seconds}秒生存 · {choices}個から1つ選択、またはスキップ · コモン60% / レア30% / レジェンダリー10%",
+    "rogue.super": "スーパーモード · ラン内ポイント無限 · 全能力を繰り返し選択 · 勝利報酬なし",
+    "rogue.extract": "撤退して勝利",
+    "rogue.startRound": "ラウンド{round}開始",
+    "rogue.buyAmmo": "弾薬{ammo}発を購入（{points} pt）",
+    "rogue.enterPoints": "ポイントを入力",
+    "rogue.ammoRate": "ラウンド{round}：1 pt = {ammo}発",
+    "rogue.stats": "ステータス",
+    "rogue.owned": "取得済み能力",
+    "rogue.results": "プレイ結果",
+    "rogue.upgradeHeading": "アップグレード",
+    "upgrade.heal.name": "修理",
+    "upgrade.heal.description": "HPを全回復",
+    "upgrade.speed.name": "移動速度",
+    "upgrade.speed.description": "基礎移動速度+3%",
+    "upgrade.damage.name": "攻撃力",
+    "upgrade.damage.description": "基礎ダメージ+3%",
+    "upgrade.attackSpeed.name": "連射速度",
+    "upgrade.attackSpeed.description": "基礎連射速度+3%",
+    "upgrade.armor.name": "装甲",
+    "upgrade.armor.description": "被弾ダメージ−{amount}、最低1",
+    "mode.frontline.name": "前線",
+    "mode.frontline.tag": "領土戦",
+    "mode.frontline.description": "拠点を占領し、前線を押し上げ、敵基地を破壊しよう。",
+    "mode.siege.name": "攻城・攻撃",
+    "mode.siege.tag": "防衛線を突破",
+    "mode.siege.description": "3本の防衛線を突破する攻撃を率いよう。",
+    "mode.defense.name": "攻城・防衛",
+    "mode.defense.tag": "陣地を守れ",
+    "mode.defense.description": "拠点を守り、進撃する敵を食い止めよう。",
+    "mode.breakthrough.name": "突破戦",
+    "mode.breakthrough.tag": "総力消耗戦",
+    "mode.breakthrough.description": "敵を撃破し、増援チケットを消耗させよう。",
+    "mode.roguelite.name": "ローグライト",
+    "mode.roguelite.tag": "戦車1両、30ラウンド",
+    "mode.roguelite.description": "30ラウンドを生き抜き、能力と代償のバランスを取ろう。",
+    "language.title": "翻訳・言語設定",
+    "language.paused": "言語設定を開いている間、ゲームは一時停止します。",
+    "language.close": "閉じて再開",
+    "rarity.common": "コモン",
+    "rarity.rare": "レア",
+    "rarity.legendary": "レジェンダリー",
+    "ability.level": "Lv.{level}",
+    "ability.selected": "選択済み",
+    "ability.free": "無料能力",
+    "ability.preview": "現在 → 選択後",
+    "ability.limit": "ステータス上限に到達。",
+    "ability.pickTarget": "取得済み能力を選び、1レベル下げます。",
+    "ability.max": "最大レベル{level}。",
+    "ability.requires": "爆発弾またはデスカスケードが必要。",
+    "ability.remove": "削除",
+    "effect.roundIncome": "クリア時にラウンド×{amount} pt／レベル",
+    "effect.cap": "所持ポイント上限{amount}",
+    "effect.shield": "戦闘中3秒ごとに1秒間ダメージ無効",
+    "effect.payload": "追加爆発弾{amount}発（1発につき弾薬{cost}）",
+    "rogue.roundLabel": "ラウンド{round}/{rounds}",
+    "rogue.pointsKills": "{points} pt · {kills}撃破",
+    "rogue.ammoHud": "弾薬{ammo} · 斉射ごとに{cost}",
+    "rogue.ended": "{kills}撃破 · 残り{points} pt",
+    "wallet.reward": "勝利ポイント+{points} | 残高{wallet}",
+    "wallet.noReward": "スーパー：勝利報酬なし | 残高{wallet}",
+    "guide.title": "ローグライトガイド",
+    "guide.progression": "進行・解放ガイド",
+    "guide.close": "閉じる ×",
+    "guide.progressionText": "通常チーム戦は勝利時に個人撃破ごとに{killPoints} ptを残高へ加算。ローグライトは勝利時の残りラン内ポイントのみ精算し、追加撃破報酬はありません。敗北・途中退出は報酬なし。",
+    "guide.unlockText": "共通ポイント{cost}で1モードのスーパーを永久解放（5つで{total}）。全スーパーで勝利報酬はありません。ローグライトスーパーはポイント無限・能力の繰り返し選択が無制限。代償は適用されます。保存はこのブラウザー・サイト専用で、サイトデータ削除により失われます。",
+    "guide.survival": "生存と準備",
+    "guide.survivalText": "{seconds}秒のラウンドを{rounds}回生存。初期HP{hp}・弾薬{ammo}。ラウンド{extract}完了後、次の敵ダイス前に撤退して勝利できます。死亡は敗北。HP・弾薬・強化は持ち越し、自動回復なし。勝敗決定時に音楽が止まります。",
+    "guide.economy": "ポイント・強化・弾薬",
+    "guide.economyText": "撃破ごとに{points}ラン内pt。ラウンド2～{rounds}の準備で弾薬{supply}発を補給し、能力{choices}個から1つ選ぶかスキップ。強化は項目ごとに5ptから始まり、購入ごとに2pt増加。修理は全回復、最大HP増加は回復しません。装甲は被弾ダメージを軽減し最低1、負の装甲は被害増加。1ptの弾薬数=max(1,21−ラウンド)：R1は20発、R20以降は1発。通常弾は1、追加爆発弾は{payload}を消費。",
+    "guide.abilities": "能力と代償",
+    "guide.abilityText": "各枠はコモン（白）60%、レア（青）30%、レジェンダリー（金）10%で抽選し、同じ候補内は重複なし。再取得は利点と代償が累積。再調整は1レベル下げ、両効果を戻します。通常の上限は巨大弾・悪魔の取引3、シールド1。爆発専用能力には爆発源が必要。シールドは各ラウンド3秒から[3,4)、[6,7)…に無敵。HP最低25、基礎ダメージ・弾速20%、移動・連射25%。巨大弾の速度倍率はその下限後に適用。",
+    "guide.enemies": "敵・ダイス・戦闘",
+    "guide.enemyText": "敵数は6～180、HPは90から毎ラウンド+3。移動・連射はチーム戦の半分から開始。補充間隔は0.3～0.06秒。敵ダイスは等確率7種：5能力のどれか基礎+20～60%、パス、ボム（5つ全部）。強化は持続し、ダイス後は準備操作をロック。通常弾の多弾・貫通は爆発弾を増幅しません。反射は寿命を延ばさず、角は1回。爆発弾半径最大150px、撃破爆発110px。遠いほど威力低下。プレイヤー爆発は敵のみ、回復は蘇生・上限超過なし。",
+    "guide.results": "操作と結果",
+    "guide.resultsText": "WASD/矢印で移動、マウス照準、左クリック射撃。ローグライトは通常砲のみ：基礎威力40、毎秒5発、弾速750、寿命1.5秒。結果は6項目の実数合計と、各項目の最大を100%とするラウンド推移を表示。撃破0の弾薬効率は算出なし。ツールチップで強化・選択・再調整を確認。準備中の修理は次ラウンドに計上。新ランでも残高は保持。翻訳設定中は戦闘・タイマー・遷移演出が停止します。",
+    "ability.hull.name": "強化車体",
+    "ability.turbo.name": "ターボエンジン",
+    "ability.loader.name": "自動装填装置",
+    "ability.overcharge.name": "過充填弾",
+    "ability.piercing.name": "貫通弾",
+    "ability.splitter.name": "分岐砲身",
+    "ability.ballistics.name": "高速弾",
+    "ability.blast.name": "広域爆発",
+    "ability.recycler.name": "戦闘リサイクラー",
+    "ability.plating.name": "重装甲",
+    "ability.glass.name": "ガラス炉",
+    "ability.storm.name": "弾幕の嵐",
+    "ability.siege.name": "攻城砲台",
+    "ability.blood.name": "ブラッドエンジン",
+    "ability.rail.name": "レール加速器",
+    "ability.reactor.name": "限界炉",
+    "ability.slowOrb.name": "軌道弾倉",
+    "ability.warhead.name": "不安定弾頭",
+    "ability.juggernaut.name": "鉄の要塞",
+    "ability.volatile.name": "デスカスケード",
+    "ability.explosive.name": "爆発弾",
+    "ability.ricochet.name": "跳弾",
+    "ability.oversized.name": "巨大弾",
+    "ability.recalibrate.name": "再調整",
+    "ability.bargain.name": "悪魔の取引",
+    "ability.dividends.name": "ラウンド配当",
+    "ability.shield.name": "パルスシールド",
+    "ability.lightHull.name": "軽量車体",
+    "ability.heavyAmmo.name": "高密度弾薬",
+    "ability.overdrive.name": "オーバードライブ",
+    "effect.maxHP": "最大HP",
+    "effect.speed": "移動速度",
+    "effect.damage": "ダメージ",
+    "effect.attackSpeed": "連射速度",
+    "effect.armor": "装甲",
+    "effect.projectileSpeed": "弾速",
+    "effect.projectileLifetime": "弾の寿命",
+    "effect.projectileSize": "弾の大きさ",
+    "effect.shellSpeedFactor": "弾速",
+    "effect.pointFactor": "獲得ポイント",
+    "effect.incomingDamageFactor": "被ダメージ",
+    "effect.wallBounces": "壁反射",
+    "effect.explosionRadius": "爆発半径",
+    "effect.extraProjectiles": "追加通常弾",
+    "effect.penetrationBonus": "追加通常弾貫通",
+    "effect.killHeal": "撃破時回復",
+    "effect.deathBlastDamage": "撃破爆発の基礎威力",
+    "text.Kills": "撃破",
+    "text.Damage dealt": "与ダメージ",
+    "text.Damage taken": "被ダメージ",
+    "text.HP restored": "回復量",
+    "text.Ammo spent": "弾薬消費",
+    "text.Ammo per kill": "撃破あたりの弾薬",
+    "text.Points": "ポイント",
+    "text.Move speed": "移動速度",
+    "text.Damage": "ダメージ",
+    "text.Shots / second": "毎秒発射数",
+    "text.Armor": "装甲",
+    "text.Ammo / volley": "斉射の弾薬",
+    "text.Shell speed": "弾速",
+    "text.Shell size / bounces": "弾サイズ／反射",
+    "text.Ammo": "弾薬",
+    "text.Round": "ラウンド",
+    "text.Lost": "敗北",
+    "text.VICTORY": "勝利",
+    "text.LOST": "敗北",
+    "text.READY": "準備完了",
+    "text.EMPTY": "弾薬切れ",
+    "text.Standard Cannon": "通常砲",
+    "text.Heavy Cannon": "重砲",
+    "text.Scatter Cannon": "散弾砲",
+    "text.Explosive Payload": "爆発弾",
+    "text.Single shot": "単発",
+    "text.Explosive shell": "爆発弾",
+    "text.3-shot / 30° spread": "3発／30°拡散",
+    "text.Balanced cannon for accurate sustained fire.": "正確な継続射撃向けのバランス型。",
+    "text.Explosive shell with splash damage and strong knockback.": "範囲ダメージと強いノックバックの爆発弾。",
+    "text.Three standard shells cover a wide frontal arc.": "3発の通常弾で前方を広く攻撃。",
+    "text.Totals & round trends": "合計とラウンド推移",
+    "text.Recalibration": "再調整",
+    "text.Lose one level. Both its benefit and penalty are removed.": "1レベル下げ、利点と代償を両方取り除きます。",
+    "text.Back to choices": "候補に戻る",
+    "text.Enemy Dice": "敵強化ダイス",
+    "text.Enemy stats this round": "今ラウンドの敵能力",
+    "text.Pass": "パス",
+    "text.Speed": "移動速度",
+    "text.Fire Rate": "連射速度",
+    "text.Max HP": "最大HP",
+    "text.Projectile Speed": "弾速",
+    "text.WASD: Move": "WASD：移動",
+    "text.Mouse: Aim": "マウス：照準",
+    "text.Left Click: Shoot": "左クリック：射撃",
+    "text.1/2: Select Item": "1/2：アイテム選択",
+    "text.Right Click: Use Selected Item": "右クリック：選択アイテム使用",
+    "text.Space + Scroll: FreeCamera": "スペース＋ホイール：自由カメラ",
+    "text.My kill score:": "自分の撃破数：",
+    "text.Blue Score:": "青軍スコア：",
+    "text.Red Score:": "赤軍スコア：",
+    "text.CURRENT WEAPON": "現在の武器",
+    "text.[Q] SWITCH": "[Q] 切替",
+    "text.SWITCH COOLDOWN": "切替クールタイム",
+    "text.Item Cost": "アイテム費用",
+    "text.[1] Orbital Strike": "[1] 軌道攻撃",
+    "text.[2] Barrier": "[2] バリア",
+    "text.SELECT OPERATION": "作戦選択",
+    "text.05 MISSION PROFILES": "05 作戦タイプ",
+    "text.SYSTEMS ONLINE": "システム準備完了",
+    "text.DEPLOY": "出撃",
+    "text.QUICK SELECT": "クイック選択",
+    "text.WASD + MOUSE TO PLAY": "WASD＋マウスで操作",
+    "text.Win normal matches. Unlock each Super Mode for 100,000 points.": "通常戦で勝利し、各100,000ptでスーパーを解放。",
+    "text.none": "なし",
+    "text.None": "なし",
+    "text.skipped": "スキップ",
+    "text.Base": "基地",
+    "text.Tickets": "増援チケット",
+    "text.Blue": "青軍",
+    "text.Red": "赤軍",
+    "text.Battle complete": "戦闘終了",
+    "text.Shell damage": "砲弾威力",
+    "text.Fire rate / reload": "連射／装填",
+    "text.Shell flight time": "弾の寿命",
+    "text.Shell size": "弾の大きさ",
+    "text.Wall bounces": "壁反射",
+    "text.Standard pierce": "通常弾貫通",
+    "text.Shells / ammo per volley": "斉射数／消費弾薬",
+    "text.Explosion radius": "爆発半径",
+    "text.HP per kill": "撃破時回復",
+    "text.Death nova damage / radius": "撃破爆発威力／半径",
+    "text.Points earned": "獲得ポイント",
+    "text.Round income": "ラウンド収入",
+    "text.Point limit": "ポイント上限",
+    "text.Pulse shield": "パルスシールド",
+    "text.Unlimited": "無制限",
+    "combat.reload": "装填{seconds}秒",
+    "combat.respawn": "{seconds}秒後に再出撃…",
+    "combat.respawnHint": "しばらく待つと戦車が戻ります。",
+    "combat.result.blue": "青軍の勝利",
+    "combat.result.red": "赤軍の勝利",
+    "objective.frontline": "拠点を占領し、赤軍基地を破壊。",
+    "objective.siege": "3枚の壁を突破し、最後の赤軍基地を破壊。",
+    "objective.defense": "青軍基地を7分間守る。",
+    "objective.breakthrough": "青軍の増援が尽きる前に赤軍チケットを削る。",
+    "dice.bomb": "ボム・敵の全能力",
+    "dice.enemy": "敵の{stat}",
+    "dice.all": "5能力すべて基礎+{bonus}%・このラン中持続",
+    "dice.one": "基礎+{bonus}%・今ラウンドに加算",
+    "dice.none": "今ラウンドは敵強化なし",
+    "dice.value": "{value}・ダイス+{bonus}%",
+    "dice.ack": "クリックまたはEnterで開始",
+    "dice.rolling": "ダイス中…",
+    "dice.deploying": "出撃中…",
+    "ability.removed": "1レベル低下：{name}",
+    "chart.note": "各線の最大値=100%。実数は下表。—は撃破なし。ホバーで強化・能力を確認。修理は次ラウンドに計上。",
+    "chart.hidden": "凡例で線を表示。表には常に全実数を表示。",
+    "chart.aria": "各項目の最大値100%で正規化した6つの推移。実数は下表。",
+    "history.upgrades": "強化：{items}",
+    "history.ability": "能力：{items}",
+    "history.start": "なし（開始ラウンド）",
+    "history.missing": "準備：記録なし",
+    "rogue.economy": "撃破ごと{points}pt・被ダメージ×{factor}",
+    "rogue.cap": "上限{points}pt",
+    "rogue.shield": "シールド3秒ごと1秒",
+    "text.SOLO SURVIVAL": "ソロ生存",
+    "text.Standard-shell multishot": "通常弾多重射撃",
+    "text.Percentages use Round 1 before dice buffs.": "割合はダイス強化前のR1基準。",
+    "text.Dice upgrades persist for the rest of this run.": "ダイス強化はラン終了まで持続。",
+    "text.Each item: 5 → 7 → 9… points": "各項目5→7→9…pt",
+    "text.WASD / Arrows: Move · Mouse: Aim · Left click: Fire": "WASD/矢印：移動・マウス：照準・左クリック：射撃",
+    "text.1s every 3s": "3秒ごと1秒",
+    "text.Progress could not be loaded. Existing saves will not be overwritten.": "進行状況を読み込めません。既存の保存は上書きしません。",
+    "text.Progress is in memory only. Enable browser storage and retry saving before closing.": "進行はメモリー上のみです。閉じる前に保存を許可して再試行してください。",
+    "chart.peak": "{label}：ラウンド最大{value}=100%",
+    "chart.zero": "記録ラウンドで0",
+    "chart.noValue": "記録なし",
+    "chart.point": "ラウンド{round}{lost}・{label}：{value}・最大の{percent}%",
+    "history.reduced": "低下：{name} Lv.{before} → {after}",
+    "rogue.eyebrow": "ソロ生存・{rounds}ラウンド",
+    "text.Shell": "爆発弾",
+    "text.Nova": "撃破爆発",
+    "text.blast": "爆発",
+    "text.Move Speed": "移動速度",
+    "text.Shell Speed": "弾速",
+    "text.BASE": "基地",
+    "text.Blue Stronghold": "青軍拠点",
+    "text.Red Stronghold": "赤軍拠点",
+    "text.Neutral Stronghold": "中立拠点",
+    "text.BLUE Stronghold": "青軍拠点",
+    "text.RED Stronghold": "赤軍拠点",
+    "upgrade.price": "{cost}pt · Lv.{level}",
+    "text.FIELD MANUAL": "戦闘マニュアル"
+  };
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\locales\ru.json
+  var ru_default = {
+    "language.label": "Язык",
+    "menu.select": "Выбор режима",
+    "menu.guide": "ⓘ Руководство",
+    "menu.progressionGuide": "Прогресс и разблокировки",
+    "menu.retrySave": "Повторить сохранение",
+    "menu.ready": "Выберите поле боя.",
+    "menu.loading": "Подготовка поля боя…",
+    "menu.intro": "Пять способов сражаться. Выберите задачу и возглавьте бой.",
+    "wallet.unit": "ОЧКИ ПОБЕДЫ",
+    "wallet.rules": "При победе: +{points} за личное уничтожение. В Roguelite — остаток очков забега. Суперрежим без наград.",
+    "wallet.playSuper": "Играть в суперрежиме",
+    "wallet.unlockSuper": "Открыть супер · {cost} очк.",
+    "wallet.modeAction": "{mode}: {action}",
+    "rogue.upgrades": "Улучшения Roguelite",
+    "rogue.lost": "Забег окончен",
+    "rogue.won": "Все {rounds} раундов пройдены!",
+    "rogue.extracted": "Эвакуация после раунда {round}!",
+    "rogue.preparation": "Раунд {round}/{rounds} · Выжить {seconds} с · Выберите 1 из {choices} или пропустите · Обычные 60% / Редкие 30% / Легендарные 10%",
+    "rogue.super": "СУПЕРРЕЖИМ · Бесконечные очки · Любые способности повторно · Без наград",
+    "rogue.extract": "Эвакуироваться и победить",
+    "rogue.startRound": "Начать раунд {round}",
+    "rogue.buyAmmo": "Купить {ammo} снарядов ({points} очк.)",
+    "rogue.enterPoints": "Введите очки",
+    "rogue.ammoRate": "Раунд {round}: 1 очко = {ammo} снарядов",
+    "rogue.stats": "Характеристики",
+    "rogue.owned": "Полученные способности",
+    "rogue.results": "Итоги забега",
+    "rogue.upgradeHeading": "Улучшения",
+    "upgrade.heal.name": "Ремонт",
+    "upgrade.heal.description": "Восстановить всё здоровье",
+    "upgrade.speed.name": "Скорость",
+    "upgrade.speed.description": "+3% базовой скорости",
+    "upgrade.damage.name": "Урон",
+    "upgrade.damage.description": "+3% базового урона",
+    "upgrade.attackSpeed.name": "Скорострельность",
+    "upgrade.attackSpeed.description": "+3% базовой скорострельности",
+    "upgrade.armor.name": "Броня",
+    "upgrade.armor.description": "−{amount} урона за попадание, минимум 1",
+    "mode.frontline.name": "Линия фронта",
+    "mode.frontline.tag": "ВОЙНА ЗА ТЕРРИТОРИЮ",
+    "mode.frontline.description": "Захватывайте опорные пункты, продвигайтесь и уничтожьте базу врага.",
+    "mode.siege.name": "Штурм",
+    "mode.siege.tag": "ПРОРЫВ ЛИНИИ",
+    "mode.siege.description": "Возглавьте наступление через три укреплённые линии.",
+    "mode.defense.name": "Оборона",
+    "mode.defense.tag": "УДЕРЖАТЬ ПОЗИЦИИ",
+    "mode.defense.description": "Защищайте опорные пункты и остановите наступление врага.",
+    "mode.breakthrough.name": "Прорыв",
+    "mode.breakthrough.tag": "ВОЙНА НА ИСТОЩЕНИЕ",
+    "mode.breakthrough.description": "Разгромите врага и исчерпайте его подкрепления.",
+    "mode.roguelite.name": "Roguelite",
+    "mode.roguelite.tag": "ОДИН ТАНК. 30 РАУНДОВ.",
+    "mode.roguelite.description": "Выживите в 30 раундах, выбирая силы и принимая риск.",
+    "language.title": "Перевод / Язык",
+    "language.paused": "Игра приостановлена, пока открыты настройки языка.",
+    "language.close": "Закрыть и продолжить",
+    "rarity.common": "Обычная",
+    "rarity.rare": "Редкая",
+    "rarity.legendary": "Легендарная",
+    "ability.level": "Ур.{level}",
+    "ability.selected": "Выбрано",
+    "ability.free": "Бесплатная способность",
+    "ability.preview": "Сейчас → После выбора",
+    "ability.limit": "Достигнут предел характеристики.",
+    "ability.pickTarget": "Выберите полученную способность и снизьте её на один уровень.",
+    "ability.max": "Максимальный уровень: {level}.",
+    "ability.requires": "Нужен взрывной заряд или каскад смерти.",
+    "ability.remove": "Удалить",
+    "effect.roundIncome": "После раунда: номер раунда ×{amount} очков за уровень",
+    "effect.cap": "Предел очков: {amount}",
+    "effect.shield": "Блокировать урон на 1 с каждые 3 с боя",
+    "effect.payload": "Дополнительные взрывные снаряды: {amount} ({cost} боеприпасов за снаряд)",
+    "rogue.roundLabel": "РАУНД {round}/{rounds}",
+    "rogue.pointsKills": "{points} очк. · {kills} уничтожений",
+    "rogue.ammoHud": "БОЕПРИПАСЫ {ammo} · {cost} за залп",
+    "rogue.ended": "Уничтожений: {kills} · Осталось очков: {points}",
+    "wallet.reward": "Очки победы +{points} | Кошелёк {wallet}",
+    "wallet.noReward": "СУПЕРРЕЖИМ: без наград | Кошелёк {wallet}",
+    "guide.title": "Руководство Roguelite",
+    "guide.progression": "Прогресс и разблокировки",
+    "guide.close": "Закрыть ×",
+    "guide.progressionText": "В обычных командных режимах победа приносит {killPoints} очков за личное уничтожение. Roguelite зачисляет остаток очков забега при победе, без отдельной награды за убийства. Поражение и выход не дают наград.",
+    "guide.unlockText": "За {cost} общих очков навсегда открывается суперрежим одного режима (все пять: {total}). Суперрежимы не дают наград. В супер-Roguelite очки бесконечны, способности можно выбирать повторно без ограничений, но штрафы действуют. Сохранение привязано к браузеру и сайту; очистка данных удалит его.",
+    "guide.survival": "Выживание и подготовка",
+    "guide.survivalText": "Выживите в {rounds} раундах по {seconds} с. Старт: {hp} здоровья и {ammo} снарядов. После раунда {extract} можно эвакуироваться до броска следующего кубика врага. Смерть — поражение. Здоровье, боеприпасы и улучшения сохраняются, автолечения нет. При исходе боя музыка останавливается.",
+    "guide.economy": "Очки, улучшения и боеприпасы",
+    "guide.economyText": "Уничтожение даёт {points} очков забега. Перед раундами 2–{rounds} выдаются {supply} снарядов и выбор одной из {choices} способностей либо пропуск. Цена улучшения: от 5, затем +2 за покупку того же вида. Ремонт лечит полностью; рост максимума здоровья не лечит. Броня уменьшает урон до минимума 1, отрицательная увеличивает. Снарядов за очко: max(1,21−раунд), от 20 в R1 до 1 с R20. Обычный снаряд стоит 1 боеприпас, взрывной — {payload}.",
+    "guide.abilities": "Способности и штрафы",
+    "guide.abilityText": "Каждый слот: обычная (белая) 60%, редкая (синяя) 30%, легендарная (золотая) 10%; без повторов в одном предложении. Повторный выбор складывает усиления и штрафы. Перекалибровка снимает уровень и оба его эффекта. Обычные пределы: крупный снаряд/сделка 3, щит 1. Взрывным способностям нужен источник взрыва. Щит действует с 3-й секунды каждого раунда: [3,4), [6,7)… Минимумы: здоровье 25, базовый урон/скорость снаряда 20%, движение/стрельба 25%. Множитель крупного снаряда применяется после минимума.",
+    "guide.enemies": "Враги, кубик и бой",
+    "guide.enemyText": "Врагов одновременно от 6 до 180, здоровье от 90 с ростом +3 за раунд; движение и стрельба начинаются с половины командных значений. Замена ускоряется с 0,3 до 0,06 с. Кубик имеет 7 равных исходов: один из пяти статов +20–60% базы, пропуск, бомба (все пять). Усиления сохраняются, бросок блокирует подготовку. Мультивыстрел и пробитие не усиливают взрывной заряд. Рикошет не продлевает жизнь снаряда, угол считается один раз. Радиусы: заряд до 150px, взрыв при убийстве до 110px; урон падает с расстоянием. Взрывы игрока бьют только врагов, лечение не воскрешает и не превышает максимум.",
+    "guide.results": "Управление и результаты",
+    "guide.resultsText": "WASD/стрелки — движение, мышь — прицел, ЛКМ — огонь. Roguelite: только обычная пушка, урон 40, 5 выстр./с, скорость снаряда 750, жизнь 1,5 с. Итоги: шесть фактических сумм и линии раундов, нормированные к собственному максимуму 100%. При нуле убийств эффективность боеприпасов не считается. Подсказки показывают покупки, выбор способностей и перекалибровку. Ремонт относится к следующему раунду. Новый забег не сбрасывает кошелёк. Настройки перевода останавливают бой, таймеры и переходы.",
+    "ability.hull.name": "Усиленный корпус",
+    "ability.turbo.name": "Турбодвигатель",
+    "ability.loader.name": "Автозаряжание",
+    "ability.overcharge.name": "Усиленный заряд",
+    "ability.piercing.name": "Пробивные снаряды",
+    "ability.splitter.name": "Раздельный ствол",
+    "ability.ballistics.name": "Высокая скорость",
+    "ability.blast.name": "Широкий взрыв",
+    "ability.recycler.name": "Боевой переработчик",
+    "ability.plating.name": "Тяжёлая обшивка",
+    "ability.glass.name": "Стеклянный реактор",
+    "ability.storm.name": "Шквал снарядов",
+    "ability.siege.name": "Осадная батарея",
+    "ability.blood.name": "Кровавый двигатель",
+    "ability.rail.name": "Рельсовый ускоритель",
+    "ability.reactor.name": "Форсированный реактор",
+    "ability.slowOrb.name": "Орбитальный магазин",
+    "ability.warhead.name": "Нестабильные боеголовки",
+    "ability.juggernaut.name": "Железная крепость",
+    "ability.volatile.name": "Каскад смерти",
+    "ability.explosive.name": "Взрывной заряд",
+    "ability.ricochet.name": "Рикошет",
+    "ability.oversized.name": "Крупные снаряды",
+    "ability.recalibrate.name": "Перекалибровка",
+    "ability.bargain.name": "Сделка с дьяволом",
+    "ability.dividends.name": "Дивиденд раунда",
+    "ability.shield.name": "Импульсный щит",
+    "ability.lightHull.name": "Лёгкое шасси",
+    "ability.heavyAmmo.name": "Плотные боеприпасы",
+    "ability.overdrive.name": "Матрица перегрузки",
+    "effect.maxHP": "Макс. здоровье",
+    "effect.speed": "Скорость",
+    "effect.damage": "Урон",
+    "effect.attackSpeed": "Скорострельность",
+    "effect.armor": "Броня",
+    "effect.projectileSpeed": "Скорость снаряда",
+    "effect.projectileLifetime": "Время полёта",
+    "effect.projectileSize": "Размер снаряда",
+    "effect.shellSpeedFactor": "Скорость снаряда",
+    "effect.pointFactor": "Получаемые очки",
+    "effect.incomingDamageFactor": "Получаемый урон",
+    "effect.wallBounces": "Рикошеты от стен",
+    "effect.explosionRadius": "Радиус взрыва",
+    "effect.extraProjectiles": "Доп. обычные снаряды",
+    "effect.penetrationBonus": "Доп. пробитие",
+    "effect.killHeal": "Лечение за уничтожение",
+    "effect.deathBlastDamage": "Базовый урон взрыва при убийстве",
+    "text.Kills": "Уничтожения",
+    "text.Damage dealt": "Нанесённый урон",
+    "text.Damage taken": "Полученный урон",
+    "text.HP restored": "Восстановлено HP",
+    "text.Ammo spent": "Расход боеприпасов",
+    "text.Ammo per kill": "Снарядов на уничтожение",
+    "text.Points": "Очки",
+    "text.Move speed": "Скорость",
+    "text.Damage": "Урон",
+    "text.Shots / second": "Выстрелов/с",
+    "text.Armor": "Броня",
+    "text.Ammo / volley": "Боеприпасов/залп",
+    "text.Shell speed": "Скорость снаряда",
+    "text.Shell size / bounces": "Размер/рикошеты",
+    "text.Ammo": "Боеприпасы",
+    "text.Round": "Раунд",
+    "text.Lost": "Поражение",
+    "text.VICTORY": "ПОБЕДА",
+    "text.LOST": "ПОРАЖЕНИЕ",
+    "text.READY": "ГОТОВО",
+    "text.EMPTY": "ПУСТО",
+    "text.Standard Cannon": "Обычная пушка",
+    "text.Heavy Cannon": "Тяжёлая пушка",
+    "text.Scatter Cannon": "Дробовая пушка",
+    "text.Explosive Payload": "Взрывной заряд",
+    "text.Single shot": "Одиночный выстрел",
+    "text.Explosive shell": "Взрывной снаряд",
+    "text.3-shot / 30° spread": "3 снаряда / 30°",
+    "text.Balanced cannon for accurate sustained fire.": "Сбалансированная пушка для точного непрерывного огня.",
+    "text.Explosive shell with splash damage and strong knockback.": "Взрывной снаряд с уроном по площади и сильным отбрасыванием.",
+    "text.Three standard shells cover a wide frontal arc.": "Три обычных снаряда накрывают широкий сектор.",
+    "text.Totals & round trends": "Итоги и динамика раундов",
+    "text.Recalibration": "Перекалибровка",
+    "text.Lose one level. Both its benefit and penalty are removed.": "Снять один уровень вместе с усилением и штрафом.",
+    "text.Back to choices": "Назад к выбору",
+    "text.Enemy Dice": "Кубик усиления врага",
+    "text.Enemy stats this round": "Характеристики врагов раунда",
+    "text.Pass": "Пропуск",
+    "text.Speed": "Скорость",
+    "text.Fire Rate": "Скорострельность",
+    "text.Max HP": "Макс. здоровье",
+    "text.Projectile Speed": "Скорость снаряда",
+    "text.WASD: Move": "WASD: движение",
+    "text.Mouse: Aim": "Мышь: прицел",
+    "text.Left Click: Shoot": "ЛКМ: огонь",
+    "text.1/2: Select Item": "1/2: выбор предмета",
+    "text.Right Click: Use Selected Item": "ПКМ: использовать предмет",
+    "text.Space + Scroll: FreeCamera": "Пробел + колесо: свободная камера",
+    "text.My kill score:": "Мои уничтожения:",
+    "text.Blue Score:": "Счёт синих:",
+    "text.Red Score:": "Счёт красных:",
+    "text.CURRENT WEAPON": "ТЕКУЩЕЕ ОРУЖИЕ",
+    "text.[Q] SWITCH": "[Q] СМЕНА",
+    "text.SWITCH COOLDOWN": "ПЕРЕЗАРЯДКА СМЕНЫ",
+    "text.Item Cost": "Цена предмета",
+    "text.[1] Orbital Strike": "[1] Орбитальный удар",
+    "text.[2] Barrier": "[2] Барьер",
+    "text.SELECT OPERATION": "ВЫБОР ОПЕРАЦИИ",
+    "text.05 MISSION PROFILES": "05 ТИПОВ ЗАДАЧ",
+    "text.SYSTEMS ONLINE": "СИСТЕМЫ ГОТОВЫ",
+    "text.DEPLOY": "В БОЙ",
+    "text.QUICK SELECT": "БЫСТРЫЙ ВЫБОР",
+    "text.WASD + MOUSE TO PLAY": "WASD + МЫШЬ",
+    "text.Win normal matches. Unlock each Super Mode for 100,000 points.": "Побеждайте в обычных матчах. Каждый суперрежим — 100 000 очков.",
+    "text.none": "нет",
+    "text.None": "Нет",
+    "text.skipped": "пропущено",
+    "text.Base": "База",
+    "text.Tickets": "Подкрепления",
+    "text.Blue": "Синие",
+    "text.Red": "Красные",
+    "text.Battle complete": "Бой завершён",
+    "text.Shell damage": "Урон снаряда",
+    "text.Fire rate / reload": "Темп/перезарядка",
+    "text.Shell flight time": "Время полёта",
+    "text.Shell size": "Размер снаряда",
+    "text.Wall bounces": "Рикошеты",
+    "text.Standard pierce": "Пробитие",
+    "text.Shells / ammo per volley": "Снарядов/расход за залп",
+    "text.Explosion radius": "Радиус взрыва",
+    "text.HP per kill": "Лечение за уничтожение",
+    "text.Death nova damage / radius": "Урон/радиус взрыва",
+    "text.Points earned": "Полученные очки",
+    "text.Round income": "Доход раунда",
+    "text.Point limit": "Предел очков",
+    "text.Pulse shield": "Импульсный щит",
+    "text.Unlimited": "Без ограничений",
+    "combat.reload": "Перезарядка {seconds} с",
+    "combat.respawn": "Возрождение через {seconds}…",
+    "combat.respawnHint": "Подождите, ваш танк скоро вернётся.",
+    "combat.result.blue": "ПОБЕДА СИНИХ",
+    "combat.result.red": "ПОБЕДА КРАСНЫХ",
+    "objective.frontline": "Захватите опорные пункты и уничтожьте базу красных.",
+    "objective.siege": "Прорвите три стены и уничтожьте последнюю базу красных.",
+    "objective.defense": "Защищайте базу синих 7 минут.",
+    "objective.breakthrough": "Исчерпайте подкрепления красных раньше синих.",
+    "dice.bomb": "БОМБА · Все параметры врага",
+    "dice.enemy": "Враг: {stat}",
+    "dice.all": "Все 5 параметров +{bonus}% базы · До конца забега",
+    "dice.one": "+{bonus}% базы · Добавлено в этом раунде",
+    "dice.none": "В этом раунде без усиления врагов",
+    "dice.value": "{value} · Кубик +{bonus}%",
+    "dice.ack": "Щёлкните или нажмите Enter для начала",
+    "dice.rolling": "Бросок…",
+    "dice.deploying": "Выдвижение…",
+    "ability.removed": "Снят уровень: {name}",
+    "chart.note": "Пик каждой линии =100%; фактические значения ниже. — нет уничтожений. Наведите для покупок и способностей. Ремонт относится к следующему раунду.",
+    "chart.hidden": "Включите линии в легенде. Таблица всегда содержит все фактические значения.",
+    "chart.aria": "Шесть линий по раундам, каждая нормирована к своему максимуму 100%. Фактические значения в таблице ниже.",
+    "history.upgrades": "Улучшения: {items}",
+    "history.ability": "Способности: {items}",
+    "history.start": "нет (начальный раунд)",
+    "history.missing": "Подготовка: нет записи",
+    "rogue.economy": "{points} очк./уничтожение · Получаемый урон ×{factor}",
+    "rogue.cap": "Макс. {points} очк.",
+    "rogue.shield": "Щит 1 с / 3 с",
+    "text.SOLO SURVIVAL": "ОДИНОЧНОЕ ВЫЖИВАНИЕ",
+    "text.Standard-shell multishot": "Мультивыстрел обычных снарядов",
+    "text.Percentages use Round 1 before dice buffs.": "Проценты относительно R1 до кубика.",
+    "text.Dice upgrades persist for the rest of this run.": "Усиления кубика сохраняются до конца забега.",
+    "text.Each item: 5 → 7 → 9… points": "Каждый вид: 5 → 7 → 9… очк.",
+    "text.WASD / Arrows: Move · Mouse: Aim · Left click: Fire": "WASD/стрелки: движение · Мышь: прицел · ЛКМ: огонь",
+    "text.1s every 3s": "1 с каждые 3 с",
+    "text.Progress could not be loaded. Existing saves will not be overwritten.": "Не удалось загрузить прогресс. Существующее сохранение не будет перезаписано.",
+    "text.Progress is in memory only. Enable browser storage and retry saving before closing.": "Прогресс только в памяти. Разрешите хранилище браузера и повторите сохранение перед закрытием.",
+    "chart.peak": "{label}: пик за раунд {value} = 100%",
+    "chart.zero": "0 в записанных раундах",
+    "chart.noValue": "нет значений",
+    "chart.point": "Раунд {round}{lost} · {label}: {value} · {percent}% пика",
+    "history.reduced": "Снижено: {name} ур.{before} → {after}",
+    "rogue.eyebrow": "ОДИНОЧНОЕ ВЫЖИВАНИЕ · {rounds} РАУНДОВ",
+    "text.Shell": "Заряд",
+    "text.Nova": "Взрыв",
+    "text.blast": "взрыв",
+    "text.Move Speed": "Скорость",
+    "text.Shell Speed": "Скорость снаряда",
+    "text.BASE": "БАЗА",
+    "text.Blue Stronghold": "Опорный пункт синих",
+    "text.Red Stronghold": "Опорный пункт красных",
+    "text.Neutral Stronghold": "Нейтральный пункт",
+    "text.BLUE Stronghold": "Опорный пункт синих",
+    "text.RED Stronghold": "Опорный пункт красных",
+    "upgrade.price": "{cost} очк. · Ур.{level}",
+    "text.FIELD MANUAL": "БОЕВОЕ РУКОВОДСТВО"
   };
 
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\24-i18n.js
   var LANGUAGE_KEY = "tank-battle.language.v1";
-  var LANGUAGE_CATALOGS = Object.freeze({ en: Object.freeze({ name: "English", messages: Object.freeze(en_default) }) });
+  var LANGUAGE_CATALOGS = Object.freeze(Object.fromEntries([
+    ["en", "English", en_default],
+    ["ko", "한국어", ko_default],
+    ["zh", "简体中文", zh_default],
+    ["ja", "日本語", ja_default],
+    ["ru", "Русский", ru_default]
+  ].map(([code, name, messages]) => [code, Object.freeze({ name, messages: Object.freeze(messages) })])));
   function createI18n({ catalogs = LANGUAGE_CATALOGS, storage, locale = "en" } = {}) {
-    const listeners = /* @__PURE__ */ new Set();
+    const listeners2 = /* @__PURE__ */ new Set();
     const resolve = (value) => {
       if (typeof value !== "string") return null;
       const normalized = value.toLowerCase().replaceAll("_", "-");
@@ -2020,12 +3441,12 @@ var TankGame = (() => {
           storage?.setItem(LANGUAGE_KEY, next);
         } catch {
         }
-        for (const listener of listeners) listener(current);
+        for (const listener of listeners2) listener(current);
         return true;
       },
       subscribe(listener) {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
+        listeners2.add(listener);
+        return () => listeners2.delete(listener);
       }
     };
   }
@@ -2042,7 +3463,9 @@ var TankGame = (() => {
     return instance;
   }
   var t = (key, params, fallback) => getI18n().t(key, params, fallback);
+  var tx = (value) => t(`text.${value}`, {}, value);
   var originalText = /* @__PURE__ */ new WeakMap();
+  var originalNodes = /* @__PURE__ */ new WeakMap();
   function applyTranslations(root = document, language = getI18n()) {
     const elements = [...root.querySelectorAll("[data-i18n], [data-i18n-title], [data-i18n-aria-label]")];
     if (root.matches?.("[data-i18n], [data-i18n-title], [data-i18n-aria-label]")) elements.unshift(root);
@@ -2058,6 +3481,17 @@ var TankGame = (() => {
         if (target) element.setAttribute(target, translated);
         else element.textContent = translated;
       }
+    }
+    const walker = root.ownerDocument?.createTreeWalker?.(root, 4) ?? root.createTreeWalker?.(root, 4);
+    if (!walker) return;
+    let node;
+    while (node = walker.nextNode()) {
+      if (node.parentElement?.closest("script, style, option, [data-i18n], [data-no-translate]")) continue;
+      const source = originalNodes.get(node) ?? node.nodeValue;
+      const key = `text.${source.trim()}`;
+      if (!Object.hasOwn(en_default, key)) continue;
+      originalNodes.set(node, source);
+      node.nodeValue = source.replace(source.trim(), () => language.t(key, {}, source.trim()));
     }
   }
 
@@ -2800,9 +4234,9 @@ var TankGame = (() => {
       const distToNearest = Math.max(Math.hypot(dx, dy), 1e-4);
       const rx = dx / distToNearest;
       const ry = dy / distToNearest;
-      const tx = tank.orbitDir * -ry;
+      const tx2 = tank.orbitDir * -ry;
       const ty = tank.orbitDir * rx;
-      moveX = tx * moveSpeed * ORBIT_FACTOR;
+      moveX = tx2 * moveSpeed * ORBIT_FACTOR;
       moveY = ty * moveSpeed * ORBIT_FACTOR;
       let radial = 0;
       const tooClose = distToNearest < DESIRED_MIN;
@@ -3885,7 +5319,7 @@ var TankGame = (() => {
         ctx.font = "bold 20px sans-serif";
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
-        ctx.fillText("BASE", screenX, screenY - 48);
+        ctx.fillText(tx("BASE"), screenX, screenY - 48);
         ctx.restore();
       }
       for (const stronghold of this.strongholds) {
@@ -3915,7 +5349,7 @@ var TankGame = (() => {
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
         ctx.fillText(
-          stronghold.owner ? `${stronghold.owner.toUpperCase()} Stronghold` : "Neutral Stronghold",
+          stronghold.owner ? tx(`${stronghold.owner.toUpperCase()} Stronghold`) : tx("Neutral Stronghold"),
           screenX,
           screenY - 44
         );
@@ -5000,20 +6434,20 @@ var TankGame = (() => {
     let dx = bullet.x - previousX;
     let dy = bullet.y - previousY;
     for (; ; ) {
-      const tx = dx > 0 ? (right - x) / dx : dx < 0 ? (left - x) / dx : Infinity;
+      const tx2 = dx > 0 ? (right - x) / dx : dx < 0 ? (left - x) / dx : Infinity;
       const ty = dy > 0 ? (bottom - y) / dy : dy < 0 ? (top - y) / dy : Infinity;
-      const t2 = Math.min(1, tx, ty);
+      const t2 = Math.min(1, tx2, ty);
       const endX = x + dx * t2, endY = y + dy * t2;
       bullet.rogueSegments.push({ previousX: x, previousY: y, x: endX, y: endY });
       x = endX;
       y = endY;
-      if (tx > 1 && ty > 1) break;
+      if (tx2 > 1 && ty > 1) break;
       if (bullet.wallBouncesRemaining <= 0) {
         bullet.rogueWallStop = true;
         break;
       }
       bullet.wallBouncesRemaining--;
-      const hitX = Math.abs(tx - t2) < 1e-9, hitY = Math.abs(ty - t2) < 1e-9;
+      const hitX = Math.abs(tx2 - t2) < 1e-9, hitY = Math.abs(ty - t2) < 1e-9;
       if (hitX) bullet.vx = -bullet.vx;
       if (hitY) bullet.vy = -bullet.vy;
       dx *= (1 - t2) * (hitX ? -1 : 1);
@@ -5381,9 +6815,57 @@ var TankGame = (() => {
     return { series, ticks: [0, 25, 50, 75, 100].map((value) => ({ value, y: 240 - value * 2.2 })) };
   }
 
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\75-localized-game-text.js
+  var abilityName = (id) => t(`ability.${id}.name`, {}, ABILITIES[id]?.name ?? id);
+  var rarityName = (rarity) => t(`rarity.${rarity}`);
+  var statValue = (value) => String(value).replace(/\b(Shell|Nova|blast|None|Unlimited)\b/g, (word) => tx(word));
+  function abilityDescription(id, superMode = false) {
+    const ability = ABILITIES[id];
+    if (getI18n().locale === "en") return superMode ? ability.description.replace(/ Maximum level \d+\./g, "").replace("Your points are capped at 5,000.", "Run points remain unlimited in Super Mode.") : ability.description;
+    if (ability.action) return t("ability.pickTarget");
+    const percentage = /* @__PURE__ */ new Set(["speed", "damage", "attackSpeed", "projectileSpeed", "projectileLifetime", "explosionRadius"]);
+    const factors = /* @__PURE__ */ new Set(["projectileSize", "shellSpeedFactor", "pointFactor", "incomingDamageFactor"]);
+    const parts = Object.entries(ability.effects).flatMap(([key, value]) => {
+      if (key === "roundIncome") return t("effect.roundIncome", { amount: value });
+      if (key === "pointsCap") return superMode ? [] : t("effect.cap", { amount: getI18n().number(DIVIDEND_RULES.pointsCap) });
+      if (key === "pulseShield") return t("effect.shield");
+      if (key === "extraExplosiveProjectiles") return t("effect.payload", { amount: value, cost: EXPLOSIVE_AMMO_COST });
+      const label = t(`effect.${key}`, {}, key);
+      if (factors.has(key)) return `${label} ×${Number((1 + value).toFixed(3))}`;
+      return `${label} ${value < 0 ? "−" : "+"}${Number((Math.abs(value) * (percentage.has(key) ? 100 : 1)).toFixed(3))}${percentage.has(key) ? "%" : ""}`;
+    });
+    if (ability.maxLevel && !superMode) parts.push(t("ability.max", { level: ability.maxLevel }));
+    if (ability.requiresExplosion && !superMode) parts.push(t("ability.requires"));
+    return parts.join(" · ");
+  }
+  function localizedRewardText(reward, superMode, store) {
+    return t(superMode ? "wallet.noReward" : "wallet.reward", { points: getI18n().number(reward), wallet: getI18n().number(store.data.points) }) + (store.error ? ` | ${tx(store.error)}` : "");
+  }
+
+  // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\76-localized-guide.js
+  var escape = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  var section = (title, text) => `<section><h3>${escape(title)}</h3><p>${escape(text)}</p></section>`;
+  function renderLocalizedProgressionGuide() {
+    return section(t("guide.progression"), t("guide.progressionText", { killPoints: VICTORY_POINTS_PER_KILL })) + section(t("wallet.playSuper"), t("guide.unlockText", { cost: getI18n().number(SUPER_UNLOCK_COST), total: getI18n().number(SUPER_UNLOCK_COST * 5) }));
+  }
+  function renderLocalizedRogueGuide() {
+    const paragraphs = [
+      ["survival", { rounds: ROUND_COUNT, seconds: ROUND_SECONDS, hp: ROGUE_PLAYER_BASE.maxHP, ammo: STARTING_AMMO, extract: EXTRACTION_ROUND }],
+      ["economy", { points: KILL_POINTS, rounds: ROUND_COUNT, supply: ROUND_AMMO_SUPPLY, choices: ABILITY_CHOICE_COUNT, payload: EXPLOSIVE_AMMO_COST }],
+      ["ability", {}],
+      ["enemy", {}],
+      ["results", {}]
+    ];
+    const titles = { ability: "abilities", enemy: "enemies" };
+    const upgrades = `<section><h3>${escape(t("rogue.upgradeHeading"))}</h3><table>${Object.keys(UPGRADES).map((key) => `<tr><td>${escape(t(`upgrade.${key}.name`))}</td><td>${escape(t(`upgrade.${key}.description`, { amount: ARMOR_PER_UPGRADE }))}</td></tr>`).join("")}</table></section>`;
+    const abilities = `<section><h3>${escape(t("guide.abilities"))}</h3><table class="rogue-guide-abilities">${Object.keys(ABILITIES).map((id) => `<tr data-guide-ability="${id}"><td>${escape(abilityName(id))}</td><td data-rarity="${abilityRarity(id)}">${escape(rarityName(abilityRarity(id)))}</td><td>${escape(abilityDescription(id))}</td></tr>`).join("")}</table></section>`;
+    return renderLocalizedProgressionGuide() + paragraphs.map(([key, params]) => section(t(`guide.${titles[key] ?? key}`), t(`guide.${key === "ability" ? "ability" : key}Text`, params))).join("") + upgrades + abilities;
+  }
+
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\77-rogue-guide.js
   var escapeHTML = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   function renderRogueGuide() {
+    if (getI18n().locale !== "en") return renderLocalizedRogueGuide();
     const weapon = getRoguePlayerWeapon({}), first = getRoundConfig(1), last = getRoundConfig(ROUND_COUNT);
     const tiers = Object.keys(RARITIES);
     const abilities = Object.entries(ABILITIES).sort(([a], [b]) => tiers.indexOf(abilityRarity(a)) - tiers.indexOf(abilityRarity(b)));
@@ -5424,6 +6906,15 @@ var TankGame = (() => {
     let opener = null;
     guideDialog.querySelector("button").addEventListener("click", () => guideDialog.close());
     guideDialog.addEventListener("close", () => opener?.isConnected && opener.focus());
+    let progression = false;
+    const refresh = () => {
+      if (!guideDialog.open) return;
+      guideDialog.querySelector("#rogue-guide-title").textContent = t(progression ? "guide.progression" : "guide.title");
+      guideDialog.querySelector("header button").textContent = t("guide.close");
+      guideDialog.querySelector("header button").setAttribute("aria-label", getI18n().locale === "en" ? "Close mode guide" : t("guide.close"));
+      guideDialog.querySelector(".rogue-guide-content").innerHTML = progression ? getI18n().locale === "en" ? renderProgressionGuide() : renderLocalizedProgressionGuide() : renderRogueGuide();
+    };
+    getI18n().subscribe(refresh);
     document.addEventListener("click", (event) => {
       const trigger = event.target.closest?.("[data-rogue-guide], [data-progression-guide]");
       if (!trigger || guideDialog.open) return;
@@ -5431,7 +6922,9 @@ var TankGame = (() => {
       guideDialog.querySelector("#rogue-guide-title").textContent = trigger.hasAttribute("data-progression-guide") ? "Progression Guide" : "Roguelite Mode Guide";
       guideDialog.querySelector(".rogue-guide-content").innerHTML = trigger.hasAttribute("data-progression-guide") ? renderProgressionGuide() : renderRogueGuide();
       guideDialog.querySelector(".rogue-guide-content").scrollTop = 0;
+      progression = trigger.hasAttribute("data-progression-guide");
       guideDialog.showModal();
+      refresh();
     });
   }
 
@@ -5452,23 +6945,23 @@ var TankGame = (() => {
       card.classList.toggle("selected", selected);
       card.setAttribute("aria-pressed", String(selected));
       card.querySelector(".rogue-ability-icon").innerHTML = abilityIcon(id);
-      card.querySelector("h2").textContent = ability.name;
-      card.querySelector("p").textContent = state.isSuperMode ? ability.description.replace(/ Maximum level \d+\./g, "").replace("Your points are capped at 5,000.", "Run points remain unlimited in Super Mode.") : ability.description;
-      card.querySelector(".rogue-ability-status").textContent = `${RARITIES[rarity].name} · ${selected ? "Selected" : level ? `Lv.${level} → ${level + 1}` : "Free ability"}`;
+      card.querySelector("h2").textContent = abilityName(id);
+      card.querySelector("p").textContent = abilityDescription(id, state.isSuperMode);
+      card.querySelector(".rogue-ability-status").textContent = `${rarityName(rarity)} · ${selected ? t("ability.selected") : level ? `Lv.${level} → ${level + 1}` : t("ability.free")}`;
       const changes = ability.action ? [] : previewAbility(state.levels, before, id).filter((change) => !state.isSuperMode || !["points", "pointsCap", "roundIncome"].includes(change.key));
-      card.title = changes.map((change) => `${change.label}: ${change.before} → ${change.after}`).join("\n");
+      card.title = changes.map((change) => `${tx(change.label)}: ${statValue(change.before)} → ${statValue(change.after)}`).join("\n");
       const list = card.querySelector(".rogue-ability-changes");
       list.replaceChildren();
       for (const change of changes.slice(0, 3)) {
         const row = document.createElement("li"), label = document.createElement("span"), value = document.createElement("strong");
-        label.textContent = change.label;
-        value.textContent = `${change.before} → ${change.after}`;
+        label.textContent = tx(change.label);
+        value.textContent = `${statValue(change.before)} → ${statValue(change.after)}`;
         row.append(label, value);
         list.append(row);
       }
       if (!list.children.length) {
         const row = document.createElement("li");
-        row.textContent = ability.action ? state.removedAbility ? `Removed one level: ${ABILITIES[state.removedAbility].name}` : "Choose an owned ability after selecting this card." : "Stat limit reached.";
+        row.textContent = ability.action ? state.removedAbility ? t("ability.removed", { name: abilityName(state.removedAbility) }) : t("ability.pickTarget") : t("ability.limit");
         list.append(row);
       }
     }
@@ -5486,7 +6979,7 @@ var TankGame = (() => {
       label.className = "rogue-owned-label";
       label.textContent = `Lv.${count}`;
       badge.append(label);
-      badge.title = `${ABILITIES[id].name} Lv.${count}: ${ABILITIES[id].description}`;
+      badge.title = `${abilityName(id)} Lv.${count}: ${abilityDescription(id, state.isSuperMode)}`;
       badge.setAttribute("aria-label", badge.title);
       owned.append(badge);
     }
@@ -5500,7 +6993,7 @@ var TankGame = (() => {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.removeAbility = id;
-      button.textContent = `${ABILITIES[id].name} · ${level === 1 ? "Remove" : `Lv.${level} → ${level - 1}`}`;
+      button.textContent = `${abilityName(id)} · ${level === 1 ? t("ability.remove") : `Lv.${level} → ${level - 1}`}`;
       button.addEventListener("click", () => {
         if (state.removeAbility(id, game.world.player)) game.renderPanel();
       });
@@ -5512,18 +7005,18 @@ var TankGame = (() => {
   var escapeMarkup = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   function formatRoundPreparation(row) {
     const prep = row.preparation;
-    if (!prep) return "Preparation: not recorded";
-    const upgrades = prep.upgrades.map((item) => `${UPGRADES[item.key].name} +${item.count} (Lv.${item.level})`).join(", ") || "none";
-    const ability = prep.ability ? `${ABILITIES[prep.ability].name}${prep.abilityLevel ? ` (Lv.${prep.abilityLevel})` : ""}` : row.round === 1 ? "none (starting round)" : "skipped";
+    if (!prep) return t("history.missing");
+    const upgrades = prep.upgrades.map((item) => `${t(`upgrade.${item.key}.name`, {}, UPGRADES[item.key].name)} +${item.count} (Lv.${item.level})`).join(", ") || tx("none");
+    const ability = prep.ability ? `${abilityName(prep.ability)}${prep.abilityLevel ? ` (Lv.${prep.abilityLevel})` : ""}` : row.round === 1 ? t("history.start") : tx("skipped");
     const removed = prep.removedAbility ? `
-Reduced: ${ABILITIES[prep.removedAbility].name} Lv.${prep.removedAbilityLevel + 1} → ${prep.removedAbilityLevel ? `Lv.${prep.removedAbilityLevel}` : "removed"}` : "";
-    const selections = prep.superPicks ? Object.entries(prep.superPicks).map(([id, count]) => `${ABILITIES[id].name} +${count}`).join(", ") || "skipped" : ability;
-    return `Upgrades: ${upgrades}
-Ability: ${selections}${removed}`;
+${t("history.reduced", { name: abilityName(prep.removedAbility), before: prep.removedAbilityLevel + 1, after: prep.removedAbilityLevel ? `Lv.${prep.removedAbilityLevel}` : getI18n().locale === "en" ? "removed" : t("ability.remove") })}` : "";
+    const selections = prep.superPicks ? Object.entries(prep.superPicks).map(([id, count]) => `${abilityName(id)} +${count}`).join(", ") || tx("skipped") : ability;
+    return `${t("history.upgrades", { items: upgrades })}
+${t("history.ability", { items: selections })}${removed}`;
   }
   var RogueHistoryView = class {
-    constructor(section, signal) {
-      this.chart = section.querySelector(".rogue-round-charts");
+    constructor(section2, signal) {
+      this.chart = section2.querySelector(".rogue-round-charts");
       this.hiddenMetrics = /* @__PURE__ */ new Set();
       this.buttons = ROGUE_HISTORY_METRICS.map((metric) => {
         const button = document.createElement("button");
@@ -5535,7 +7028,10 @@ Ability: ${selections}${removed}`;
         swatch.className = "rogue-legend-swatch";
         swatch.setAttribute("aria-hidden", "true");
         if (metric.dash) swatch.classList.add("is-dashed");
-        button.append(swatch, document.createTextNode(metric.label));
+        const label = document.createElement("span");
+        label.dataset.i18n = `text.${metric.label}`;
+        label.textContent = tx(metric.label);
+        button.append(swatch, label);
         button.addEventListener("click", () => {
           if (this.hiddenMetrics.has(metric.key)) this.hiddenMetrics.delete(metric.key);
           else this.hiddenMetrics.add(metric.key);
@@ -5554,12 +7050,12 @@ Ability: ${selections}${removed}`;
       const rows = this.history?.rows ?? [];
       const model = getRogueChartModel(rows);
       const preparation = new Map(rows.map((row) => [row.round, formatRoundPreparation(row)]));
-      const fmt = (value, metric) => formatRogueMetric(value, metric.decimals ?? 1);
+      const fmt = (value, metric) => value === null ? "—" : new Intl.NumberFormat(getI18n().locale, { maximumFractionDigits: metric.decimals ?? 1, minimumFractionDigits: metric.decimals === 2 ? 2 : 0 }).format(value);
       let drawing = model.ticks.map((tick) => `<line x1="60" x2="876" y1="${tick.y}" y2="${tick.y}" class="chart-grid"/><text x="50" y="${tick.y + 5}" text-anchor="end">${tick.value}%</text>`).join("");
       for (const series of model.series) {
         const button = this.buttons.find((item) => item.dataset.metric === series.key);
         button.setAttribute("aria-pressed", String(!this.hiddenMetrics.has(series.key)));
-        button.title = series.peak > 0 ? `${series.label}: peak per round ${fmt(series.peak, series)} = 100%` : `${series.label}: ${series.points.some((point) => point.value === 0) ? "0 in recorded rounds" : "no value recorded"}`;
+        button.title = series.peak > 0 ? t("chart.peak", { label: tx(series.label), value: fmt(series.peak, series) }) : `${series.label}: ${series.points.some((point) => point.value === 0) ? t("chart.zero") : t("chart.noValue")}`;
         if (this.hiddenMetrics.has(series.key)) continue;
         let path = "", connected = false;
         for (const point of series.points) {
@@ -5570,17 +7066,17 @@ Ability: ${selections}${removed}`;
           path += `${connected ? "L" : "M"}${point.x},${point.y} `;
           connected = true;
         }
-        drawing += `<g data-series="${series.key}" style="--series-color:${series.color}"><path d="${path}" class="chart-line" stroke-dasharray="${series.dash}"/>` + series.points.filter((point) => point.y !== null).map((point) => `<circle cx="${point.x}" cy="${point.y}" r="3.5" class="chart-point${point.outcome === "lost" ? " chart-lost" : ""}"><title>${escapeMarkup(`Round ${point.round}${point.outcome === "lost" ? " (lost)" : ""} · ${series.label}: ${fmt(point.value, series)} · ${Number(point.percent.toFixed(1))}% of peak
+        drawing += `<g data-series="${series.key}" style="--series-color:${series.color}"><path d="${path}" class="chart-line" stroke-dasharray="${series.dash}"/>` + series.points.filter((point) => point.y !== null).map((point) => `<circle cx="${point.x}" cy="${point.y}" r="3.5" class="chart-point${point.outcome === "lost" ? " chart-lost" : ""}"><title>${escapeMarkup(`${t("chart.point", { round: point.round, lost: point.outcome === "lost" ? ` (${tx("Lost").toLowerCase()})` : "", label: tx(series.label), value: fmt(point.value, series), percent: Number(point.percent.toFixed(1)) })}
 ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       }
       const rounds = model.series[0].points;
-      drawing += rounds.filter((point) => rows.length <= 10 || point.round === 1 || point.round % 5 === 0).map((point) => `<text x="${point.x}" y="268" text-anchor="middle">${point.round}</text>`).join("") + '<text x="468" y="294" text-anchor="middle">Round</text>';
+      drawing += rounds.filter((point) => rows.length <= 10 || point.round === 1 || point.round % 5 === 0).map((point) => `<text x="${point.x}" y="268" text-anchor="middle">${point.round}</text>`).join("") + `<text x="468" y="294" text-anchor="middle">${tx("Round")}</text>`;
       const svg = this.chart.querySelector("svg");
-      svg.setAttribute("aria-label", "Six combat trends by round, normalized to each metric’s own peak of 100%. Actual values are in the table below.");
+      svg.setAttribute("aria-label", t("chart.aria"));
       svg.innerHTML = drawing;
-      this.chart.querySelector(".rogue-chart-values").innerHTML = '<table><thead><tr><th scope="col">Round</th>' + ROGUE_HISTORY_METRICS.map((metric) => `<th scope="col" style="color:${metric.color}">${metric.label}</th>`).join("") + "</tr></thead><tbody>" + rows.map((row) => `<tr data-round="${row.round}"><th scope="row">R${row.round}${row.outcome === "lost" ? " · Lost" : ""}</th>` + ROGUE_HISTORY_METRICS.map((metric) => `<td>${fmt(row.combat[metric.key], metric)}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
+      this.chart.querySelector(".rogue-chart-values").innerHTML = `<table><thead><tr><th scope="col">${tx("Round")}</th>` + ROGUE_HISTORY_METRICS.map((metric) => `<th scope="col" style="color:${metric.color}">${tx(metric.label)}</th>`).join("") + "</tr></thead><tbody>" + rows.map((row) => `<tr data-round="${row.round}"><th scope="row">R${row.round}${row.outcome === "lost" ? ` · ${tx("Lost")}` : ""}</th>` + ROGUE_HISTORY_METRICS.map((metric) => `<td>${fmt(row.combat[metric.key], metric)}</td>`).join("") + "</tr>").join("") + "</tbody></table>";
       for (const row of this.chart.querySelectorAll("tbody tr")) row.title = preparation.get(Number(row.dataset.round));
-      this.chart.querySelector(".rogue-chart-note").textContent = this.hiddenMetrics.size === ROGUE_HISTORY_METRICS.length ? "Use the legend to show a line. The table always shows all actual values." : "Each line’s own peak = 100%; actual values below. — = no kills. Hover a round for upgrades and ability picks. Repairs count toward the next round.";
+      this.chart.querySelector(".rogue-chart-note").textContent = this.hiddenMetrics.size === ROGUE_HISTORY_METRICS.length ? t("chart.hidden") : t("chart.note");
     }
   };
 
@@ -5641,7 +7137,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
           <div class="rogue-panel-content">
           <div class="rogue-panel-heading">
             <button type="button" class="rogue-panel-guide-button" data-i18n="menu.guide" data-rogue-guide aria-haspopup="dialog">ⓘ Mode guide</button>
-            <span class="rogue-eyebrow">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
+            <span class="rogue-eyebrow" id="rogue-panel-mode">SOLO SURVIVAL · ${ROUND_COUNT} ROUNDS</span>
             <h1 id="rogue-title"></h1><p id="rogue-summary"></p>
           </div>
           <div id="rogue-layout" class="rogue-layout">
@@ -5734,7 +7230,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         const card = document.createElement("button");
         card.type = "button";
         card.className = "rogue-ability";
-        card.innerHTML = '<span class="rogue-ability-icon"></span><h2></h2><span class="rogue-ability-status"></span><p></p><small class="rogue-preview-label">Current → After selection</small><ul class="rogue-ability-changes"></ul>';
+        card.innerHTML = '<span class="rogue-ability-icon"></span><h2></h2><span class="rogue-ability-status"></span><p></p><small class="rogue-preview-label" data-i18n="ability.preview">Current → After selection</small><ul class="rogue-ability-changes"></ul>';
         card.addEventListener("click", () => {
           if (!this.roundTransition && !this.diceReveal && this.state.chooseAbility(card.dataset.ability, this.world.player)) this.renderPanel();
         });
@@ -5785,7 +7281,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       });
       this.el("menu").addEventListener("click", returnToModeSelection);
       window.addEventListener("keydown", (e) => {
-        if (isRogueGuideOpen()) return;
+        if (isRogueGuideOpen() || isGamePaused()) return;
         if (this.diceReveal) {
           if (e.key === "Tab" || e.code === "Space" || e.code === "Enter") e.preventDefault();
           if (!e.repeat && (e.code === "Space" || e.code === "Enter")) this.dismissDiceOverlay();
@@ -5797,7 +7293,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         }
         if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code) && this.state.phase === "combat") e.preventDefault();
         if (e.key === "Tab" && !this.el("shade").hidden) {
-          const buttons = [...this.el("shade").querySelectorAll('button:not(:disabled):not([hidden]), select:not(:disabled), input:not(:disabled), [tabindex="0"]')].filter((button) => button.getClientRects().length > 0);
+          const buttons = [...this.el("shade").querySelectorAll('button:not(:disabled):not([hidden]), select:not(:disabled), input:not(:disabled), [tabindex="0"]'), document.getElementById("translation-button")].filter((button) => button && button.getClientRects().length > 0);
           const first = buttons[0], last = buttons.at(-1);
           if (e.shiftKey && (document.activeElement === first || !buttons.includes(document.activeElement))) {
             e.preventDefault();
@@ -5821,7 +7317,17 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       applyTranslations(this.root);
       this.unsubscribeLanguage = getI18n().subscribe(() => {
         applyTranslations(this.root);
-        if (this.state.phase !== "combat") this.renderPanel({ focus: false });
+        if (this.state.phase !== "combat" && !this.roundTransition) this.renderPanel({ focus: false });
+        if (this.diceReveal) {
+          this.renderDiceOverlay();
+          this.advanceDiceReveal(0);
+        }
+        this.renderHUD();
+      });
+      this.unsubscribePause = subscribeGamePause(() => {
+        this.input.reset();
+        this.accumulator = 0;
+        this.lastTime = performance.now();
       });
       this.resetRun();
       this.loop = this.loop.bind(this);
@@ -5833,6 +7339,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       cancelAnimationFrame(this.animationFrameId);
       this.events.abort();
       this.unsubscribeLanguage?.();
+      this.unsubscribePause?.();
       this.input.reset();
       this.input.dispose();
       this.root.remove();
@@ -5872,8 +7379,8 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       const weapon = getRoguePlayerWeapon(player);
       this.el("shade").hidden = false;
       this.el("title").textContent = state.phase === "won" ? state.extracted ? t("rogue.extracted", { round: state.round - 1 }) : t("rogue.won", { rounds: ROUND_COUNT }) : state.phase === "lost" ? t("rogue.lost") : t("rogue.upgrades");
-      this.el("summary").textContent = ended ? `${state.kills} kills · ${displayPoints(state.points)} points left · HP ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHP}` : t("rogue.preparation", { round: state.round, rounds: ROUND_COUNT, seconds: ROUND_SECONDS, choices: ABILITY_CHOICE_COUNT });
-      if (ended) this.el("summary").textContent += ` | ${victoryRewardText(this.reward, this.isSuperMode)}`;
+      this.el("summary").textContent = ended ? t("rogue.ended", { kills: state.kills, points: displayPoints(state.points) }) : t("rogue.preparation", { round: state.round, rounds: ROUND_COUNT, seconds: ROUND_SECONDS, choices: ABILITY_CHOICE_COUNT });
+      if (ended) this.el("summary").textContent += ` | ${localizedRewardText(this.reward, this.isSuperMode, getProgression())}`;
       else if (this.isSuperMode) this.el("summary").textContent = t("rogue.super");
       this.el("extract").hidden = !state.canExtract;
       this.el("abilities").setAttribute("aria-label", this.isSuperMode ? "All abilities: select repeatedly or continue" : "Optional free ability: choose one or continue without choosing");
@@ -5888,7 +7395,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         shellSize: `×${player.projectileSizeMultiplier} / ${player.wallBounces}`
       };
       for (const [key, value] of Object.entries(stats)) this.statValues[key].textContent = value;
-      this.el("economy-note").textContent = `${KILL_POINTS * player.pointMultiplier} pts / kill · Damage taken ×${player.incomingDamageMultiplier}${Number.isFinite(player.pointsCap) ? ` · Max ${player.pointsCap.toLocaleString("en-US")} pts` : ""}${player.pulseShield ? " · Shield 1s / 3s" : ""}`;
+      this.el("economy-note").textContent = t("rogue.economy", { points: KILL_POINTS * player.pointMultiplier, factor: player.incomingDamageMultiplier }) + (Number.isFinite(player.pointsCap) ? ` · ${t("rogue.cap", { points: getI18n().number(player.pointsCap) })}` : "") + (player.pulseShield ? ` · ${t("rogue.shield")}` : "");
       this.renderAmmoShop();
       this.renderRunSummary();
       if (ended) this.historyView.render();
@@ -5900,7 +7407,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         button.querySelector("strong").textContent = t(`upgrade.${key}.name`, {}, UPGRADES[key].name);
         button.querySelector("small").textContent = t(`upgrade.${key}.description`, { amount: ARMOR_PER_UPGRADE }, UPGRADES[key].description);
         button.disabled = ended || state.diceRolled || state.points < state.cost(key) || key === "heal" && player.hp >= player.maxHP;
-        button.querySelector(".rogue-price").textContent = `${state.cost(key)} pts · Lv.${state.levels[key]}`;
+        button.querySelector(".rogue-price").textContent = t("upgrade.price", { cost: state.cost(key), level: state.levels[key] });
       }
       const nextLabel = ended ? t("menu.select") : t("rogue.startRound", { round: state.round });
       this.el("next-label").textContent = nextLabel;
@@ -5915,6 +7422,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       }
       this.renderHUD();
       this.fitPanel();
+      applyTranslations(this.root);
     }
     renderRunSummary() {
       const ended = this.state.phase === "won" || this.state.phase === "lost";
@@ -5961,13 +7469,13 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         maxHP: `${Number(config.enemyMaxHP.toFixed(1))} HP`,
         projectileSpeed: percent2(config.enemyProjectileSpeedMultiplier)
       };
-      this.el("dice-round").textContent = `ROUND ${state.round} / ${ROUND_COUNT}`;
+      this.el("dice-round").textContent = t("rogue.roundLabel", { round: state.round, rounds: ROUND_COUNT });
       this.el("dice-symbol").textContent = result.symbol;
-      this.el("dice-title").textContent = result.bomb ? "BOMB · All Enemy Stats" : result.key ? `Enemy ${result.name}` : "Pass";
-      this.el("dice-result").textContent = result.bomb ? `All 5 stats +${result.bonus}% of base · Permanent this run` : result.key ? `+${result.bonus}% of base · Added this round` : "No enemy buff this round";
+      this.el("dice-title").textContent = result.bomb ? t("dice.bomb") : result.key ? t("dice.enemy", { stat: tx(result.name) }) : tx("Pass");
+      this.el("dice-result").textContent = result.bomb ? t("dice.all", { bonus: result.bonus }) : result.key ? t("dice.one", { bonus: result.bonus }) : t("dice.none");
       for (const face of ENEMY_DICE_FACES.filter((face2) => face2.key)) {
         const bonus = state.enemyDiceBonuses[face.key];
-        this.el(`dice-stat-${face.key}`).textContent = `${values[face.key]} · Dice +${bonus}%`;
+        this.el(`dice-stat-${face.key}`).textContent = t("dice.value", { value: values[face.key], bonus });
       }
     }
     dismissDiceOverlay() {
@@ -5983,7 +7491,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.root.style.setProperty("--rogue-dice-scale", frame.scale);
       this.root.style.setProperty("--rogue-dice-opacity", frame.opacity);
       this.el("dice-overlay").classList.toggle("is-ready", frame.ready);
-      this.el("dice-hint").textContent = frame.ready ? "Click anywhere or press Enter to start" : this.diceReveal.phase === "entering" ? "Rolling…" : "Deploying…";
+      this.el("dice-hint").textContent = frame.ready ? t("dice.ack") : this.diceReveal.phase === "entering" ? t("dice.rolling") : t("dice.deploying");
       if (frame.done) this.startRevealedRound();
     }
     startRevealedRound() {
@@ -6007,7 +7515,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.roundTransition = new RogueRoundTransition(this.state.phase, round);
       this.root.classList.add("rogue-transitioning");
       const banner = this.el("round-banner");
-      banner.textContent = this.state.phase === "won" ? "VICTORY" : this.state.phase === "lost" ? "LOST" : "";
+      banner.textContent = this.state.phase === "won" ? tx("VICTORY") : this.state.phase === "lost" ? tx("LOST") : "";
       banner.classList.toggle("is-loss", this.state.phase === "lost");
       banner.hidden = !banner.textContent;
       this.el("shade").inert = true;
@@ -6051,16 +7559,17 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
     }
     renderHUD() {
       const p = this.world.player;
+      this.el("panel-mode").textContent = t("rogue.eyebrow", { rounds: ROUND_COUNT });
       const weapon = getRoguePlayerWeapon(p);
       const ammo = planAmmoVolley(p.ammo, weapon.pelletCount, p.extraExplosiveProjectiles ?? 0);
-      this.el("ammo").textContent = `AMMO ${p.ammo} · ${ammo.fullCost} / volley${p.ammo === 0 ? " · EMPTY" : ""}`;
+      this.el("ammo").textContent = t("rogue.ammoHud", { ammo: p.ammo, cost: ammo.fullCost }) + (p.ammo === 0 ? ` · ${tx("EMPTY")}` : "");
       this.el("ammo").classList.toggle("danger", p.ammo === 0);
       this.el("ammo").classList.toggle("warning", p.ammo > 0 && p.ammo <= ammo.fullCost * 10);
-      this.el("round").textContent = `ROUND ${this.roundTransition?.round ?? this.state.round} / ${ROUND_COUNT}`;
+      this.el("round").textContent = t("rogue.roundLabel", { round: this.roundTransition?.round ?? this.state.round, rounds: ROUND_COUNT });
       for (const display of this.healthDisplays) updateRogueHealthDisplay(display, p.hp, p.maxHP);
       this.el("time").textContent = `${this.state.remaining.toFixed(1)}s`;
-      this.el("points").textContent = `${displayPoints(this.state.points)} points · ${this.state.kills} kills`;
-      this.el("weapon").textContent = `${p.weapon.title} · Damage ${this.damageText()} · Reload ${(p.reloadTime / p.attackSpeedMultiplier).toFixed(2)}s`;
+      this.el("points").textContent = t("rogue.pointsKills", { points: displayPoints(this.state.points), kills: this.state.kills });
+      this.el("weapon").textContent = `${tx(p.weapon.title)} · ${tx("Damage")} ${this.damageText()} · ${t("combat.reload", { seconds: (p.reloadTime / p.attackSpeedMultiplier).toFixed(2) })}`;
       const countdown = getRogueCountdown(this.state.remaining, this.state.phase === "combat");
       this.root.classList.toggle("rogue-countdown-active", countdown.active);
       this.root.style.setProperty("--rogue-edge-opacity", countdown.edgeOpacity);
@@ -6074,6 +7583,11 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       if (this.disposed) return;
       const dt = document.hidden ? 0 : clampFrameDelta((now - this.lastTime) / 1e3);
       this.lastTime = now;
+      if (isGamePaused()) {
+        this.accumulator = 0;
+        this.animationFrameId = requestAnimationFrame(this.loop);
+        return;
+      }
       const wasDiceReveal = !!this.diceReveal;
       if (this.diceReveal) {
         this.advanceDiceReveal(dt);
@@ -6124,7 +7638,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
     function refresh() {
       store.reload();
       document.getElementById("victory-wallet").textContent = getI18n().number(store.data.points);
-      status.textContent = store.error || t("wallet.rules", { points: VICTORY_POINTS_PER_KILL });
+      status.textContent = tx(store.error) || t("wallet.rules", { points: VICTORY_POINTS_PER_KILL });
       retry.hidden = !store.dirty;
       for (const card of MODE_CARDS) {
         const button = document.querySelector(`[data-super-mode="${card.id}"]`);
@@ -6158,32 +7672,58 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
   // game-source:C:\Users\KimTaeYoung\Desktop\MyProject\TankGame\TankGame 2025-10-20 V14.5\.publish\blog\src\js\83-language-ui.js
   function installLanguageUI() {
     const language = getI18n();
-    let select;
-    if (language.languages.length > 1) {
-      const label = document.createElement("label"), text = document.createElement("span");
-      label.className = "language-picker";
-      text.dataset.i18n = "language.label";
-      select = document.createElement("select");
-      select.setAttribute("aria-label", language.t("language.label"));
-      for (const { code, name } of language.languages) {
-        const option = document.createElement("option");
-        option.value = code;
-        option.textContent = name;
-        select.append(option);
-      }
-      select.addEventListener("change", () => language.setLocale(select.value));
-      label.append(text, select);
-      document.querySelector(".selector-topline").append(label);
+    const button = document.createElement("button");
+    button.id = "translation-button";
+    button.type = "button";
+    button.setAttribute("aria-haspopup", "dialog");
+    button.innerHTML = '<span aria-hidden="true">文 / A</span><span data-i18n="language.label">Language</span>';
+    const dialog = document.createElement("dialog");
+    dialog.id = "language-dialog";
+    dialog.setAttribute("aria-labelledby", "language-title");
+    dialog.innerHTML = '<h2 id="language-title" data-i18n="language.title"></h2><p data-i18n="language.paused"></p><label><span data-i18n="language.label"></span><select id="language-select"></select></label><button type="button" data-i18n="language.close"></button>';
+    const select = dialog.querySelector("select");
+    for (const { code, name } of language.languages) {
+      const option = document.createElement("option");
+      option.value = code;
+      option.textContent = name;
+      select.append(option);
     }
+    document.body.append(button, dialog);
+    document.addEventListener("toggle", (event) => {
+      if (event.target instanceof HTMLDialogElement && event.target !== dialog) {
+        const active = [...document.querySelectorAll("dialog[open]")].filter((item) => item !== dialog).at(-1);
+        (active ?? document.body).append(button);
+      }
+    }, true);
+    let releasePause = null, opener = null, resumeMusic = false;
+    const bgm = () => document.getElementById("bgm");
+    button.addEventListener("click", () => {
+      if (dialog.open) return;
+      opener = document.activeElement;
+      releasePause = acquireGamePause();
+      resumeMusic = !!bgm() && !bgm().paused;
+      bgm()?.pause();
+      dialog.showModal();
+      select.focus();
+    });
+    select.addEventListener("change", () => language.setLocale(select.value));
+    dialog.querySelector("button").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", () => {
+      releasePause?.();
+      releasePause = null;
+      if (resumeMusic) bgm()?.play().catch(() => {
+      });
+      resumeMusic = false;
+      if (opener?.isConnected) opener.focus();
+    });
     const refresh = () => {
       document.documentElement.lang = language.locale;
       applyTranslations();
-      for (const [index, button] of [...document.querySelectorAll("[data-scenario]")].entries()) {
-        button.setAttribute("aria-label", `${language.number(index + 1)}. ${button.querySelector(".mode-name").textContent}. ${button.querySelector(".mode-description").textContent}`);
-      }
-      if (select) {
-        select.value = language.locale;
-        select.setAttribute("aria-label", language.t("language.label"));
+      select.value = language.locale;
+      select.setAttribute("aria-label", t("language.label"));
+      button.setAttribute("aria-label", t("language.title"));
+      for (const [index, card] of [...document.querySelectorAll("[data-scenario]")].entries()) {
+        card.setAttribute("aria-label", `${language.number(index + 1)}. ${card.querySelector(".mode-name").textContent}. ${card.querySelector(".mode-description").textContent}`);
       }
     };
     language.subscribe(refresh);
@@ -6213,6 +7753,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         rightDown: false
       };
       this.onKeyDown = (e) => {
+        if (isGamePaused()) return;
         this.keys[e.key.toLowerCase()] = true;
       };
       this.onKeyUp = (e) => {
@@ -6331,7 +7872,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         this.orbitalCooldownFillEl.style.width = `${progress * 100}%`;
       }
       if (this.orbitalStatusEl) {
-        this.orbitalStatusEl.textContent = cooldown > 0 ? `${Math.ceil(cooldown)}s` : "READY";
+        this.orbitalStatusEl.textContent = cooldown > 0 ? `${Math.ceil(cooldown)}s` : tx("READY");
       }
       if (this.specialWeaponPointEl) {
         this.specialWeaponPointEl.textContent = `${currentPoint}`;
@@ -6352,8 +7893,8 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
     updateBaseHealth(blue, red, maxValue = 1e4, label = "Base") {
       const blueLabel = document.getElementById("blue-status-label");
       const redLabel = document.getElementById("red-status-label");
-      if (blueLabel) blueLabel.textContent = `Blue ${label}`;
-      if (redLabel) redLabel.textContent = `Red ${label}`;
+      if (blueLabel) blueLabel.textContent = `${tx("Blue")} ${tx(label)}`;
+      if (redLabel) redLabel.textContent = `${tx("Red")} ${tx(label)}`;
       if (this.blueBaseFillEl) {
         this.blueBaseFillEl.style.width = `${Math.max(0, Math.min(100, blue / maxValue * 100))}%`;
       }
@@ -6378,9 +7919,9 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.timerEl.textContent = `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
     }
     updateScenario(scenario) {
-      if (this.scenarioNameEl) this.scenarioNameEl.textContent = scenario?.title ?? "";
+      if (this.scenarioNameEl) this.scenarioNameEl.textContent = scenario ? t(`mode.${scenario.id}.name`, {}, scenario.title) : "";
       if (this.scenarioObjectiveEl) {
-        this.scenarioObjectiveEl.textContent = scenario?.objective ?? "";
+        this.scenarioObjectiveEl.textContent = scenario ? t(`objective.${scenario.id}`, {}, scenario.objective) : "";
       }
     }
     updatePlayerWeapon(player, cooldown, maxCooldown) {
@@ -6391,13 +7932,13 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       if (!visible) return;
       const weapon = player.weapon;
       if (this.weaponPanelEl) this.weaponPanelEl.dataset.weaponId = weapon.id;
-      if (this.weaponNameEl) this.weaponNameEl.textContent = weapon.title;
+      if (this.weaponNameEl) this.weaponNameEl.textContent = tx(weapon.title);
       if (this.weaponDescriptionEl) {
-        this.weaponDescriptionEl.textContent = weapon.description;
+        this.weaponDescriptionEl.textContent = tx(weapon.description);
       }
-      if (this.weaponFireModeEl) this.weaponFireModeEl.textContent = weapon.fireMode;
+      if (this.weaponFireModeEl) this.weaponFireModeEl.textContent = tx(weapon.fireMode);
       if (this.weaponReloadEl) {
-        this.weaponReloadEl.textContent = `Reload ${weapon.reloadTime.toFixed(1)}s`;
+        this.weaponReloadEl.textContent = t("combat.reload", { seconds: weapon.reloadTime.toFixed(1) });
       }
       if (this.weaponTankSymbolEl) {
         this.weaponTankSymbolEl.className = `shape-${weapon.tankShape}`;
@@ -6406,7 +7947,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         this.weaponFirePatternEl.className = `pattern-${weapon.id}`;
       }
       if (this.weaponSwitchStatusEl) {
-        this.weaponSwitchStatusEl.textContent = cooldown > 0 ? `${Math.ceil(cooldown)}s` : "READY";
+        this.weaponSwitchStatusEl.textContent = cooldown > 0 ? `${Math.ceil(cooldown)}s` : tx("READY");
       }
       if (this.weaponSwitchFillEl) {
         const progress = maxCooldown > 0 ? Math.max(0, Math.min(1, 1 - cooldown / maxCooldown)) : 1;
@@ -6428,7 +7969,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         this.barrierStatusEl.textContent = `${Math.ceil(world.deployableWallCooldown)}s`;
         this.barrierStatusEl.style.color = "#ffcf70";
       } else {
-        this.barrierStatusEl.textContent = "READY";
+        this.barrierStatusEl.textContent = tx("READY");
         this.barrierStatusEl.style.color = "#8fd8ff";
       }
       if (this.barrierCooldownFillEl) {
@@ -6511,6 +8052,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         this.requestFullscreen();
       }
       window.addEventListener("keydown", (e) => {
+        if (isGamePaused()) return;
         const itemId = ITEM_BY_KEY[e.key];
         if (itemId) game.selectItem(itemId);
         if (e.code === "KeyQ" && !e.repeat) game.switchPlayerWeapon();
@@ -6677,7 +8219,8 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         for (const audio of audioPool.pool) audio.volume = 0;
       }
       const reward = game.rewardSession.settle({ won: game.world.winner === game.world.level.playerTeam, kills: game.world.killcount.player });
-      game.rewardMessage = victoryRewardText(reward, game.isSuperMode);
+      game.reward = reward;
+      game.rewardMessage = localizedRewardText(reward, game.isSuperMode, getProgression());
       game.endingExplosions = {
         nextIdx: 0,
         explosions: [],
@@ -6751,6 +8294,16 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.ui.updateScenario(this.levelDefinition);
       this.stateManager = new GameStateManager(this);
       this.eventManager = new EventManager(this);
+      this.unsubscribePause = subscribeGamePause(() => {
+        this.input.reset();
+        this.accumulator = 0;
+        this.lastTime = performance.now();
+        this.eventManager?.cancelLongPress();
+      });
+      this.unsubscribeLanguage = getI18n().subscribe(() => {
+        this.ui.updateScenario(this.world.level);
+        if (this.endingExplosions) this.rewardMessage = localizedRewardText(this.reward, this.isSuperMode, getProgression());
+      });
       this.endingExplosions = null;
       this.rewardSession = createRewardSession(this.world.level.id, this.isSuperMode, this.isSpectatorMode);
       const playerSpawn = this.getPlayerSpawn();
@@ -6900,6 +8453,11 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       const dtMs = Math.max(0, now - this.lastTime);
       this.lastTime = now;
       const dt = clampFrameDelta(dtMs / 1e3, this.maxFrameDelta);
+      if (isGamePaused()) {
+        this.accumulator = 0;
+        this.animationFrameId = requestAnimationFrame(this.boundLoop);
+        return;
+      }
       if (this.running) {
         this.accumulator += dt;
       }
@@ -6930,13 +8488,13 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         ctx.font = "bold 64px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        const msg = this.endingExplosions.message;
+        const msg = t(`combat.result.${this.world.winner}`, {}, this.endingExplosions.message);
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
         ctx.fillText(msg, centerX, centerY - 100);
         ctx.fillStyle = "#7fd6ff";
         ctx.font = "bold 30px sans-serif";
-        ctx.fillText(this.rewardMessage || "Battle complete", centerX, centerY, this.canvas.width - 40);
+        ctx.fillText(this.rewardMessage || tx("Battle complete"), centerX, centerY, this.canvas.width - 40);
         ctx.restore();
         this.animationFrameId = requestAnimationFrame(this.boundLoop);
         return;
@@ -7009,8 +8567,8 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
         if (!this.endingExplosions) this.stateManager.handleGameOver();
       } else if (this.playerTank && this.playerTank.hp <= 0 && this.playerRespawnTimer > 0) {
         this.ui.showOverlay(
-          `Respawning in ${Math.ceil(this.playerRespawnTimer)}...`,
-          "Stay patient. Your tank will return soon."
+          t("combat.respawn", { seconds: Math.ceil(this.playerRespawnTimer) }),
+          t("combat.respawnHint")
         );
       } else {
         this.ui.hideOverlay();
@@ -7023,6 +8581,8 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       this.running = false;
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
+      this.unsubscribePause?.();
+      this.unsubscribeLanguage?.();
       this.eventManager?.dispose();
       this.input?.reset();
       this.input?.dispose();
@@ -7123,7 +8683,7 @@ ${preparation.get(point.round)}`)}</title></circle>`).join("") + "</g>";
       }
     }
     function startGame(scenarioId = "frontline", useSuper = false) {
-      if (gameStarted || !gameReady || isRogueGuideOpen()) return;
+      if (gameStarted || !gameReady || isRogueGuideOpen() || isGamePaused()) return;
       if (useSuper && !getProgression().isUnlocked(scenarioId)) return;
       gameStarted = true;
       const bottomHudEl = document.getElementById("bottom-hud");
